@@ -1,0 +1,186 @@
+:root {
+  color-scheme: dark;
+  background: #06080c;
+}
+
+body {
+  background: #06080c;
+}
+
+/* Game core: HUD + stage only — status text is fixed and out of flow. */
+.suki-game-core {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'hud'
+    'stage';
+  align-content: stretch;
+}
+
+.hud {
+  grid-area: hud;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  max-height: 6.25rem;
+  overflow: hidden;
+}
+
+.stat {
+  background: rgba(18, 22, 30, 0.88);
+  border: 1px solid #1f2733;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  min-width: 0;
+}
+
+.stat-wide {
+  grid-column: 1 / -1;
+}
+
+.stat .label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8b97a8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat .value {
+  font-size: 0.98rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage {
+  grid-area: stage;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(14, 18, 26, 0.95), rgba(8, 10, 14, 0.88));
+  border: 1px solid #1f2733;
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  position: relative;
+  overflow: hidden;
+  contain: layout style;
+}
+
+.slot-canvas-host {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+}
+
+.slot-canvas-host canvas {
+  border-radius: 10px;
+}
+
+.build-ref {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.45rem;
+  margin: 0;
+  padding: 0.18rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid #2a3548;
+  background: rgba(8, 12, 18, 0.82);
+  color: #7d8da3;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 3;
+  pointer-events: none;
+  user-select: text;
+}
+
+/* Fixed overlay — never participates in shell / core layout. */
+.message {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  z-index: 12;
+  width: min(24rem, calc(100vw - 1.5rem));
+  text-align: center;
+  margin: 0;
+  padding: 0.2rem 0.45rem;
+  color: #c5d0de;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replay-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #3d2a14;
+  background: rgba(26, 18, 8, 0.9);
+  font-size: 0.75rem;
+}
+
+.replay-label {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.stats,
+.compliance-dev {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #6b7a90;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compliance-dev {
+  margin-top: 0.25rem;
+  font-size: 0.62rem;
+  color: #4a5568;
+}
+
+.principles {
+  padding: 0.65rem 0.85rem;
+  background: rgba(13, 17, 24, 0.92);
+  border-radius: 8px;
+  border: 1px solid #1a2230;
+  font-size: 0.72rem;
+  color: #8b97a8;
+}
+
+.principles ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.principles code {
+  font-size: 0.68rem;
+  color: #c5d0de;
+}
