@@ -25,7 +25,7 @@ export function createMultiplierPanel({ panelEl, ledgerEl }) {
   let fadeToken = 0;
 
   /**
-   * Append one ledger entry for a cluster win.
+   * Append one ledger entry — combined cluster×cascade multiplier and symbol only.
    * @param {{ symbol: string, size?: number, cells?: [number, number][], baseMultiplier?: number }} cluster
    * @param {number} cascadeMultiplier
    */
@@ -34,22 +34,26 @@ export function createMultiplierPanel({ panelEl, ledgerEl }) {
     if (size < 1) return;
 
     const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
-    const effectiveMult = baseMult * cascadeMultiplier;
-    if (effectiveMult <= 0) return;
+    const combinedMult = baseMult * cascadeMultiplier;
+    if (combinedMult <= 0) return;
 
     const row = document.createElement('tr');
     row.className = 'ledger-entry';
-
-    const labelCell = document.createElement('td');
-    labelCell.className = 'ledger-entry-label';
-    labelCell.textContent = `${formatMult(effectiveMult)} multiplier`;
 
     const symbolCell = document.createElement('td');
     symbolCell.className = 'ledger-entry-symbol';
     symbolCell.textContent = symbolGlyph(cluster.symbol);
     symbolCell.setAttribute('aria-label', symbolLabel(cluster.symbol));
 
-    row.append(labelCell, symbolCell);
+    const multCell = document.createElement('td');
+    multCell.className = 'ledger-entry-mult';
+    multCell.textContent = formatMult(combinedMult);
+    multCell.setAttribute(
+      'aria-label',
+      `${symbolLabel(cluster.symbol)} ${formatMult(combinedMult)}`,
+    );
+
+    row.append(symbolCell, multCell);
     ledgerEl.appendChild(row);
 
     requestAnimationFrame(() => {

@@ -940,6 +940,14 @@ export function animateCascadeJiggle(
       lastNow = now;
       const elapsed = now - start;
 
+      for (const item of items) {
+        if (elapsed < item.delayMs) {
+          item.node.root.alpha = 0;
+          item.node.root.y = item.startY;
+          item.lastFallY = item.startY;
+        }
+      }
+
       const active = items.filter((item) => elapsed >= item.delayMs);
       if (!active.length) {
         requestAnimationFrame(step);
@@ -950,6 +958,7 @@ export function animateCascadeJiggle(
 
       for (let slot = 0; slot < ordered.length; slot += 1) {
         const item = ordered[slot];
+        item.node.root.alpha = 1;
         const itemElapsed = elapsed - item.delayMs;
 
         if (item.phase === 'fall') {

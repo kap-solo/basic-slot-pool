@@ -34,6 +34,12 @@ function rowCenterY(row, cellH) {
   return snapPx((row + 0.5) * cellH);
 }
 
+/** Stack incoming tumble fills above the masked window (never at in-grid preview rows). */
+function tumbleFillStartY(fillIndex, fillCount, cellH) {
+  const stackFromTop = Math.max(1, fillCount - fillIndex);
+  return snapPx(-(stackFromTop + 0.5) * cellH);
+}
+
 /** @param {number} cellW */
 function colCenterX(cellW) {
   return snapPx(cellW / 2);
@@ -1706,8 +1712,12 @@ export class ReelColumn {
             fill.row < nextBlock.anchorRow + nextBlock.span,
         );
         const stackHeight = Math.max(1, fills.length - Math.max(0, fillIndex));
-        const startY = targetY - this.cellH * stackHeight;
+        const startY =
+          fillIndex >= 0
+            ? tumbleFillStartY(fillIndex, fills.length, this.cellH)
+            : targetY - this.cellH * stackHeight;
         node.root.y = startY;
+        node.root.alpha = 0;
 
         cascadeEntries.push({
           node,
@@ -1884,9 +1894,9 @@ export class ReelColumn {
       });
       node.root.x = colCenterX(this.cellW);
       const endY = rowCenterYLocal(fill.row);
-      const stackHeight = colFills.length - index;
-      const startY = endY - this.cellH * stackHeight;
+      const startY = tumbleFillStartY(index, colFills.length, this.cellH);
       node.root.y = startY;
+      node.root.alpha = 0;
       strip.addChild(node.root);
       nextNodes[fill.row] = node;
 

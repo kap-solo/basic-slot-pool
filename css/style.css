@@ -200,23 +200,24 @@ body {
   transform: translateY(0);
 }
 
-.ledger-entry-label {
-  padding: 0.4rem 0.35rem 0.4rem 0.15rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 .ledger-entry-symbol {
-  padding: 0.35rem 0.15rem 0.35rem 0;
+  padding: 0.35rem 0.15rem 0.35rem 0.15rem;
   width: 2rem;
   text-align: center;
   font-size: 1.05rem;
   line-height: 1;
 }
 
-.ledger-entry + .ledger-entry .ledger-entry-label,
-.ledger-entry + .ledger-entry .ledger-entry-symbol {
+.ledger-entry-mult {
+  padding: 0.4rem 0.35rem 0.4rem 0.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.ledger-entry + .ledger-entry .ledger-entry-symbol,
+.ledger-entry + .ledger-entry .ledger-entry-mult {
   border-top: 1px solid rgba(42, 53, 72, 0.65);
 }
 
