@@ -19,9 +19,9 @@ import {
   getReplayParams,
   getSessionID,
   isReplayMode,
+  isDevMode,
   messageForRgsCode,
   requestReplay,
-  showDevTools,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
@@ -104,7 +104,7 @@ const replayMode = isReplayMode();
 const devStatsOverlay = createDevStatsOverlay({
   hostEl: shellEl,
   targetRtpPercent: GAME.targetRtpPercent,
-  enabled: showDevTools() && !replayMode,
+  enabled: isDevMode() && !replayMode,
 });
 
 /** @type {object | null} */
@@ -286,7 +286,7 @@ function buildHandReplayUrl({ event, amountApi, mode, lang }) {
 }
 
 function syncDevButtons() {
-  if (replayMode || !showDevTools()) return;
+  if (replayMode || !isDevMode()) return;
 
   const { autoplay, newSession, copyReplay } = betUi.elements;
 
@@ -309,6 +309,15 @@ function syncDevButtons() {
       ? 'Copy a replay URL for the last completed hand'
       : 'Play a hand first — then copy its replay URL';
   }
+}
+
+/** Dev row is pool-only tooling — visible strictly with ?dev=true. */
+function syncDevControlsVisibility() {
+  const show = isDevMode() && !replayMode;
+  if (betUi.elements.testControls) {
+    betUi.elements.testControls.hidden = !show;
+  }
+  if (show) syncDevButtons();
 }
 
 function setLastReplayUrl(url) {
@@ -492,8 +501,7 @@ const game = createGameBootstrap({
     },
     onAuthRound: handleAuthRoundOutcome,
     onSyncDevTools: () => {
-      betUi.elements.testControls.hidden = false;
-      syncDevButtons();
+      syncDevControlsVisibility();
     },
   },
   onJurisdictionChange: () => {
@@ -758,7 +766,7 @@ function attachPreloaderCommitLabel() {
 
 betUi.renderBetLevels();
 syncHud();
-syncDevButtons();
+syncDevControlsVisibility();
 syncDevTools();
 syncControls();
 
