@@ -19,8 +19,12 @@ body {
   min-height: 0;
 }
 
-/* Portrait — full-width game core (override Stake 425px cap, aspect ratio, side padding). */
-.suki-stake-shell[data-suki-orientation='portrait'] .suki-game-core {
+/* Portrait — full-width game core (override Stake 425px cap and mobile-ms aspect ratio). */
+.suki-stake-shell[data-suki-orientation='portrait'] .suki-game-core,
+.suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l']
+  .suki-game-core,
+.suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms']
+  .suki-game-core {
   width: 100%;
   max-width: 100%;
   margin: 0;
