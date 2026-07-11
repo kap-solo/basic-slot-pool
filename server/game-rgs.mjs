@@ -117,7 +117,9 @@ export function createGameMockRgs() {
     },
     resolveReplay(event, amountQuery) {
       const { books } = getMathBundle();
-      const bookId = Number(event);
+      const eventStr = String(event ?? '');
+      const suffix = eventStr.includes('-') ? eventStr.split('-').pop() : eventStr;
+      const bookId = Number(suffix);
       if (!Number.isFinite(bookId) || !books.has(bookId)) {
         return null;
       }

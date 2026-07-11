@@ -53,6 +53,8 @@ export const TIMING = {
   tumbleGravityMs: 270,
   tumbleDropMs: 300,
   tumbleFillStaggerMs: 38,
+  /** Performance blob — hold after strip land before gap + mini-tumble (ms). */
+  blobHoldMs: 250,
   /** gameReveal — blank beat between fall-off and result drop-in (ms). */
   revealBlankMs: 120,
   /** gameReveal refill strip scroll — slightly slower than cascade tumbleDropMs. */

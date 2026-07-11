@@ -18,6 +18,8 @@ export const SYMBOL_VISUAL = {
   DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
   CR: { color: 0x8a6500, accent: 0xd4a017, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
   WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
+  /** Client-only performance blob — green square on the reveal strip. */
+  BL: { color: 0x16a34a, accent: 0xbbf7d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
 };
 
 export const SYMBOL_IDS = Object.keys(SYMBOLS);

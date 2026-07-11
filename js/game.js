@@ -47,6 +47,7 @@ import {
 } from './tall-symbols.js';
 import { createDevStatsOverlay } from './devStatsOverlay.js';
 import { createMultiplierPanel } from './multiplierPanel.js';
+import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/performanceBlob.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
@@ -201,19 +202,38 @@ function showStaticRound(round) {
   slotBoard.setBoard(finalBoardFromRound(round));
 }
 
-async function animateReveal(event) {
+async function animateReveal(board) {
   if (!slotBoard) return;
-  await animateSlotSpin(slotBoard, event.board, { speed: animationSpeed });
+  await animateSlotSpin(slotBoard, board, { speed: animationSpeed });
 }
 
-async function presentBookEvent(event, { animate = true } = {}) {
+async function presentGameReveal(event, { animate = true, round = null } = {}) {
+  if (!slotBoard) return;
+
+  await multiplierPanel.fadeOutLedger();
+  slotBoard.resetCascadeLadder();
+
+  const blobPlan = animate && round ? planRoundBlobPresentation(event.board, round) : null;
+  const revealBoard = blobPlan?.visualBoard ?? event.board;
+
+  if (animate) {
+    await animateReveal(revealBoard);
+    if (blobPlan) {
+      slotBoard.syncBookColumnData(event.board);
+      await presentBlobAfterReveal(slotBoard, event.board, blobPlan, {
+        speed: animationSpeed,
+      });
+    }
+  } else {
+    slotBoard.setBoard(event.board);
+  }
+}
+
+async function presentBookEvent(event, { animate = true, round = null } = {}) {
   if (!slotBoard) return;
 
   if (event.type === 'gameReveal') {
-    await multiplierPanel.fadeOutLedger();
-    slotBoard.resetCascadeLadder();
-    if (animate) await animateReveal(event);
-    else slotBoard.setBoard(event.board);
+    await presentGameReveal(event, { animate, round });
     return;
   }
 
@@ -262,7 +282,7 @@ async function presentBookEvent(event, { animate = true } = {}) {
 async function playBookPresentation(round, { animate = true } = {}) {
   for (const event of sortedBookEvents(round)) {
     if (event.type === 'finalWin') continue;
-    await presentBookEvent(event, { animate });
+    await presentBookEvent(event, { animate, round });
   }
 }
 
@@ -432,8 +452,8 @@ const game = createGameBootstrap({
   },
   lifecycle: {
     handlers: {
-      gameReveal: async (event, { animate }) => {
-        await presentBookEvent(event, { animate });
+      gameReveal: async (event, ctx) => {
+        await presentBookEvent(event, { animate: ctx.animate, round: ctx.round });
       },
       clusterWin: async (event, { animate }) => {
         await presentBookEvent(event, { animate });

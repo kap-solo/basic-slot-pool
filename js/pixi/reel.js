@@ -697,6 +697,36 @@ export class ReelColumn {
     });
   }
 
+  /**
+   * Symbols actually painted on the grid — used when starting a spin so we never
+   * flash a rebuild from stale currentColumn data (e.g. BL overlay vs book ids).
+   * @returns {string[]}
+   */
+  captureDisplayedColumnIds() {
+    const column = [...this.currentColumn];
+    if (!this.hasLiveBoard()) return column;
+
+    if (this.tallEnabled) {
+      const blocks = this.activeColumnBlocks();
+      for (const block of blocks) {
+        const node = this.symbolNodes[block.anchorRow];
+        if (!isLiveSymbolNode(node) || !node.symbolId) continue;
+        for (let row = block.anchorRow; row < block.anchorRow + block.span; row += 1) {
+          column[row] = node.symbolId;
+        }
+      }
+      return column;
+    }
+
+    for (let row = 0; row < this.visibleRows; row += 1) {
+      const node = this.symbolNodes[row];
+      if (isLiveSymbolNode(node) && node.symbolId) {
+        column[row] = node.symbolId;
+      }
+    }
+    return column;
+  }
+
   finalizeTallSpinLand(targetColumn) {
     this.pendingSpinFinalize = null;
     this.currentColumn = [...targetColumn];
@@ -1079,7 +1109,8 @@ export class ReelColumn {
       return;
     }
 
-    const visualCurrent = [...this.currentColumn];
+    const visualCurrent = this.captureDisplayedColumnIds();
+    this.currentColumn = [...visualCurrent];
     const padding = this.spinPadding();
     /** @type {[number, number][]} */
     const mergeSegments = [[0, this.visibleRows - 1]];
@@ -1570,10 +1601,67 @@ export class ReelColumn {
   }
 
   /**
+   * Remove win rows without pop animation — leaves an empty gap for tumble fill.
    * @param {number[]} rows
-   * @param {{ speed?: number }} [opts]
    */
-  async popWinRows(rows, { speed = 1 } = {}) {
+  removeWinRowsSilent(rows) {
+    this.cancelLandJelly();
+    /** @type {Set<number>} */
+    const anchorRows = new Set();
+
+    for (const row of rows) {
+      const blocks = this.tallEnabled ? this.activeColumnBlocks() : null;
+      if (blocks?.length) {
+        const block = blockForRow(blocks, row);
+        if (block) {
+          anchorRows.add(block.anchorRow);
+          continue;
+        }
+      }
+      anchorRows.add(row);
+    }
+
+    for (const anchorRow of anchorRows) {
+      const blocks = this.activeColumnBlocks();
+      const block = blocks.length
+        ? blockForRow(blocks, anchorRow) ?? { anchorRow, span: 1 }
+        : { anchorRow, span: 1 };
+      for (let row = block.anchorRow; row < block.anchorRow + block.span; row += 1) {
+        const node = this.symbolNodes[row];
+        if (node?.root?.parent) node.root.parent.removeChild(node.root);
+        this.symbolNodes[row] = null;
+      }
+    }
+
+    for (const anchorRow of anchorRows) {
+      const blocks = this.activeColumnBlocks();
+      const block = blocks.length
+        ? blockForRow(blocks, anchorRow) ?? { anchorRow, span: 1 }
+        : { anchorRow, span: 1 };
+      for (let row = block.anchorRow; row < block.anchorRow + block.span; row += 1) {
+        if (row < this.currentColumn.length) {
+          this.currentColumn[row] = null;
+        }
+      }
+    }
+
+    if (this.symbolNodes.some((node) => isLiveSymbolNode(node))) {
+      this.boardSealed = this.hasLiveBoard();
+    } else {
+      this.boardSealed = false;
+    }
+    this.refreshLiveColumnBlocks();
+  }
+
+  /**
+   * @param {number[]} rows
+   * @param {{ speed?: number, silent?: boolean }} [opts]
+   */
+  async popWinRows(rows, { speed = 1, silent = false } = {}) {
+    if (silent) {
+      this.removeWinRowsSilent(rows);
+      return;
+    }
     this.cancelLandJelly();
     /** @type {Set<number>} */
     const anchorRows = new Set();
@@ -1636,6 +1724,72 @@ export class ReelColumn {
       this.boardSealed = false;
     }
     this.refreshLiveColumnBlocks();
+  }
+
+  /**
+   * Drop a single symbol into one vacated cell — other rows in the column stay put.
+   * @param {number} row
+   * @param {string} symbol
+   * @param {{ speed?: number }} [opts]
+   */
+  async dropSymbolIntoCell(row, symbol, { speed = 1 } = {}) {
+    this.cancelLandJelly();
+    let strip = this.window.children[0];
+    if (!(strip instanceof Container)) {
+      this.rebuildStrip(this.currentColumn);
+      strip = this.window.children[0];
+    }
+
+    const blocks = this.tallEnabled ? this.activeColumnBlocks() : null;
+    const block = blocks?.length ? blockForRow(blocks, row) : null;
+    const anchorRow = block?.anchorRow ?? row;
+    const span = block?.span ?? 1;
+
+    const spineData = this.spineRegistry.get(symbol) ?? null;
+    const node = createSymbolNode({
+      id: symbol,
+      cellW: this.cellW,
+      cellH: this.cellH,
+      span,
+      spineData,
+      state: 'static',
+    });
+
+    const targetY = this.tallEnabled && block
+      ? this.blockY(anchorRow, span)
+      : rowCenterY(row, this.cellH);
+    const dropDistance = this.cellH * (span + 0.35);
+
+    node.root.x = colCenterX(this.cellW);
+    node.root.y = targetY - dropDistance;
+    strip.addChild(node.root);
+
+    const fallMs = Math.round(TIMING.tumbleDropMs / speed);
+    await new Promise((resolve) => {
+      const start = performance.now();
+      const startY = node.root.y;
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / fallMs);
+        node.root.y = startY + (targetY - startY) * easeCascadeFall(t);
+        if (t < 1) requestAnimationFrame(step);
+        else resolve();
+      };
+      requestAnimationFrame(step);
+    });
+
+    if (this.tallEnabled && block) {
+      for (let r = block.anchorRow; r < block.anchorRow + block.span; r += 1) {
+        this.symbolNodes[r] = node;
+        this.currentColumn[r] = symbol;
+      }
+      node.anchorRow = anchorRow;
+    } else {
+      this.symbolNodes[row] = node;
+      this.currentColumn[row] = symbol;
+    }
+
+    this.boardSealed = this.hasLiveBoard();
+    this.normalizeSymbolGrid();
   }
 
   /**
@@ -2006,10 +2160,10 @@ export class ReelColumn {
    * Gravity tumble — survivors fall, new symbols drop into empty top cells.
    * Reuses live symbol nodes; no full-column rebuild.
    * @param {string[]} nextColumn
-   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number, staggerMs?: number }} [opts]
+   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number, staggerMs?: number, forceRowTumble?: boolean }} [opts]
    */
-  async tumbleTo(nextColumn, { removedRows = [], fills = [], speed = 1 } = {}) {
-    if (this.tallEnabled) {
+  async tumbleTo(nextColumn, { removedRows = [], fills = [], speed = 1, forceRowTumble = false } = {}) {
+    if (this.tallEnabled && !forceRowTumble) {
       return this.tumbleBlocksTo(nextColumn, { removedRows, fills, speed });
     }
 
@@ -2108,6 +2262,7 @@ export class ReelColumn {
         this.cascadeJellyCancel = cascadeAnim.cancel ?? null;
         await cascadeAnim;
         this.cascadeJellyCancel = null;
+
         if (!colFills.length) {
           this.cascadeJellySettledPromise = cascadeAnim.settled ?? Promise.resolve();
           this.cascadeJellySettledPromise.finally(() => {

@@ -17,6 +17,7 @@ import { scaledDelay, animateAlphaTargets } from './easing.js';
 import { TIMING } from './timing.js';
 import { playWinPopups } from './winPopup.js';
 import { SYMBOL_DIM_ALPHA } from './symbolView.js';
+import { blobCascadeColumnState } from './performanceBlob.js';
 
 /** @param {number} value */
 function snapPx(value) {
@@ -436,8 +437,8 @@ export async function createPixiSlotBoard(hostEl) {
     return displayBoard(board);
   }
 
-  /** @param {string[][]} board @param {Set<string> | null | undefined} winCells @param {{ spinning?: boolean }} [opts] */
-  function applyWinCells(board, winCells, { spinning = false } = {}) {
+  /** @param {string[][]} board @param {Set<string> | null | undefined} winCells @param {{ spinning?: boolean, force?: boolean }} [opts] */
+  function applyWinCells(board, winCells, { spinning = false, force = false } = {}) {
     const displayBoard = visualBoard(board);
     const hasWin = !spinning && winCells != null && winCells.size > 0;
 
@@ -447,7 +448,7 @@ export async function createPixiSlotBoard(hostEl) {
         column.length === reel.visibleRows &&
         column.every((symbol, row) => symbol === reel.currentColumn[row]);
 
-      if (!spinning && boardMatches && (reel.boardSealed || reel.hasLiveBoard())) {
+      if (!spinning && !force && boardMatches && (reel.boardSealed || reel.hasLiveBoard())) {
         if (hasWin) reel.applyWinState(winCells, true);
         else reel.clearWinState();
         return;
@@ -484,16 +485,99 @@ export async function createPixiSlotBoard(hostEl) {
 
     /**
      * @param {string[][]} board column-major [reel][row]
-     * @param {{ spinning?: boolean, winCells?: Set<string> | null }} [opts]
+     * @param {{ spinning?: boolean, winCells?: Set<string> | null, force?: boolean }} [opts]
      */
-    setBoard(board, { spinning = false, winCells = null } = {}) {
-      applyWinCells(board, winCells, { spinning });
+    setBoard(board, { spinning = false, winCells = null, force = false } = {}) {
+      applyWinCells(board, winCells, { spinning, force });
     },
 
     clearWinHighlight() {
       drawClusterOverlay(null);
       winPopupLayer.removeChildren();
       reels.forEach((reel) => reel.clearWinState());
+    },
+
+    /**
+     * @param {Set<string>} cellKeys — "col,row"
+     * @param {{ speed?: number }} [opts]
+     */
+    async popCells(cellKeys, { speed = 1 } = {}) {
+      /** @type {Map<number, number[]>} */
+      const rowsByCol = new Map();
+      for (const key of cellKeys) {
+        const [colRaw, rowRaw] = key.split(',');
+        const col = Number(colRaw);
+        const row = Number(rowRaw);
+        if (!Number.isFinite(col) || !Number.isFinite(row)) continue;
+        if (!rowsByCol.has(col)) rowsByCol.set(col, []);
+        rowsByCol.get(col).push(row);
+      }
+
+      await Promise.all(
+        reels.map((reel, index) => {
+          const rows = rowsByCol.get(index) ?? [];
+          if (!rows.length) return Promise.resolve();
+          return reel.popWinRows(rows, { speed });
+        }),
+      );
+    },
+
+    /**
+     * Keep reel column data on the book board. Nodes may still show client-only visuals (BL).
+     * @param {string[][]} board
+     */
+    syncBookColumnData(board) {
+      const display = visualBoard(board);
+      reels.forEach((reel, index) => {
+        reel.currentColumn = [...(display[index] ?? defaultBoardColumn())];
+        reel.boardSealed = reel.hasLiveBoard();
+      });
+    },
+
+    /**
+     * Align blob-column data with painted nodes before gravity tumble.
+     * @param {string[][]} revealBoard
+     * @param {Map<number, number>} blobDepthByCol
+     */
+    syncBlobCascadeColumnData(revealBoard, blobDepthByCol) {
+      const display = visualBoard(revealBoard);
+      reels.forEach((reel, index) => {
+        const depth = blobDepthByCol.get(index);
+        if (!depth) return;
+        reel.currentColumn = blobCascadeColumnState(display[index] ?? defaultBoardColumn(), depth);
+        reel.boardSealed = reel.hasLiveBoard();
+      });
+    },
+
+    /**
+     * Bottom blob pop — survivors fall, top strip fills (same physics as win tumble).
+     * @param {string[][]} revealBoard
+     * @param {Map<number, number[]>} removedByCol
+     * @param {{ speed?: number }} [opts]
+     */
+    async animateBlobBottomCascade(revealBoard, removedByCol, { speed = 1 } = {}) {
+      if (!removedByCol?.size) return;
+
+      const display = visualBoard(revealBoard);
+      await Promise.all(
+        [...removedByCol.entries()].map(([col, removedRows]) => {
+          const reel = reels[col];
+          if (!reel || !removedRows.length) return Promise.resolve();
+          const revealColumn = display[col] ?? defaultBoardColumn();
+          const depth = removedRows.length;
+          const fills = Array.from({ length: depth }, (_, row) => ({
+            row,
+            symbol: revealColumn[row],
+          }));
+          return reel.tumbleTo(revealColumn, {
+            removedRows,
+            fills,
+            speed,
+            forceRowTumble: true,
+          });
+        }),
+      );
+      await Promise.all(reels.map((reel) => reel.waitUntilIdle()));
     },
 
     /**
