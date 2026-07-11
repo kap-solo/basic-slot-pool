@@ -158,9 +158,6 @@ body {
   flex: 1 1 auto;
 }
 
-.multiplier-panel-table thead {
-  flex-shrink: 0;
-}
 
 .multiplier-ledger {
   display: block;
@@ -174,44 +171,45 @@ body {
   opacity: 0;
 }
 
-.multiplier-panel-table thead tr,
 .multiplier-panel-table tbody tr {
   display: table;
   width: 100%;
   table-layout: fixed;
 }
 
-.multiplier-panel-table thead th {
-  padding: 0.35rem 0.4rem 0.5rem;
-  text-align: left;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #8b97a8;
-  border-bottom: 1px solid #2a3548;
-}
-
-.ledger-entry {
+.ledger-entry .ledger-entry-cluster,
+.ledger-entry .ledger-entry-win {
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ledger-entry--visible {
+.ledger-entry .ledger-entry-cluster {
+  transform: scale(1.1) translateY(-3px);
+  transform-origin: left center;
+}
+
+.ledger-entry .ledger-entry-win {
+  transform: scale(1.1) translateY(-3px);
+  transform-origin: right center;
+}
+
+.ledger-entry--visible .ledger-entry-cluster,
+.ledger-entry--visible .ledger-entry-win {
   opacity: 1;
-  transform: translateY(0);
+  transform: scale(1) translateY(0);
 }
 
-.ledger-entry-symbol {
-  padding: 0.35rem 0.15rem 0.35rem 0.15rem;
-  width: 2rem;
-  text-align: center;
-  font-size: 1.05rem;
-  line-height: 1;
+.ledger-entry-cluster {
+  padding: 0.4rem 0.35rem 0.4rem 0.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: left;
+  line-height: 1.2;
 }
 
-.ledger-entry-mult {
+.ledger-entry-win {
   padding: 0.4rem 0.35rem 0.4rem 0.15rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -219,8 +217,8 @@ body {
   text-align: right;
 }
 
-.ledger-entry + .ledger-entry .ledger-entry-symbol,
-.ledger-entry + .ledger-entry .ledger-entry-mult {
+.ledger-entry + .ledger-entry .ledger-entry-cluster,
+.ledger-entry + .ledger-entry .ledger-entry-win {
   border-top: 1px solid rgba(42, 53, 72, 0.65);
 }
 

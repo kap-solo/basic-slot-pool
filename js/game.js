@@ -235,7 +235,8 @@ async function presentBookEvent(event, { animate = true } = {}) {
     const cascadeMultiplier = event.cascadeMultiplier ?? 1;
     pendingClusterRemoved = event.removed ?? [];
     for (const cluster of event.clusters ?? []) {
-      multiplierPanel.addLedgerEntry(cluster, cascadeMultiplier);
+      const popup = buildClusterWinPopup(cluster, cascadeMultiplier);
+      multiplierPanel.addLedgerEntry(cluster, cascadeMultiplier, popup?.amount ?? '');
     }
     if (animate) {
       const clusterPresentations = (event.clusters ?? []).map((cluster) => ({
