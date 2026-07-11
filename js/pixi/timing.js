@@ -53,6 +53,10 @@ export const TIMING = {
   tumbleGravityMs: 270,
   tumbleDropMs: 300,
   tumbleFillStaggerMs: 38,
+  /** gameReveal — blank beat between fall-off and result drop-in (ms). */
+  revealBlankMs: 120,
+  /** gameReveal refill strip scroll — slightly slower than cascade tumbleDropMs. */
+  revealRefillMs: 440,
   /**
    * Cascade tumble — uses spin land jelly params; only chain release timing is cascade-specific.
    */

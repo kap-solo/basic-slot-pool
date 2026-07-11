@@ -1,11 +1,11 @@
 /**
- * Single vertical reel column — spring jiggle swimlane spin.
+ * Single vertical reel column — scroll fall-off reveal, strip refill, tumble/cascade.
  */
 
 import { Container, Graphics } from 'pixi.js';
 import { defaultBoardColumn, GAME } from '../config.js';
 import { TIMING } from './timing.js';
-import { animateCascadeJiggle, animateReelSpin, scaledDelay, animateAlphaTargets } from './easing.js';
+import { animateCascadeJiggle, animateReelSpin, easeCascadeFall, scaledDelay, animateAlphaTargets } from './easing.js';
 import { createSymbolNode, SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { SYMBOL_IDS } from './symbols.js';
 import {
@@ -187,6 +187,8 @@ export class ReelColumn {
     this.clusterPresentationLock = false;
     /** Resize used window scale while spin/cascade presentation was active. */
     this.layoutRescalePending = false;
+    /** True while gameReveal blank hold hides this column window. */
+    this.revealBlankHeld = false;
   }
 
   /** @param {number} cellW @param {number} cellH */
@@ -255,7 +257,21 @@ export class ReelColumn {
     this.syncMaskLayout(cellW, cellH);
 
     const incompleteBoard = !this.hasLiveBoard();
-    if (deferFullRescale || incompleteBoard) {
+    if (deferFullRescale) {
+      if (!incompleteBoard) {
+        const sx = cellW / prevCellW;
+        const sy = cellH / prevCellH;
+        if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
+          this.window.scale.set(this.window.scale.x * sx, this.window.scale.y * sy);
+          this.layoutRescalePending = true;
+        }
+      } else {
+        this.layoutRescalePending = true;
+      }
+      return;
+    }
+
+    if (incompleteBoard) {
       const sx = cellW / prevCellW;
       const sy = cellH / prevCellH;
       if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
@@ -733,7 +749,15 @@ export class ReelColumn {
    * @param {string[]} [stripIds]
    * @param {[number, number][]} [mergeSegments]
    */
-  sealTallSpinLandFromStrip(targetColumn, strip, stripNodes, padding, stripIds = null, mergeSegments = null) {
+  sealTallSpinLandFromStrip(
+    targetColumn,
+    strip,
+    stripNodes,
+    padding,
+    stripIds = null,
+    mergeSegments = null,
+    { skipGridNormalize = false } = {},
+  ) {
     this.pendingSpinFinalize = null;
     this.currentColumn = [...targetColumn];
     const { landBlocks, visibleNodes, keepRoots } = this.resolveVisibleLandNodes(
@@ -764,7 +788,9 @@ export class ReelColumn {
     this.boardSealed = true;
     // Fold strip scroll into node locals first (still in absolute strip coords), then snap to grid.
     this.anchorLandedStrip(strip);
-    this.normalizeSymbolGrid();
+    if (!skipGridNormalize) {
+      this.normalizeSymbolGrid();
+    }
     this.window.y = 0;
 
     if (!this.hasLiveBoard() && keepRoots.size === 0) {
@@ -846,6 +872,386 @@ export class ReelColumn {
     node.root.y = this.blockY(block.anchorRow, block.span);
     strip.addChild(node.root);
     return node;
+  }
+
+  clearColumnDisplay() {
+    const strip = this.window.children[0];
+    if (strip instanceof Container) {
+      for (const child of [...strip.children]) {
+        child.destroy({ children: true });
+      }
+    }
+    this.window.removeChildren();
+    this.symbolNodes = Array.from({ length: this.visibleRows }, () => null);
+    if (this.tallEnabled) {
+      this.columnBlocks = [];
+    }
+    this.pendingSpinFinalize = null;
+    this.landPadding = null;
+    this.boardSealed = false;
+  }
+
+  /** Stage 2 — hide column window; nothing may render until refill starts. */
+  holdRevealBlank() {
+    this.cancelRefillJiggle();
+    this.cancelLandJelly();
+    this.clearColumnDisplay();
+    this.window.scale.set(1, 1);
+    this.window.y = 0;
+    this.window.visible = false;
+    this.layoutRescalePending = false;
+    this.revealBlankHeld = true;
+  }
+
+  cancelRefillJiggle() {
+    this.cancelSpinAnim?.();
+    this.cancelSpinAnim = null;
+    if (this.cascadeJellyCancel) {
+      this.cascadeJellyCancel();
+      this.cascadeJellyCancel = null;
+    }
+    this.cascadeJellySettledPromise = null;
+  }
+
+  spinPadding() {
+    return TIMING.paddingBase + this.reelIndex * TIMING.paddingPerReel + Math.floor(Math.random() * 2);
+  }
+
+  /** @param {number} speed */
+  spinRevealTiming(speed) {
+    const maxStaggerMs = TIMING.reelStaggerMs * (GAME.reels - 1);
+    const staggerDelay = TIMING.reelStaggerMs * this.reelIndex;
+    const spinDuration = Math.max(280, (TIMING.spinMs + maxStaggerMs - staggerDelay) / speed);
+    const maxSpinDuration = TIMING.spinMs + maxStaggerMs;
+    return {
+      staggerDelay,
+      spinDuration,
+      maxSpinDuration,
+      jellyLandImpactScale: Math.min(1, spinDuration / maxSpinDuration),
+    };
+  }
+
+  /** @param {number} speed */
+  revealRefillTiming(speed) {
+    return {
+      spinDuration: Math.max(120, TIMING.revealRefillMs / speed),
+      jellyLandImpactScale: 1,
+      maxSettleMs: TIMING.cascadeJiggleSettleMs / speed,
+      jellyMinMs: TIMING.spinJellyMinMs / speed,
+    };
+  }
+
+  /**
+   * @param {object} opts
+   * @param {import('pixi.js').Container} opts.strip
+   * @param {(ReturnType<typeof createSymbolNode> | null)[]} opts.nodes
+   * @param {number} opts.stripStartY
+   * @param {number} opts.totalScroll
+   * @param {number} opts.landWindowStartIdx
+   * @param {number[]} [opts.initialRowOffsets]
+   * @param {number} opts.speed
+   * @param {object | null} [opts.pendingFinalize]
+   * @param {'spin' | 'refill'} [opts.profile]
+   */
+  launchResultStripLand({
+    strip,
+    nodes,
+    stripStartY,
+    totalScroll,
+    landWindowStartIdx,
+    initialRowOffsets = null,
+    speed = 1,
+    pendingFinalize = null,
+    profile = 'spin',
+  }) {
+    const timing = profile === 'refill' ? this.revealRefillTiming(speed) : this.spinRevealTiming(speed);
+    const { spinDuration, jellyLandImpactScale, maxSettleMs, jellyMinMs } = timing;
+    const refillProfile = profile === 'refill';
+
+    const spinAnim = animateReelSpin({
+      strip,
+      nodes,
+      stripStartY,
+      totalScroll,
+      duration: spinDuration,
+      cellH: this.cellH,
+      visibleRows: this.visibleRows,
+      maxSettleMs: maxSettleMs ?? TIMING.spinJiggleSettleMs / speed,
+      stripStiffness: TIMING.jiggleStripStiffness,
+      stripDamping: TIMING.jiggleStripDamping,
+      stripMass: TIMING.jiggleStripMass,
+      rowStiffness: TIMING.jiggleRowStiffness,
+      rowStiffnessStep: TIMING.jiggleRowStiffnessStep,
+      rowDamping: TIMING.jiggleRowDamping,
+      rowDampingStep: TIMING.jiggleRowDampingStep,
+      velCoupling: TIMING.jiggleVelCoupling,
+      rowChainCoupling: TIMING.jiggleRowChainCoupling,
+      maxRowLagPx: this.cellH * TIMING.jiggleMaxRowLagRatio,
+      landWindowStartIdx,
+      initialRowOffsets,
+      drive: refillProfile ? easeCascadeFall : undefined,
+      jellyStiffness: TIMING.spinJellyStiffness,
+      jellyDamping: TIMING.spinJellyDamping,
+      jellyMinMs: jellyMinMs ?? TIMING.spinJellyMinMs / speed,
+      jellyLandVelFactor: TIMING.spinJellyLandVelFactor,
+      jellySquashRatio: TIMING.spinJellySquashRatio,
+      jellyMaxBelowRatio: TIMING.spinJellyMaxBelowRatio,
+      jellyMaxAboveRatio: TIMING.spinJellyMaxAboveRatio,
+      jellyTailMs: TIMING.spinJellyTailMs / speed,
+      jellyChainCoupling: TIMING.spinJellyChainCoupling,
+      jellyLandDelayMs: refillProfile ? 0 : (this.reelIndex * TIMING.spinJellyLandStaggerMs) / speed,
+      jellyLandImpactScale,
+      blockAware: this.tallEnabled,
+      immediateLandJelly: refillProfile,
+    });
+
+    if (pendingFinalize) {
+      this.pendingSpinFinalize = pendingFinalize;
+    }
+    this.cancelSpinAnim = spinAnim.cancel ?? null;
+    return spinAnim;
+  }
+
+  /**
+   * Stage 1 — scroll-spin current board off the bottom (no replacement symbols).
+   * @param {{ speed?: number }} [opts]
+   */
+  async fallOffColumn({ speed = 1 } = {}) {
+    this.cancelSpinAnim?.();
+    this.cancelLandJelly();
+    this.window.scale.set(1, 1);
+    this.window.y = 0;
+    this.layoutRescalePending = false;
+    const preservedYs = this.captureVisibleRowYs();
+    this.boardSealed = false;
+
+    if (!this.hasLiveBoard()) {
+      this.clearColumnDisplay();
+      return;
+    }
+
+    const visualCurrent = [...this.currentColumn];
+    const padding = this.spinPadding();
+    /** @type {[number, number][]} */
+    const mergeSegments = [[0, this.visibleRows - 1]];
+
+    this.window.removeChildren();
+    const stripCtx = {
+      cellW: this.cellW,
+      cellH: this.cellH,
+      spineRegistry: this.spineRegistry,
+      visibleRows: this.visibleRows,
+      mergeSegments,
+    };
+    const { strip, nodes } = buildSpinStripFromRowIds(visualCurrent, stripCtx, this.tallEnabled);
+
+    nodes.forEach((node) => node?.setState('spin'));
+
+    const stripStartY = 0;
+    const totalScroll = this.visibleRows * this.cellH;
+    /** @type {number[]} */
+    const initialRowOffsets = [];
+    const stripBlocks = this.tallEnabled
+      ? parseColumnBlocks(visualCurrent, { tallEnabled: true, mergeSegments })
+      : null;
+
+    for (let row = 0; row < this.visibleRows; row += 1) {
+      let node = nodes[row];
+      if (!node && stripBlocks) {
+        const block = blockForRow(stripBlocks, row);
+        if (block) node = nodes[block.anchorRow];
+      }
+      if (!node?.root) {
+        initialRowOffsets.push(0);
+        continue;
+      }
+      const baseY = node.span > 1
+        ? blockCenterY(node.anchorRow, node.span, this.cellH)
+        : (row + 0.5) * this.cellH;
+      node.root.y = preservedYs[row] - stripStartY;
+      initialRowOffsets.push(baseY - node.root.y);
+    }
+
+    strip.y = stripStartY;
+    this.window.addChild(strip);
+
+    const { spinDuration } = this.spinRevealTiming(speed);
+    const fallDuration = Math.max(
+      220,
+      spinDuration * (this.visibleRows / Math.max(1, padding)),
+    );
+
+    await scaledDelay(TIMING.reelStaggerMs * this.reelIndex, speed);
+
+    const spinAnim = animateReelSpin({
+      strip,
+      nodes,
+      stripStartY,
+      totalScroll,
+      duration: fallDuration,
+      cellH: this.cellH,
+      visibleRows: this.visibleRows,
+      maxSettleMs: 0,
+      stripStiffness: TIMING.jiggleStripStiffness,
+      stripDamping: TIMING.jiggleStripDamping,
+      stripMass: TIMING.jiggleStripMass,
+      rowStiffness: TIMING.jiggleRowStiffness,
+      rowStiffnessStep: TIMING.jiggleRowStiffnessStep,
+      rowDamping: TIMING.jiggleRowDamping,
+      rowDampingStep: TIMING.jiggleRowDampingStep,
+      velCoupling: TIMING.jiggleVelCoupling,
+      rowChainCoupling: TIMING.jiggleRowChainCoupling,
+      maxRowLagPx: this.cellH * TIMING.jiggleMaxRowLagRatio,
+      landWindowStartIdx: null,
+      initialRowOffsets,
+      jellyStiffness: TIMING.spinJellyStiffness,
+      jellyDamping: TIMING.spinJellyDamping,
+      jellyMinMs: 0,
+      jellyLandVelFactor: TIMING.spinJellyLandVelFactor,
+      jellySquashRatio: TIMING.spinJellySquashRatio,
+      jellyMaxBelowRatio: TIMING.spinJellyMaxBelowRatio,
+      jellyMaxAboveRatio: TIMING.spinJellyMaxAboveRatio,
+      jellyTailMs: 0,
+      jellyChainCoupling: TIMING.spinJellyChainCoupling,
+      jellyLandDelayMs: 0,
+      jellyLandImpactScale: 0,
+      blockAware: this.tallEnabled,
+    });
+
+    this.cancelSpinAnim = spinAnim.cancel ?? null;
+    try {
+      await spinAnim;
+    } finally {
+      spinAnim.cancel?.();
+      this.cancelSpinAnim = null;
+      this.holdRevealBlank();
+    }
+  }
+
+  /**
+   * Stage 3 — drop result symbols into place (no scroll strip).
+   * @param {string[]} targetColumn
+   * @param {{ speed?: number }} [opts]
+   */
+  /**
+   * Stage 3 — result strip scrolls into place (lane physics + land jelly, no random symbols).
+   * @param {string[]} targetColumn
+   * @param {{ speed?: number }} [opts]
+   */
+  async refillColumn(targetColumn, { speed = 1 } = {}) {
+    this.cancelRefillJiggle();
+    this.window.scale.set(1, 1);
+    this.window.y = 0;
+    this.layoutRescalePending = false;
+    this.boardSealed = false;
+    this.revealBlankHeld = false;
+
+    const visualTarget = [...targetColumn];
+    const landPadding = 0;
+    /** @type {[number, number][]} */
+    const mergeSegments = [[landPadding, landPadding + this.visibleRows - 1]];
+
+    this.window.removeChildren();
+    const stripCtx = {
+      cellW: this.cellW,
+      cellH: this.cellH,
+      spineRegistry: this.spineRegistry,
+      visibleRows: this.visibleRows,
+      mergeSegments,
+    };
+    const { strip, nodes } = buildSpinStripFromRowIds(visualTarget, stripCtx, this.tallEnabled);
+
+    nodes.forEach((node) => node?.setState('spin'));
+
+    const stripStartY = -(this.visibleRows * this.cellH);
+    const totalScroll = this.visibleRows * this.cellH;
+
+    strip.y = stripStartY;
+    this.window.addChild(strip);
+    this.window.visible = true;
+
+    const pendingFinalize = this.tallEnabled
+      ? {
+          tallTarget: visualTarget,
+          strip,
+          nodes,
+          padding: landPadding,
+          stripIds: visualTarget,
+          mergeSegments,
+        }
+      : { strip, nodes, padding: landPadding };
+
+    const spinAnim = this.launchResultStripLand({
+      strip,
+      nodes,
+      stripStartY,
+      totalScroll,
+      landWindowStartIdx: landPadding,
+      initialRowOffsets: Array.from({ length: this.visibleRows }, () => 0),
+      speed,
+      pendingFinalize,
+      profile: 'refill',
+    });
+
+    this.landJellyCancel = spinAnim.cancel ?? null;
+
+    try {
+      await spinAnim;
+      if (spinAnim.impactApplied) {
+        await spinAnim.impactApplied;
+      }
+    } finally {
+      this.cancelSpinAnim = null;
+    }
+
+    this.currentColumn = [...visualTarget];
+    if (this.tallEnabled) {
+      if (strip instanceof Container) {
+        this.sealTallSpinLandFromStrip(
+          visualTarget,
+          strip,
+          nodes,
+          landPadding,
+          visualTarget,
+          mergeSegments,
+          { skipGridNormalize: true },
+        );
+      } else {
+        this.finalizeTallSpinLand(visualTarget);
+      }
+      this.landJellySettledPromise = spinAnim.settled ?? null;
+      this.landImpactPromise = spinAnim.impactApplied ?? null;
+      if (this.landJellySettledPromise) {
+        this.landJellySettledPromise.finally(() => {
+          if (this.landJellySettledPromise === spinAnim.settled) {
+            this.normalizeSymbolGrid();
+            this.landJellyCancel = null;
+            this.landJellySettledPromise = null;
+          }
+        });
+      } else {
+        this.normalizeSymbolGrid();
+        this.landJellyCancel = null;
+      }
+    } else {
+      this.symbolNodes = Array.from(
+        { length: this.visibleRows },
+        (_, row) => nodes[landPadding + row] ?? null,
+      );
+      this.landJellySettledPromise = spinAnim.settled ?? null;
+      this.landImpactPromise = spinAnim.impactApplied ?? null;
+      this.finalizePendingSpinLand();
+      if (this.landJellySettledPromise) {
+        this.landJellySettledPromise.finally(() => {
+          if (this.landJellySettledPromise === spinAnim.settled) {
+            this.landJellyCancel = null;
+            this.landJellySettledPromise = null;
+          }
+        });
+      } else {
+        this.landJellyCancel = null;
+      }
+    }
   }
 
   /**

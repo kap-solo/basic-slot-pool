@@ -163,6 +163,7 @@ export function animateReelSpin({
   jellyLandDelayMs = 0,
   jellyLandImpactScale = 1,
   blockAware = false,
+  immediateLandJelly = false,
 }) {
   const count = nodes.length;
   const lagCap = maxRowLagPx ?? cellH * 0.08;
@@ -416,11 +417,31 @@ export function animateReelSpin({
             impactVel: pendingImpactVel,
           });
         }
+
+        if (immediateLandJelly && !impactApplied) {
+          impactApplied = true;
+          landedAt = now;
+          impactAppliedDone();
+
+          for (let slot = 0; slot < visibleRows; slot += 1) {
+            const index = landBottomIdx - slot;
+            if (index < 0 || index >= count) continue;
+            const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+            if (!node || !drivesJelly) continue;
+            const gridY = symbolGridY(index, node);
+            const off = holdOffset[slot] ?? node.root.y - gridY;
+            const rowV = holdRowVel[slot] ?? rowSprings[slot].v;
+            const startV =
+              -rowV * 0.92 + (Math.abs(off) < 0.35 ? pendingImpactVel * 0.14 : 0);
+            rowJellySprings[slot].set(off, startV);
+            rowSprings[slot].set(0, 0);
+          }
+        }
       }
 
-      const holdElapsed = now - driveEndedAt;
+      const holdElapsed = driveEndedAt === null ? 0 : now - driveEndedAt;
 
-      const minLandSettleMs = 18;
+      const minLandSettleMs = immediateLandJelly ? 0 : 18;
       const impactDelayMs = Math.max(jellyLandDelayMs, minLandSettleMs);
 
       if (!impactApplied && holdElapsed >= impactDelayMs) {
@@ -434,9 +455,10 @@ export function animateReelSpin({
           const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
           if (!node || !drivesJelly) continue;
           const gridY = symbolGridY(index, node);
-          const off = node.root.y - gridY;
-          const rowV = rowSprings[slot].v;
-          const startV = -rowV * 0.92 + (Math.abs(off) < 0.35 ? pendingImpactVel * 0.14 : 0);
+          const off = holdOffset[slot] ?? node.root.y - gridY;
+          const rowV = holdRowVel[slot] ?? rowSprings[slot].v;
+          const startV =
+            -rowV * 0.92 + (Math.abs(off) < 0.35 ? pendingImpactVel * 0.14 : 0);
           rowJellySprings[slot].set(off, startV);
           rowSprings[slot].set(0, 0);
         }
@@ -669,7 +691,7 @@ export function animateSymbolYSettle(entries, maxMs = 180) {
  * Fall drive curve — accel into the drop, soft decel into land squash.
  * @param {number} t 0..1
  */
-function easeCascadeFall(t) {
+export function easeCascadeFall(t) {
   if (t <= 0) return 0;
   if (t >= 1) return 1;
   if (t < 0.18) return easeInQuad(t / 0.18) * 0.12;

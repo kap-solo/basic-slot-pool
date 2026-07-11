@@ -512,19 +512,27 @@ export async function createPixiSlotBoard(hostEl) {
       await scaledDelay(TIMING.preSpinMs, speed);
 
       try {
+        const board = visualBoard(finalBoard);
+
+        await Promise.all(reels.map((reel) => reel.fallOffColumn({ speed })));
+
+        reels.forEach((reel) => reel.holdRevealBlank());
+
+        await scaledDelay(TIMING.revealBlankMs, speed);
+
         await Promise.all(
           reels.map((reel, index) =>
-            reel.spinTo(visualBoard(finalBoard)[index] ?? reel.currentColumn, {
-              speed,
-              winCells: null,
-            }),
+            (async () => {
+              await scaledDelay(TIMING.reelStaggerMs * index, speed);
+              await reel.refillColumn(board[index] ?? reel.currentColumn, { speed });
+            })(),
           ),
         );
       } finally {
+        await Promise.all(reels.map((reel) => reel.waitUntilIdle()));
         reels.forEach((reel) => {
           reel.spinning = false;
         });
-        await Promise.all(reels.map((reel) => reel.waitUntilIdle()));
         if (reels.some((reel) => reel.layoutRescalePending)) {
           flushDeferredLayouts();
         }
