@@ -1,5 +1,5 @@
 {
-  "name": "basic-slot",
+  "name": "basic-slot-pool",
   "private": true,
   "type": "module",
   "scripts": {

@@ -10,7 +10,7 @@ const host = createSukiHost({
   rootDir: __dirname,
   rgs: createGameMockRgs(),
   sukiPackageDir: resolveSukiPackageDir(__dirname),
-  label: 'Basic Slot',
+  label: 'Reflecting Pool',
 });
 
 attachVendorNpm(host, __dirname);

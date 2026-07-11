@@ -21,11 +21,12 @@ import {
   isReplayMode,
   messageForRgsCode,
   requestReplay,
+  showDevTools,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
-import { BET_OPTIONS, BUILD_REF, DEFAULT_BET, GAME, GAME_MODES } from './config.js';
-import { winCellsFromClusters } from './cluster.js';
+import { BET_OPTIONS, DEFAULT_BET, GAME, GAME_MODES } from './config.js';
+import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
 import { registerGameModals } from './menu.js';
 import {
   buildGameSettledResult,
@@ -38,6 +39,13 @@ import {
   describeRoundResult,
   formatMult,
 } from './slot.js';
+import {
+  countTallBlocks,
+  isTallSymbolPreview,
+  tallPreviewBoard,
+} from './tall-symbols.js';
+import { createDevStatsOverlay } from './devStatsOverlay.js';
+import { createMultiplierPanel } from './multiplierPanel.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
@@ -55,28 +63,25 @@ const gameMenu = createGameMenu({
 });
 
 const balanceEl = document.getElementById('balance');
-const betEl = document.getElementById('bet-display');
 const resultEl = document.getElementById('last-result');
 const messageEl = document.getElementById('message');
 const replayBanner = document.getElementById('replay-banner');
 const balanceHud = document.getElementById('balance-hud');
-const statsEl = document.getElementById('stats');
-const complianceDevEl = document.getElementById('compliance-dev');
 const sessionTimerStat = document.getElementById('session-timer-stat');
 const sessionTimerEl = document.getElementById('session-timer');
 const slotRoot = document.getElementById('slot-board');
-const buildRefEl = document.getElementById('build-ref');
 const balanceLabelEl = document.getElementById('balance-label');
-const betLabelEl = document.getElementById('bet-label');
 const lastResultLabelEl = document.getElementById('last-result-label');
 const sessionBestHudLabelEl = document.getElementById('session-best-hud-label');
 const sessionBestHudEl = document.getElementById('session-best-hud');
 const replayNoteEl = document.getElementById('replay-note');
-const principlesAside = document.querySelector('.principles');
+const multiplierPanel = createMultiplierPanel({
+  panelEl: document.getElementById('multiplier-panel'),
+  ledgerEl: document.getElementById('multiplier-ledger'),
+});
 
 document.getElementById('game-title').textContent = GAME.title;
 document.getElementById('game-subtitle').textContent = GAME.subtitle;
-if (buildRefEl) buildRefEl.textContent = `Build ${BUILD_REF}`;
 
 /** @type {Awaited<ReturnType<typeof createSlotBoard>> | null} */
 let slotBoard = null;
@@ -94,6 +99,13 @@ let spinning = false;
 let autoplaying = false;
 let animationSpeed = 1;
 const replayMode = isReplayMode();
+
+const devStatsOverlay = createDevStatsOverlay({
+  hostEl: shellEl,
+  targetRtpPercent: GAME.targetRtpPercent,
+  enabled: showDevTools() && !replayMode,
+});
+
 /** @type {object | null} */
 let replayRound = null;
 let lastReplayUrl = '';
@@ -115,6 +127,28 @@ function fmtBalance(amount) {
 
 function fmtWin(amount) {
   return game.formatWin(amount);
+}
+
+/**
+ * Board win popup for one cluster — ladder line when ×2+.
+ * @param {{ symbol: string, size?: number, cells?: [number, number][], baseMultiplier?: number }} cluster
+ * @param {number} cascadeMultiplier ladder index from the book (1 = no boost)
+ * @returns {{ amount: string, amountFrom: number, amountTo: number, formatAmount: (value: number) => string, cascadeLabel: string | null } | null}
+ */
+function buildClusterWinPopup(cluster, cascadeMultiplier) {
+  const size = cluster.size ?? cluster.cells?.length ?? 0;
+  if (size < 1) return null;
+  const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
+  const clusterWin = bet * baseMult * cascadeMultiplier;
+  if (clusterWin <= 0) return null;
+  const amountFrom = bet * basePayForSymbol(cluster.symbol);
+  return {
+    amount: `+${fmtWin(clusterWin)}`,
+    amountFrom,
+    amountTo: clusterWin,
+    formatAmount: (value) => `+${fmtBalance(value)}`,
+    cascadeLabel: cascadeMultiplier > 1 ? `Cascade ×${cascadeMultiplier}` : null,
+  };
 }
 
 function copyTerm(key, vars) {
@@ -144,10 +178,18 @@ function syncSessionBestHud() {
 
 function syncHud() {
   balanceEl.textContent = replayMode ? '—' : fmtBalance(balance);
-  betEl.textContent = fmtBalance(bet);
-  const rtpPart = game.controls.showRtp ? ` · target RTP ${GAME.targetRtpPercent}%` : '';
-  statsEl.textContent = `${GAME.reels}×${GAME.rows} cluster cascade · base mode only · ${BUILD_REF}${rtpPart}`;
   syncSessionBestHud();
+  if (isTallSymbolPreview()) {
+    document.getElementById('game-subtitle').textContent = 'Tall-symbol preview (client-only)';
+  }
+}
+
+function showTallPreviewBoard() {
+  if (!slotBoard || !isTallSymbolPreview()) return;
+  const preview = tallPreviewBoard();
+  slotBoard.setBoard(preview);
+  const tallCount = countTallBlocks(preview);
+  setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
 }
 
 function displayRoundResult({ summary, multiplier, payout, profit }) {
@@ -167,6 +209,8 @@ function displayRoundResult({ summary, multiplier, payout, profit }) {
 
 function showStaticRound(round) {
   if (!slotBoard) return;
+  multiplierPanel.clearLedger();
+  slotBoard.resetCascadeLadder();
   slotBoard.setBoard(finalBoardFromRound(round));
 }
 
@@ -179,6 +223,8 @@ async function presentBookEvent(event, { animate = true } = {}) {
   if (!slotBoard) return;
 
   if (event.type === 'gameReveal') {
+    await multiplierPanel.fadeOutLedger();
+    slotBoard.resetCascadeLadder();
     if (animate) await animateReveal(event);
     else slotBoard.setBoard(event.board);
     return;
@@ -186,18 +232,26 @@ async function presentBookEvent(event, { animate = true } = {}) {
 
   if (event.type === 'clusterWin') {
     const winCells = winCellsFromClusters(event.clusters);
+    const cascadeMultiplier = event.cascadeMultiplier ?? 1;
     pendingClusterRemoved = event.removed ?? [];
+    for (const cluster of event.clusters ?? []) {
+      multiplierPanel.addLedgerEntry(cluster, cascadeMultiplier);
+    }
     if (animate) {
-      const stepWin = bet * (event.stepMultiplier ?? 0);
-      const winLabel = stepWin > 0 ? `+${fmtWin(stepWin)}` : null;
-      setMessage(`Cascade ×${event.cascadeMultiplier} · +${formatMult(event.stepMultiplier)}`);
+      const clusterPresentations = (event.clusters ?? []).map((cluster) => ({
+        winCells: winCellsFromClusters([cluster]),
+        winPopup: buildClusterWinPopup(cluster, cascadeMultiplier),
+      }));
+      setMessage(`Cascade ×${cascadeMultiplier} · +${formatMult(event.stepMultiplier)}`);
       await slotBoard.animateClusterWin(winCells, {
         speed: animationSpeed,
-        winLabel,
+        clusterPresentations,
         firstCascade: event.cascade === 1,
+        cascadeMultiplier,
       });
       gameAudio.playSfx('win');
     } else {
+      slotBoard.setCascadeLadderStep(cascadeMultiplier);
       slotBoard.setBoard(slotBoard.getBoard(), { winCells });
     }
     return;
@@ -271,6 +325,12 @@ function flushRoundSettledUI() {
     profit: payout - debitDisplay,
   });
 
+  devStatsOverlay.recordRound({
+    wager: debitDisplay,
+    payout,
+    multiplier: result.multiplier,
+  });
+
   if (result.multiplier > 0) {
     gameAudio.playSfx('win');
   } else if (payout < debitDisplay) {
@@ -281,6 +341,9 @@ function flushRoundSettledUI() {
 async function finishPresentation() {
   if (slotBoard?.waitUntilIdle) {
     await slotBoard.waitUntilIdle();
+  }
+  if (slotBoard?.fadeOutCascadeLadder) {
+    await slotBoard.fadeOutCascadeLadder({ speed: animationSpeed });
   }
   flushRoundSettledUI();
   syncControls();
@@ -304,20 +367,17 @@ const game = createGameBootstrap({
   suki: {
     gameId: GAME.id,
     replayVersion: GAME.replayVersion,
-    sessionStorageKey: 'basicSlot.rgsSessionID',
+    sessionStorageKey: 'basicSlotPool.rgsSessionID',
   },
   shell: {
     elements: {
-      complianceDev: complianceDevEl,
       testControls: betUi.elements.testControls,
       copyReplay: betUi.elements.copyReplay,
       autoplay: betUi.elements.autoplay,
       newSession: betUi.elements.newSession,
-      devAside: principlesAside,
       sessionTimer: sessionTimerEl,
       sessionTimerContainer: sessionTimerStat,
       balanceLabel: balanceLabelEl,
-      betLabel: betLabelEl,
       lastResultLabel: lastResultLabelEl,
       sessionBestHudLabel: sessionBestHudLabelEl,
       replayNote: replayNoteEl,
@@ -366,6 +426,7 @@ const game = createGameBootstrap({
     gameModes: GAME_MODES,
     copyOverrides: {
       drop: 'Spin',
+      setBetPrompt: 'Press Spin to play.',
     },
     onConfigured(auth) {
       if (auth.balanceDisplay != null) {
@@ -386,10 +447,19 @@ const game = createGameBootstrap({
     isBusy: () => spinning || autoplaying || isBoardPresenting(),
     onRgsReady: () => syncControls(),
     onReady: () => {
+      showTallPreviewBoard();
       syncHud();
-      setMessage(copyTerm('setBetPrompt'));
+      if (!isTallSymbolPreview()) {
+        setMessage(copyTerm('setBetPrompt'));
+      }
     },
     onAuthRound: handleAuthRoundOutcome,
+    onSyncDevTools: () => {
+      betUi.elements.autoplay.hidden = false;
+      betUi.elements.newSession.hidden = false;
+      betUi.elements.testControls.hidden = false;
+      betUi.elements.copyReplay.hidden = true;
+    },
   },
   onJurisdictionChange: () => {
     gameMenu.refresh();
@@ -490,6 +560,11 @@ async function runAutoplay(roundCount) {
   if (spinning || autoplaying || !controls.canAutoplay) return;
   if (!game.rgsReady || balance < playCostDisplay()) return;
 
+  slotBoard?.cancelPresentation?.();
+  if (slotBoard?.waitUntilIdle) {
+    await slotBoard.waitUntilIdle();
+  }
+
   autoplaying = true;
   syncControls();
   let count = 0;
@@ -501,6 +576,11 @@ async function runAutoplay(roundCount) {
       }
       setMessage(copyTerm('autoplayProgress', { current: i + 1, total: roundCount }));
       await lifecycle.executeDrop({ animate: false });
+      if (slotBoard?.fadeOutCascadeLadder) {
+        await slotBoard.fadeOutCascadeLadder();
+      }
+      flushRoundSettledUI();
+      syncHud();
       count += 1;
     }
     if (count === roundCount) {
@@ -600,6 +680,7 @@ function handleAuthRoundOutcome(authOutcome) {
 async function onNewSession() {
   startNewRgsSession();
   game.sessionTimer?.reset();
+  devStatsOverlay.reset();
   session = resetSession();
   resultEl.textContent = '—';
   if (sessionBestHudEl) sessionBestHudEl.textContent = '—';
@@ -621,6 +702,7 @@ async function onCopyReplayLink() {
 
 async function initSlotStage() {
   slotBoard = await createSlotBoard(slotRoot);
+  showTallPreviewBoard();
 }
 
 async function startGame() {
@@ -640,7 +722,6 @@ if (replayMode) {
   setPlayModeUi();
   createGamePreloader({
     shell: shellEl,
-    brand: 'SUKI engine',
     subtitle: GAME.title,
     hint: 'Tap anywhere to play',
     connectingHint: copyTerm('connectingRgs'),

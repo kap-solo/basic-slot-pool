@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-const url = process.argv[2] || 'http://127.0.0.1:5174/?dev=true&sessionID=local-demo&rgs_url=http://127.0.0.1:5174';
+const url = process.argv[2] || 'http://127.0.0.1:5176/?dev=true&tall=true&sessionID=local-demo&rgs_url=http://127.0.0.1:5176';
 const errors = [];
 const logs = [];
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Basic Slot — Suki Engine</title>
+    <title>Reflecting Pool — Suki Engine</title>
     <link rel="stylesheet" href="/vendor/suki-engine/client/suki/stakeLayout.css" />
     <link rel="stylesheet" href="/vendor/suki-engine/client/suki/betUi.css" />
     <link rel="stylesheet" href="/vendor/suki-engine/client/suki/gameMenu.css" />
@@ -25,14 +25,9 @@
       <div class="suki-bg suki-bg-landscape" aria-hidden="true"></div>
 
       <header class="suki-brand">
-        <h1 id="game-title">Basic Slot</h1>
+        <h1 id="game-title">Reflecting Pool</h1>
         <p class="subtitle" id="game-subtitle">5×5 cluster cascade</p>
       </header>
-
-      <div id="replay-banner" class="replay-banner suki-replay-banner" hidden>
-        <span class="replay-label">Replay</span>
-        <span class="replay-note" id="replay-note">Recorded round — not a live bet</span>
-      </div>
 
       <aside class="suki-flank-left" aria-hidden="true">
         <div class="suki-flank-slot">
@@ -41,52 +36,53 @@
       </aside>
 
       <section class="suki-game-core">
-        <section class="hud" id="balance-hud" aria-label="Balance">
-          <div class="stat">
-            <span class="label" id="balance-label">Balance</span>
-            <span class="value" id="balance">$0.00</span>
+        <div class="game-core-stack">
+          <div class="stage" id="slot-stage" aria-live="polite">
+            <div id="slot-board" class="slot-canvas-host" aria-label="Slot reels"></div>
           </div>
-          <div class="stat">
-            <span class="label" id="bet-label">Bet</span>
-            <span class="value" id="bet-display">$1.00</span>
-          </div>
-          <div class="stat">
-            <span class="label" id="last-result-label">Last result</span>
-            <span class="value" id="last-result">—</span>
-          </div>
-          <div class="stat">
-            <span class="label" id="session-best-hud-label">Session best</span>
-            <span class="value" id="session-best-hud">—</span>
-          </div>
-          <div class="stat" id="session-timer-stat" hidden>
-            <span class="label">Session time</span>
-            <span class="value tabular" id="session-timer">00:00</span>
-          </div>
-        </section>
 
-        <div class="stage" id="slot-stage" aria-live="polite">
-          <div id="slot-board" class="slot-canvas-host" aria-label="Slot reels"></div>
-          <p id="build-ref" class="build-ref" aria-label="Client build reference"></p>
+          <div class="suki-controls-slot" id="bet-ui-root"></div>
+
+          <section class="hud" id="balance-hud" aria-label="Balance">
+            <div class="stat">
+              <span class="label" id="balance-label">Balance</span>
+              <span class="value" id="balance">$0.00</span>
+            </div>
+            <div class="stat">
+              <span class="label" id="last-result-label">Last result</span>
+              <span class="value" id="last-result">—</span>
+            </div>
+            <div class="stat">
+              <span class="label" id="session-best-hud-label">Session best</span>
+              <span class="value" id="session-best-hud">—</span>
+            </div>
+            <div class="stat" id="session-timer-stat" hidden>
+              <span class="label">Session time</span>
+              <span class="value tabular" id="session-timer">00:00</span>
+            </div>
+          </section>
         </div>
+
+        <aside id="multiplier-panel" class="multiplier-panel" aria-label="Multiplier panel">
+          <table class="multiplier-panel-table">
+            <thead>
+              <tr>
+                <th scope="col" colspan="2">Multipliers</th>
+              </tr>
+            </thead>
+            <tbody id="multiplier-ledger" class="multiplier-ledger"></tbody>
+          </table>
+        </aside>
       </section>
 
       <p class="message" id="message" aria-live="polite">Connecting…</p>
 
-      <div class="suki-controls-slot" id="bet-ui-root"></div>
-
       <footer class="suki-footer">
-        <p class="stats" id="stats"></p>
-        <p class="compliance-dev" id="compliance-dev" data-suki-dev hidden></p>
+        <div id="replay-banner" class="replay-banner suki-replay-banner" hidden>
+          <span class="replay-label">Replay</span>
+          <span class="replay-note" id="replay-note">Recorded round — not a live bet</span>
+        </div>
       </footer>
-
-      <aside class="principles suki-dev-aside" data-suki-dev>
-        <strong>Basic Slot v1</strong>
-        <ul>
-          <li>Base mode only — no buy bonus / free spins.</li>
-          <li>Mock RGS picks book → cascade events (<code>clusterWin</code>, <code>tumble</code>) → settle.</li>
-          <li>Stake screens: <code>?dev=true</code> toolbar.</li>
-        </ul>
-      </aside>
     </main>
 
     <script type="module" src="js/game.js"></script>

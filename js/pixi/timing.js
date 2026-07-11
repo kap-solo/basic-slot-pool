@@ -42,6 +42,13 @@ export const TIMING = {
   cascadeLeadMs: 120,
   /** Win flash before symbols pop. */
   cascadeHighlightMs: 380,
+  /** Non-win symbols dim/undim during cluster highlight. */
+  cascadeDimInMs: 300,
+  cascadeDimOutMs: 240,
+  /** Win amount label — lingers a little longer than the highlight flash. */
+  cascadeWinPopupMs: 560,
+  /** Cascade ladder row fades after the round settles. */
+  cascadeLadderFadeMs: 420,
   cascadePopMs: 195,
   tumbleGravityMs: 270,
   tumbleDropMs: 300,

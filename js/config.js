@@ -1,8 +1,8 @@
 /** Basic Slot — game constants. */
 export const GAME = {
   id: 'basic-slot',
-  title: 'Basic Slot',
-  subtitle: '5×5 cluster cascade',
+  title: 'Reflecting Pool',
+  subtitle: '5×5 cluster cascade · pool',
   replayVersion: '1',
   targetRtpPercent: 96,
   reels: 5,
@@ -10,7 +10,7 @@ export const GAME = {
 };
 
 /** Bump when verifying client updates — shown in the game area. */
-export const BUILD_REF = 'BS-090';
+export const BUILD_REF = 'BS-POOL';
 
 const PLACEHOLDER_SYMBOLS = ['CH', 'LM', 'OR', 'GR', 'ST'];
 

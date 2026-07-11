@@ -1,20 +1,8 @@
-# Basic Slot — Suki Engine
+# Basic Slot Pool — Suki Engine
 
-Minimal 3-reel slot (base mode only). Outcomes come from the mock RGS; the client animates reels and presents `round.state` book events.
+Independent fork of **Basic-Slot-Lab** (port **5176**). Same Suki Engine stack; changes here do not affect Lab (**5175**) or the frozen baseline (**5174** / `Basic-Slot`).
 
-## Pixi + Spine presentation
-
-Rendering uses **PixiJS 8** + **spine-pixi-v8 4.2** (no bundler — import map + `/vendor/npm/`).
-
-| Path | Role |
-|------|------|
-| `js/pixi/board.js` | Pixi app, cabinet frame, 3 reel columns |
-| `js/pixi/reel.js` | Masked reel strip, spin + bounce stop |
-| `js/pixi/symbolView.js` | Placeholder tiles today; Spine when wired |
-| `js/pixi/symbols.js` | Colors + future Spine paths per symbol id |
-| `assets/spine/README.md` | Drop-in guide for your exports |
-
-Placeholders show colored tiles with emoji/labels until you set `SYMBOL_VISUAL.<ID>.spine` paths.
+Includes current lab features: Crown/Cherry tall pairs (`?tall=true`), multiplier panel + ledger (desktop landscape).
 
 ## Quick start
 
@@ -23,16 +11,15 @@ npm install
 npm start
 ```
 
-Open **http://127.0.0.1:5174/?dev=true**
+Or run `start-pool.bat` (Windows).
 
-Or run `start.bat` (Windows) — opens the browser after install.
+**URL:** http://127.0.0.1:5176/?dev=true&tall=true&sessionID=local-demo&rgs_url=http://127.0.0.1:5176
 
-| URL | Purpose |
-|-----|---------|
-| `?dev=true` | Mock RGS, compliance footer, test buttons, Stake screen toolbar |
-| `?dev=true&social=true` | Social casino copy preview |
-| `?dev=true&jurisdiction=strict` | Session timer + disabled turbo/autoplay |
-| `?replay=true&event=2&amount=1000000` | Replay book id 2 at $1.00 bet |
+| Build | Port | Directory |
+|-------|------|-----------|
+| Baseline | 5174 | `Basic-Slot` |
+| Lab | 5175 | `Basic-Slot-Lab` |
+| **Pool** | **5176** | **`Basic-Slot-Pool`** |
 
 ## Verify
 
@@ -41,28 +28,19 @@ npm run validate-math
 npm run test:smoke
 ```
 
-## Game id / rename map
+## Identity (pool-specific)
 
 | Item | Value |
 |------|-------|
-| `GAME.id` | `basic-slot` |
-| Session storage | `basicSlot.rgsSessionID` |
-| `server/game-rgs.mjs` | `GAME_ID = 'basic-slot'` |
-| Math | `data/books_base.jsonl`, `data/lookUpTable_base_0.csv` |
+| `BUILD_REF` | `BS-POOL` |
+| `GAME.id` | `basic-slot` (shared books/math for now) |
+| RGS session | `basicSlotPool.rgsSessionID` |
+| Session stats | `basicSlotPool.session` |
+| Server label | `Basic Slot Pool` |
 
 ## v1 scope
 
 - Single **base** mode (`data/index.json`)
-- Book flow: `gameReveal` → `setTotalWin` → `finalWin`
-- 3×3 board in book JSON; staggered reel spin then land on RGS outcome
-- Play button: **Spin** (via Suki `copyOverrides.drop`)
-- Wins: `game.formatWin()` · balance/bet: `game.formatCurrency()`
-- Replay + Replay again wired like Pure Plinko
-
-Not in v1: buy bonus, free spins, feature modes.
-
-## Engine
-
-```json
-"@kap-solo/suki-engine": "github:kap-solo/suki-engine#3b94b24"
-```
+- 5×5 cluster cascade — book events `gameReveal`, `clusterWin`, `tumble`, `setTotalWin`, `finalWin`
+- Mock RGS + Pixi board
+- Replay wired via Suki Engine

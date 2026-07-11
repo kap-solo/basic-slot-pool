@@ -7,31 +7,236 @@ body {
   background: #06080c;
 }
 
-/* Game core: HUD + stage only — status text is fixed and out of flow. */
+/* Game core: stage + controls + HUD; multiplier table on desktop landscape only. */
 .suki-game-core {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.game-core-stack {
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'stage'
+    'controls'
+    'hud';
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Controls sit below the reels in all orientations. */
+.game-core-stack .suki-controls-slot {
+  grid-area: controls;
+  padding: 0.4rem 0 0;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+.suki-bet-chips {
+  display: none !important;
+}
+
+.suki-bet-copy-replay {
+  display: none !important;
+}
+
+/* Shell grid: no separate controls column — they live inside the game core. */
+.suki-stake-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'brand'
+    'core'
+    'footer';
+}
+
+/* Landscape / desktop — character flank left, large board center-right. */
+.suki-stake-shell[data-suki-orientation='landscape'] {
+  grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
-    'hud'
-    'stage';
-  align-content: stretch;
+    'brand brand'
+    'flankL core';
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .suki-brand {
+  text-align: left;
+  padding: 0.45rem 0.85rem 0.25rem;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-left {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0.5rem 0.35rem 0.5rem 0.75rem;
+  min-height: 0;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-slot {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .suki-game-core {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  aspect-ratio: unset;
+  justify-self: stretch;
+  align-self: stretch;
+  margin: 0;
+  padding: 0 1rem 0.5rem 0.35rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 12rem);
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .game-core-stack {
+  grid-column: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .game-core-stack .suki-controls-slot {
+  padding: 0.35rem 0 0;
+  max-width: 26rem;
+  justify-self: center;
+  width: 100%;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .hud {
+  max-width: 28rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .stage {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .slot-canvas-host canvas {
+  border-radius: 0;
+}
+
+.multiplier-panel {
+  display: none;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .multiplier-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid #2a3548;
+  background: rgba(10, 14, 20, 0.92);
+  overflow: hidden;
+}
+
+.multiplier-panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  color: #c5d0de;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.multiplier-panel-table thead {
+  flex-shrink: 0;
+}
+
+.multiplier-ledger {
+  display: block;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  transition: opacity 280ms ease;
+}
+
+.multiplier-ledger--fading {
+  opacity: 0;
+}
+
+.multiplier-panel-table thead tr,
+.multiplier-panel-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.multiplier-panel-table thead th {
+  padding: 0.35rem 0.4rem 0.5rem;
+  text-align: left;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b97a8;
+  border-bottom: 1px solid #2a3548;
+}
+
+.ledger-entry {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.ledger-entry--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ledger-entry-label {
+  padding: 0.4rem 0.35rem 0.4rem 0.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ledger-entry-symbol {
+  padding: 0.35rem 0.15rem 0.35rem 0;
+  width: 2rem;
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.ledger-entry + .ledger-entry .ledger-entry-label,
+.ledger-entry + .ledger-entry .ledger-entry-symbol {
+  border-top: 1px solid rgba(42, 53, 72, 0.65);
 }
 
 .hud {
   grid-area: hud;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  max-height: 6.25rem;
-  overflow: hidden;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding-bottom: 0.15rem;
+  width: 100%;
+  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .stat {
   background: rgba(18, 22, 30, 0.88);
   border: 1px solid #1f2733;
   border-radius: 8px;
-  padding: 0.5rem 0.65rem;
+  padding: 0.35rem 0.4rem;
   min-width: 0;
 }
 
@@ -41,9 +246,9 @@ body {
 
 .stat .label {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: #8b97a8;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -51,7 +256,7 @@ body {
 }
 
 .stat .value {
-  font-size: 0.98rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
@@ -62,8 +267,8 @@ body {
 .stage {
   grid-area: stage;
   min-height: 0;
-  height: 100%;
   width: 100%;
+  align-self: stretch;
   background: linear-gradient(180deg, rgba(14, 18, 26, 0.95), rgba(8, 10, 14, 0.88));
   border: 1px solid #1f2733;
   border-radius: 12px;
@@ -75,13 +280,14 @@ body {
   position: relative;
   overflow: hidden;
   contain: layout style;
+  z-index: 1;
 }
 
 .slot-canvas-host {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   width: 100%;
   min-height: 0;
-  height: 100%;
+  min-width: 0;
   max-width: 100%;
   max-height: 100%;
   position: relative;
@@ -89,26 +295,6 @@ body {
 
 .slot-canvas-host canvas {
   border-radius: 10px;
-}
-
-.build-ref {
-  position: absolute;
-  right: 0.55rem;
-  bottom: 0.45rem;
-  margin: 0;
-  padding: 0.18rem 0.45rem;
-  border-radius: 6px;
-  border: 1px solid #2a3548;
-  background: rgba(8, 12, 18, 0.82);
-  color: #7d8da3;
-  font-size: 0.62rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  z-index: 3;
-  pointer-events: none;
-  user-select: text;
 }
 
 /* Fixed overlay — never participates in shell / core layout. */
@@ -131,16 +317,26 @@ body {
   white-space: nowrap;
 }
 
+.suki-footer {
+  padding: 0;
+  min-height: 0;
+}
+
+.suki-footer:not(:has(#replay-banner:not([hidden]))) {
+  display: none;
+}
+
 .replay-banner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.65rem;
+  gap: 0.35rem 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0.55rem;
   border-radius: 8px;
   border: 1px solid #3d2a14;
   background: rgba(26, 18, 8, 0.9);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
 }
 
 .replay-label {
@@ -150,37 +346,137 @@ body {
   color: #fbbf24;
 }
 
-.stats,
-.compliance-dev {
-  margin: 0;
-  font-size: 0.7rem;
-  color: #6b7a90;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.compliance-dev {
-  margin-top: 0.25rem;
-  font-size: 0.62rem;
-  color: #4a5568;
-}
-
-.principles {
-  padding: 0.65rem 0.85rem;
-  background: rgba(13, 17, 24, 0.92);
+/* Dev-only session math overlay (?dev=true) — fixed top-left, clear of reels */
+.dev-stats-overlay {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top, 0px));
+  left: max(0.5rem, env(safe-area-inset-left, 0px));
+  z-index: 10;
+  width: min(13.5rem, calc(100vw - 1rem));
+  max-height: min(22rem, calc(100dvh - 1rem));
+  overflow: auto;
+  padding: 0.5rem 0.55rem;
   border-radius: 8px;
-  border: 1px solid #1a2230;
-  font-size: 0.72rem;
+  border: 1px solid #2a3a52;
+  background: rgba(8, 12, 18, 0.9);
+  color: #c5d0de;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+
+.dev-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.dev-stats-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: #8b97a8;
 }
 
-.principles ul {
-  margin: 0.35rem 0 0;
-  padding-left: 1.1rem;
+.dev-stats-reset {
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #2a3344;
+  border-radius: 6px;
+  background: #12161e;
+  color: #9aa8bc;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
-.principles code {
-  font-size: 0.68rem;
-  color: #c5d0de;
+.dev-stats-reset:hover {
+  border-color: #4a9eff;
+  color: #e8edf4;
+}
+
+.dev-stats-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.45rem;
+  margin: 0 0 0.45rem;
+}
+
+.dev-stats-metric {
+  min-width: 0;
+}
+
+.dev-stats-metric dt {
+  margin: 0;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7d8da3;
+}
+
+.dev-stats-metric dd {
+  margin: 0.05rem 0 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dev-stats-sub {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: #6b7a90;
+}
+
+.dev-stats-pos {
+  color: #4ade80;
+}
+
+.dev-stats-neg {
+  color: #f87171;
+}
+
+.dev-stats-histogram {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.dev-stats-bar-row {
+  display: grid;
+  grid-template-columns: 3.1rem 1fr 2.1rem;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dev-stats-bar-label {
+  color: #8b97a8;
+  font-size: 0.58rem;
+  white-space: nowrap;
+}
+
+.dev-stats-bar-track {
+  display: block;
+  height: 0.35rem;
+  border-radius: 3px;
+  background: rgba(31, 39, 51, 0.9);
+  overflow: hidden;
+}
+
+.dev-stats-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2563eb, #4a9eff);
+  min-width: 0;
+}
+
+.dev-stats-bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #9aa8bc;
+  font-size: 0.58rem;
 }

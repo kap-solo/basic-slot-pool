@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'basicSlot.session';
+const STORAGE_KEY = 'basicSlotPool.session';
 
 export function createSession() {
   return {

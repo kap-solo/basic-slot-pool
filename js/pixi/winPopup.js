@@ -1,27 +1,81 @@
 /**
- * Momentary win amount label — centred on the board, floats up and fades out.
+ * Momentary win amount label — centred on the board or anchored per cluster.
  */
 
 import { Container, Text } from 'pixi.js';
-import { sleep } from './easing.js';
+import { easeOutCubic, sleep } from './easing.js';
 
 /**
- * @param {Container} layer
- * @param {string} label
- * @param {{ cellW: number, cellH: number, durationMs: number }} opts
+ * @typedef {object} WinPopupContent
+ * @property {string} amount — e.g. "+$0.20"
+ * @property {number} [amountFrom] — display-currency start for cluster-size count-up
+ * @property {number} [amountTo] — display-currency end (should match amount)
+ * @property {(value: number) => string} [formatAmount] — balance-style ticks during count-up (e.g. 2 dp for USD)
+ * @property {string | null} [cascadeLabel] — ladder line above amount, e.g. "×2"
  */
-export async function playWinPopup(layer, label, { cellW, cellH, durationMs }) {
-  layer.removeChildren();
 
-  const fontSize = Math.max(20, Math.round(cellW * 0.52));
-  const text = new Text({
-    text: label,
+/**
+ * @typedef {object} WinPopupPlacement
+ * @property {WinPopupContent} content
+ * @property {number} [x]
+ * @property {number} [y]
+ */
+
+/**
+ * @param {WinPopupContent} content
+ * @param {number} cellW
+ * @param {number} cellH
+ */
+function createWinPopupStack(content, cellW, cellH) {
+  const amountFontSize = Math.max(20, Math.round(cellW * 0.52));
+  const cascadeFontSize = Math.max(14, Math.round(cellW * 0.36));
+  const spacing = Math.max(4, Math.round(cellH * 0.08));
+
+  const formatTick = content.formatAmount ?? ((value) => content.amount);
+
+  const fromAmount = content.amountFrom;
+  const toAmount = content.amountTo ?? fromAmount;
+  const centsFrom = Number.isFinite(fromAmount) ? Math.round(fromAmount * 100) : 0;
+  const centsTo = Number.isFinite(toAmount) ? Math.round(toAmount * 100) : centsFrom;
+  const animateCount = centsTo > centsFrom;
+
+  const stack = new Container();
+  let cursorY = 0;
+
+  if (content.cascadeLabel) {
+    const cascadeText = new Text({
+      text: content.cascadeLabel,
+      style: {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: cascadeFontSize,
+        fontWeight: '700',
+        fill: 0xa7f3d0,
+        stroke: { color: 0x14532d, width: Math.max(2, cascadeFontSize * 0.1) },
+        align: 'center',
+        dropShadow: {
+          color: 0x000000,
+          alpha: 0.4,
+          blur: 3,
+          distance: 2,
+          angle: Math.PI / 2,
+        },
+      },
+    });
+    cascadeText.anchor.set(0.5, 0);
+    cascadeText.x = 0;
+    cascadeText.y = cursorY;
+    stack.addChild(cascadeText);
+    cursorY += cascadeText.height + spacing;
+  }
+
+  const amountText = new Text({
+    text: animateCount ? formatTick(centsFrom / 100) : content.amount,
     style: {
       fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize,
+      fontSize: amountFontSize,
       fontWeight: '800',
       fill: 0xfff4a8,
-      stroke: { color: 0x14532d, width: Math.max(3, fontSize * 0.1) },
+      stroke: { color: 0x14532d, width: Math.max(3, amountFontSize * 0.1) },
       align: 'center',
       dropShadow: {
         color: 0x000000,
@@ -32,27 +86,95 @@ export async function playWinPopup(layer, label, { cellW, cellH, durationMs }) {
       },
     },
   });
-  text.anchor.set(0.5);
-  text.alpha = 0;
-  text.scale.set(0.8);
-  layer.addChild(text);
+  amountText.anchor.set(0.5, 0);
+  amountText.x = 0;
+  amountText.y = cursorY;
+  stack.addChild(amountText);
+
+  const totalHeight = cursorY + amountText.height;
+  stack.pivot.set(0, totalHeight / 2);
+
+  return {
+    stack,
+    amountText,
+    animateCount,
+    centsFrom,
+    centsTo,
+    formatTick,
+    content,
+  };
+}
+
+/**
+ * @param {Container} layer
+ * @param {WinPopupContent} content
+ * @param {{ cellW: number, cellH: number, durationMs: number, formatAmount?: (value: number) => string, x?: number, y?: number }} [opts]
+ */
+export async function playWinPopup(layer, content, { cellW, cellH, durationMs, formatAmount, x = 0, y = 0 }) {
+  const popupContent = formatAmount ? { ...content, formatAmount } : content;
+  await playWinPopups(layer, [{ content: popupContent, x, y }], { cellW, cellH, durationMs });
+}
+
+/**
+ * Show one or more win popups on the same clock (same cascade step).
+ * @param {Container} layer
+ * @param {WinPopupPlacement[]} popups
+ * @param {{ cellW: number, cellH: number, durationMs: number }} opts
+ */
+export async function playWinPopups(layer, popups, { cellW, cellH, durationMs }) {
+  if (!popups.length) return;
+
+  layer.removeChildren();
+
+  const driftY = -cellH * 0.45;
+  const entries = popups.map(({ content, x = 0, y = 0 }) => {
+    const built = createWinPopupStack(content, cellW, cellH);
+    built.stack.alpha = 0;
+    built.stack.scale.set(0.8);
+    built.baseX = x;
+    built.baseY = y;
+    layer.addChild(built.stack);
+    return built;
+  });
 
   const steps = 14;
   const stepMs = Math.max(16, Math.round(durationMs / steps));
-  const driftY = -cellH * 0.45;
+  const countMs = Math.min(Math.round(durationMs * 0.58), 380);
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
+    const elapsedMs = t * durationMs;
     let alpha = 1;
     if (t < 0.12) alpha = t / 0.12;
     else if (t > 0.72) alpha = Math.max(0, (1 - t) / 0.28);
 
-    text.alpha = alpha;
-    text.y = driftY * Math.min(1, t / 0.85);
-    text.scale.set(0.8 + 0.2 * Math.min(1, t / 0.18));
+    const drift = driftY * Math.min(1, t / 0.85);
+    const scale = 0.8 + 0.2 * Math.min(1, t / 0.18);
+
+    for (const entry of entries) {
+      if (entry.animateCount) {
+        const countT = countMs > 0 ? easeOutCubic(Math.min(1, elapsedMs / countMs)) : 1;
+        const cents = Math.round(entry.centsFrom + (entry.centsTo - entry.centsFrom) * countT);
+        entry.amountText.text = entry.formatTick(cents / 100);
+      }
+
+      entry.stack.alpha = alpha;
+      entry.stack.x = entry.baseX;
+      entry.stack.y = entry.baseY + drift;
+      entry.stack.scale.set(scale);
+    }
+
     if (i < steps) await sleep(stepMs);
   }
 
+  for (const entry of entries) {
+    if (entry.animateCount) {
+      entry.amountText.text = entry.content.amount;
+    }
+  }
+
   layer.removeChildren();
-  text.destroy();
+  for (const entry of entries) {
+    entry.stack.destroy({ children: true });
+  }
 }

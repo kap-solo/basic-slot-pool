@@ -19,6 +19,29 @@ function smoothstep(u) {
 }
 
 /**
+ * Resolve the symbol node at a strip row index (sparse when tall blocks merge rows).
+ * @param {ReturnType<typeof import('./symbolView.js').createSymbolNode>[]} nodes
+ * @param {number} stripIndex
+ * @param {boolean} blockAware
+ * @returns {{ node: ReturnType<typeof import('./symbolView.js').createSymbolNode> | null, drivesJelly: boolean }}
+ */
+function resolveLandSlotNode(nodes, stripIndex, blockAware) {
+  const direct = nodes[stripIndex] ?? null;
+  if (direct) return { node: direct, drivesJelly: true };
+  if (!blockAware) return { node: null, drivesJelly: false };
+
+  for (let i = 0; i < nodes.length; i += 1) {
+    const candidate = nodes[i];
+    if (!candidate || candidate.span <= 1 || !Number.isFinite(candidate.anchorRow)) continue;
+    if (candidate.anchorRow < stripIndex && stripIndex < candidate.anchorRow + candidate.span) {
+      return { node: candidate, drivesJelly: false };
+    }
+  }
+
+  return { node: null, drivesJelly: false };
+}
+
+/**
  * Drive curve for the spring target — not applied directly to visuals.
  * @param {number} t 0..1
  */
@@ -139,11 +162,19 @@ export function animateReelSpin({
   jellyChainCoupling = 0.42,
   jellyLandDelayMs = 0,
   jellyLandImpactScale = 1,
+  blockAware = false,
 }) {
   const count = nodes.length;
   const lagCap = maxRowLagPx ?? cellH * 0.08;
   const finalStripY = stripStartY + totalScroll;
   const snapRowY = (index) => Math.round((index + 0.5) * cellH * 100) / 100;
+  const symbolGridY = (index, node) => {
+    const resolved = node ?? (blockAware ? resolveLandSlotNode(nodes, index, true).node : null);
+    if (blockAware && resolved?.span > 1 && Number.isFinite(resolved.anchorRow)) {
+      return Math.round((resolved.anchorRow + resolved.span / 2) * cellH * 100) / 100;
+    }
+    return snapRowY(index);
+  };
   const landLocked =
     landWindowStartIdx != null &&
     landWindowStartIdx >= 0 &&
@@ -200,9 +231,9 @@ export function animateReelSpin({
     for (let slot = 0; slot < visibleRows; slot += 1) {
       const index = handoffBottomIdx - slot;
       if (index < 0 || index >= count) continue;
-      const node = nodes[index];
-      if (!node) continue;
-      node.root.y = (index + 0.5) * cellH - rowSprings[slot].x;
+      const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+      if (!node || !drivesJelly) continue;
+      node.root.y = symbolGridY(index, node) - rowSprings[slot].x;
     }
     stripSpring.set(stripStartY);
     strip.y = stripStartY;
@@ -303,14 +334,16 @@ export function animateReelSpin({
 
           const index = windowBottomIdx - slot;
           if (index < 0 || index >= count) continue;
-          const node = nodes[index];
-          if (!node) continue;
-          node.root.y = snapRowY(index) - rowSprings[slot].x;
+          const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+          if (!node || !drivesJelly) continue;
+          node.root.y = symbolGridY(index, node) - rowSprings[slot].x;
         }
 
         for (let index = 0; index < count; index += 1) {
           if (index < windowTopIdx || index > windowBottomIdx) {
-            nodes[index].root.y = snapRowY(index);
+            const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+            if (!node || !drivesJelly) continue;
+            node.root.y = symbolGridY(index, node);
           }
         }
 
@@ -360,9 +393,9 @@ export function animateReelSpin({
         for (let slot = 0; slot < visibleRows; slot += 1) {
           const index = landBottomIdx - slot;
           if (index < 0 || index >= count) continue;
-          const node = nodes[index];
-          if (!node) continue;
-          const gridY = snapRowY(index);
+          const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+          if (!node || !drivesJelly) continue;
+          const gridY = symbolGridY(index, node);
           holdOffset[slot] = node.root.y - gridY;
           holdRowVel[slot] = rowSprings[slot].v;
           rowJellySprings[slot].set(0, 0);
@@ -398,9 +431,9 @@ export function animateReelSpin({
         for (let slot = 0; slot < visibleRows; slot += 1) {
           const index = landBottomIdx - slot;
           if (index < 0 || index >= count) continue;
-          const node = nodes[index];
-          if (!node) continue;
-          const gridY = snapRowY(index);
+          const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+          if (!node || !drivesJelly) continue;
+          const gridY = symbolGridY(index, node);
           const off = node.root.y - gridY;
           const rowV = rowSprings[slot].v;
           const startV = -rowV * 0.92 + (Math.abs(off) < 0.35 ? pendingImpactVel * 0.14 : 0);
@@ -414,9 +447,9 @@ export function animateReelSpin({
       for (let slot = 0; slot < visibleRows; slot += 1) {
         const index = landBottomIdx - slot;
         if (index < 0 || index >= count) continue;
-        const node = nodes[index];
-        if (!node) continue;
-        const gridY = snapRowY(index);
+        const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+        if (!node || !drivesJelly) continue;
+        const gridY = symbolGridY(index, node);
 
         if (!impactApplied) {
           rowSprings[slot].step(0, dt, 1.08);
@@ -455,24 +488,26 @@ export function animateReelSpin({
 
       for (let index = 0; index < count; index += 1) {
         if (index >= landTopIdx && index <= landBottomIdx) continue;
-        nodes[index].root.y = snapRowY(index);
+        const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+        if (!node || !drivesJelly) continue;
+        node.root.y = symbolGridY(index, node);
       }
 
       const settleElapsed = impactApplied && landedAt !== null ? now - landedAt : 0;
       const allJellyDone =
         impactApplied &&
         rowJellySprings.every((spring, slot) => {
+          const index = landBottomIdx - slot;
+          if (index < 0 || index >= count) return true;
+          const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+          if (!node || !drivesJelly) return true;
           if (settleElapsed < jellyMinDuration * 0.75) return false;
           if (tailStartedAt[slot] === null) return false;
           const tailDone =
             tailDuration <= 0 ||
             tailStartedAt[slot] === null ||
             now - tailStartedAt[slot] >= tailDuration * 0.92;
-          const index = landBottomIdx - slot;
-          if (index < 0 || index >= count) return tailDone;
-          const node = nodes[index];
-          if (!node) return tailDone;
-          return tailDone && Math.abs(node.root.y - snapRowY(index)) < settleThreshold;
+          return tailDone && Math.abs(node.root.y - symbolGridY(index, node)) < settleThreshold;
         });
 
       const stripSettled = Math.abs(strip.y - finalStripY) < 0.2;
@@ -489,9 +524,9 @@ export function animateReelSpin({
       for (let slot = 0; slot < visibleRows; slot += 1) {
         const index = landBottomIdx - slot;
         if (index < 0 || index >= count) continue;
-        const node = nodes[index];
-        if (!node) continue;
-        const gridY = snapRowY(index);
+        const { node, drivesJelly } = resolveLandSlotNode(nodes, index, blockAware);
+        if (!node || !drivesJelly) continue;
+        const gridY = symbolGridY(index, node);
         if (Math.abs(node.root.y - gridY) < 0.35) {
           node.root.y = gridY;
         }
@@ -551,6 +586,35 @@ function sleep(ms) {
 /** @param {number} ms @param {number} speed */
 export function scaledDelay(ms, speed) {
   return sleep(Math.max(0, Math.round(ms / speed)));
+}
+
+/**
+ * Fade many display objects in lockstep on one rAF clock.
+ * @param {{ object: { alpha: number }, from: number, to: number }[]} targets
+ * @param {{ durationMs?: number, ease?: (t: number) => number }} [opts]
+ */
+export function animateAlphaTargets(targets, { durationMs = 300, ease = easeOutCubic } = {}) {
+  if (!targets.length) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = ease(t);
+      for (const { object, from, to } of targets) {
+        object.alpha = from + (to - from) * eased;
+      }
+      if (t < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+      for (const { object, to } of targets) {
+        object.alpha = to;
+      }
+      resolve();
+    };
+    requestAnimationFrame(step);
+  });
 }
 
 export { sleep };

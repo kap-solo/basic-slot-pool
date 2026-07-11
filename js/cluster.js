@@ -66,6 +66,47 @@ export function winCellsFromClusters(clusters) {
 }
 
 /** @param {string} symbolId */
+export function basePayForSymbol(symbolId) {
+  const tier = SYMBOLS[symbolId]?.tier;
+  if (tier === 'ordinary') return ORDINARY_BASE_PAY;
+  if (tier === 'premium') return PREMIUM_BASE_PAY;
+  return 0;
+}
+
+/** @param {number} size */
+export function clusterSizeMultiplier(size) {
+  if (size < MIN_CLUSTER_SIZE) return 0;
+  if (CLUSTER_SIZE_MULTIPLIERS[size] != null) return CLUSTER_SIZE_MULTIPLIERS[size];
+  if (size >= 13) return 10 + (size - 12) * 4;
+  return 1;
+}
+
+/** @param {string} symbolId @param {number} size */
+export function clusterBaseMultiplier(symbolId, size) {
+  const base = basePayForSymbol(symbolId);
+  if (!base) return 0;
+  return base * clusterSizeMultiplier(size);
+}
+
+/** @param {number} mult */
+export function quantizeWinMult(mult) {
+  if (!Number.isFinite(mult) || mult <= 0) return 0;
+  return Math.round(mult / ORDINARY_BASE_PAY) * ORDINARY_BASE_PAY;
+}
+
+/**
+ * Minimum-cluster step multiplier (base pay only, no size boost) — matches math books.
+ * @param {{ symbol: string }[] | null | undefined} clusters
+ */
+export function baseStepMultiplierFromClusters(clusters) {
+  let sum = 0;
+  for (const cluster of clusters ?? []) {
+    sum += basePayForSymbol(cluster.symbol);
+  }
+  return quantizeWinMult(sum);
+}
+
+/** @param {string} symbolId */
 export function clusterPayLabel(symbolId) {
   return SYMBOLS[symbolId]?.label ?? symbolId;
 }
