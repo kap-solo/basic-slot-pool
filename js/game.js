@@ -194,17 +194,6 @@ function showTallPreviewBoard() {
 
 function displayRoundResult({ summary, multiplier, payout, profit }) {
   resultEl.textContent = `${summary} → ${fmtWin(payout)}`;
-  if (multiplier > 0) {
-    if (profit > 0) {
-      setMessage(`${copyTerm('won')} ${fmtWin(profit)}.`);
-    } else {
-      setMessage(`${summary} — ${formatMult(multiplier)} win.`);
-    }
-  } else if (payout === bet) {
-    setMessage(`${summary} — ${copyTerm('stakeReturned')}.`);
-  } else {
-    setMessage(`${summary} — no win.`);
-  }
 }
 
 function showStaticRound(round) {
@@ -243,7 +232,6 @@ async function presentBookEvent(event, { animate = true } = {}) {
         winCells: winCellsFromClusters([cluster]),
         winPopup: buildClusterWinPopup(cluster, cascadeMultiplier),
       }));
-      setMessage(`Cascade ×${cascadeMultiplier} · +${formatMult(event.stepMultiplier)}`);
       await slotBoard.animateClusterWin(winCells, {
         speed: animationSpeed,
         clusterPresentations,

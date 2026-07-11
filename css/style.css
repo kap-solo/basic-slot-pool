@@ -299,24 +299,9 @@ body {
   border-radius: 10px;
 }
 
-/* Fixed overlay — never participates in shell / core layout. */
+/* Fixed overlay — hidden; round results live in the HUD instead. */
 .message {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
-  z-index: 12;
-  width: min(24rem, calc(100vw - 1.5rem));
-  text-align: center;
-  margin: 0;
-  padding: 0.2rem 0.45rem;
-  color: #c5d0de;
-  font-size: 0.9rem;
-  line-height: 1.25;
-  pointer-events: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none !important;
 }
 
 .suki-footer {
