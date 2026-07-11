@@ -279,6 +279,41 @@ async function playBookPresentation(round, { animate = true } = {}) {
   }
 }
 
+function buildHandReplayUrl({ event, amountApi, mode, lang }) {
+  const url = new URL(
+    buildReplayUrl({
+      event,
+      amountApi,
+      mode,
+      lang,
+    }),
+  );
+  const current = new URLSearchParams(window.location.search);
+  if (current.get('tall') === 'true') {
+    url.searchParams.set('tall', 'true');
+  }
+  if (current.get('dev') === 'true') {
+    url.searchParams.set('dev', 'true');
+  }
+  return url.toString();
+}
+
+function syncCopyReplayButton() {
+  const btn = betUi.elements.copyReplay;
+  if (!btn || replayMode || !showDevTools()) return;
+  btn.hidden = false;
+  btn.textContent = 'Copy hand replay';
+  btn.title = lastReplayUrl
+    ? 'Copy a replay URL for the last completed hand'
+    : 'Play a hand first — then copy its replay URL';
+}
+
+function setLastReplayUrl(url) {
+  lastReplayUrl = url || '';
+  betUi.setLastReplayUrl(lastReplayUrl);
+  syncCopyReplayButton();
+}
+
 function syncControls() {
   betUi.sync();
 }
@@ -300,13 +335,13 @@ function flushRoundSettledUI() {
   syncHud();
 
   const replayEvent = result.replayEvent || `${getSessionID()}-${round.roundID}`;
-  lastReplayUrl = buildReplayUrl({
+  lastReplayUrl = buildHandReplayUrl({
     event: replayEvent,
     amountApi: round.amount,
     mode: game.betModes.replayModeKey(),
     lang: game.copy.lang,
   });
-  betUi.setLastReplayUrl(lastReplayUrl);
+  setLastReplayUrl(lastReplayUrl);
 
   const summary = describeRoundResult(round);
 
@@ -458,7 +493,7 @@ const game = createGameBootstrap({
       betUi.elements.autoplay.hidden = false;
       betUi.elements.newSession.hidden = false;
       betUi.elements.testControls.hidden = false;
-      betUi.elements.copyReplay.hidden = true;
+      syncCopyReplayButton();
     },
   },
   onJurisdictionChange: () => {
@@ -605,7 +640,7 @@ function setReplayModeUi() {
   replayBanner.hidden = false;
   betUi.setView('replay');
   balanceHud.hidden = true;
-  betUi.setLastReplayUrl('');
+  setLastReplayUrl('');
 }
 
 async function playReplayAnimation(round) {
@@ -685,16 +720,21 @@ async function onNewSession() {
   resultEl.textContent = '—';
   if (sessionBestHudEl) sessionBestHudEl.textContent = '—';
   lastReplayUrl = '';
-  betUi.setLastReplayUrl('');
+  setLastReplayUrl('');
   setMessage('New session — reconnecting…');
   game.start();
 }
 
 async function onCopyReplayLink() {
-  if (!lastReplayUrl) return;
+  if (!lastReplayUrl) {
+    setMessage('No completed hand yet — spin first, then copy the replay URL.');
+    return;
+  }
   try {
     await navigator.clipboard.writeText(lastReplayUrl);
-    setMessage('Replay link copied.');
+    const params = new URL(lastReplayUrl).searchParams;
+    const event = params.get('event') || 'hand';
+    setMessage(`Replay URL copied (${event}). Open in a new tab to replay.`);
   } catch {
     setMessage(lastReplayUrl);
   }
@@ -712,6 +752,7 @@ async function startGame() {
 
 betUi.renderBetLevels();
 syncHud();
+syncCopyReplayButton();
 syncDevTools();
 syncControls();
 

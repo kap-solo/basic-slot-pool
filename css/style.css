@@ -39,8 +39,11 @@ body {
   display: none !important;
 }
 
-.suki-bet-copy-replay {
-  display: none !important;
+.suki-bet-dev {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
 }
 
 /* Shell grid: no separate controls column — they live inside the game core. */
