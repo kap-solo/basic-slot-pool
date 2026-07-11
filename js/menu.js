@@ -52,6 +52,35 @@ export function registerGameModals(ctx) {
         ul.appendChild(li);
       }
       body.appendChild(ul);
+
+      const blobTitle = document.createElement('p');
+      blobTitle.style.marginTop = '0.85rem';
+      blobTitle.style.fontWeight = '600';
+      blobTitle.style.color = '#c5d0de';
+      blobTitle.textContent = 'Green squares';
+      body.appendChild(blobTitle);
+
+      const blobIntro = document.createElement('p');
+      blobIntro.style.marginTop = '0.35rem';
+      blobIntro.style.fontSize = '0.85rem';
+      blobIntro.textContent =
+        'Sometimes a green square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. This is a visual effect only; your spin result is already decided before the reels stop.';
+      body.appendChild(blobIntro);
+
+      const blobUl = document.createElement('ul');
+      blobUl.style.marginTop = '0.5rem';
+      blobUl.style.paddingLeft = '1.1rem';
+      for (const line of [
+        'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
+        'Clusters and wins are evaluated only after the green square disappears — not while it is on screen.',
+        'A green square does not change your payout. It can hide winning symbols for a moment, so a good spin may look like a miss until the cascade finishes.',
+      ]) {
+        const li = document.createElement('li');
+        li.textContent = line;
+        li.style.fontSize = '0.85rem';
+        blobUl.appendChild(li);
+      }
+      body.appendChild(blobUl);
     },
   });
 
