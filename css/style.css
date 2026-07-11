@@ -7,6 +7,11 @@ body {
   background: #06080c;
 }
 
+/* Hide game chrome until preloader mounts; preloader overlay stays visible. */
+.suki-stake-shell.suki-shell-booting > :not(.suki-game-preloader) {
+  visibility: hidden;
+}
+
 /* Game core: stage + controls + HUD; multiplier table on desktop landscape only. */
 .suki-game-core {
   display: flex;
@@ -39,11 +44,32 @@ body {
   display: none !important;
 }
 
+/* Dev row — fixed 2×1 grid so copy-replay never reflows Autoplay / New session. */
 .suki-bet-dev {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.35rem;
-  justify-content: center;
+  justify-items: stretch;
+}
+
+.suki-bet-dev > .suki-bet-dev-btn {
+  flex: unset;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.suki-bet-dev > .suki-bet-copy-replay {
+  grid-column: 1 / -1;
+  width: auto;
+}
+
+/* Keep copy-replay row height reserved in dev (betUi toggles [hidden] until first hand). */
+.suki-bet-dev > .suki-bet-copy-replay[hidden] {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Shell grid: no separate controls column — they live inside the game core. */

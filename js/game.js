@@ -289,7 +289,7 @@ function syncCopyReplayButton() {
   const btn = betUi.elements.copyReplay;
   if (!btn || replayMode || !showDevTools()) return;
   btn.hidden = false;
-  btn.textContent = 'Copy hand replay';
+  btn.textContent = 'Copy replay';
   btn.title = lastReplayUrl
     ? 'Copy a replay URL for the last completed hand'
     : 'Play a hand first — then copy its replay URL';
@@ -299,6 +299,7 @@ function setLastReplayUrl(url) {
   lastReplayUrl = url || '';
   betUi.setLastReplayUrl(lastReplayUrl);
   syncCopyReplayButton();
+  syncControls();
 }
 
 function syncControls() {
@@ -726,6 +727,10 @@ async function startGame() {
   await game.start();
 }
 
+function revealGameShell() {
+  shellEl?.classList.remove('suki-shell-booting');
+}
+
 function attachPreloaderCommitLabel() {
   const overlay = shellEl.querySelector('.suki-game-preloader');
   if (!overlay || overlay.querySelector('.game-preloader-commit')) return;
@@ -744,6 +749,7 @@ syncDevTools();
 syncControls();
 
 if (replayMode) {
+  revealGameShell();
   setReplayModeUi();
   startGame();
 } else {
@@ -757,6 +763,7 @@ if (replayMode) {
     gate: () => game.checkRgsGate(),
     bootstrap: () => startGame(),
     onContinue: () => {
+      revealGameShell();
       gameAudio.unlock();
     },
   });

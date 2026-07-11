@@ -8,6 +8,12 @@
     <link rel="stylesheet" href="/vendor/suki-engine/client/suki/betUi.css" />
     <link rel="stylesheet" href="/vendor/suki-engine/client/suki/gameMenu.css" />
     <link rel="stylesheet" href="css/style.css" />
+    <style>
+      /* Hide game chrome until JS mounts the preloader (avoids HTML shell flash). */
+      .suki-stake-shell.suki-shell-booting > :not(.suki-game-preloader) {
+        visibility: hidden;
+      }
+    </style>
     <script type="importmap">
       {
         "imports": {
@@ -19,7 +25,7 @@
     </script>
   </head>
   <body>
-    <main class="layout suki-stake-shell">
+    <main class="layout suki-stake-shell suki-shell-booting">
       <div class="suki-bg suki-bg-mobile-l" aria-hidden="true"></div>
       <div class="suki-bg suki-bg-mobile-ms" aria-hidden="true"></div>
       <div class="suki-bg suki-bg-landscape" aria-hidden="true"></div>
