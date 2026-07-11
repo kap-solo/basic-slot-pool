@@ -66,10 +66,10 @@ body {
   overflow: hidden;
 }
 
-/* Controls sit below the reels in all orientations. */
+/* Controls — spin only; dev row lives in the HUD. */
 .game-core-stack .suki-controls-slot {
   grid-area: controls;
-  padding: 0.4rem 0 0;
+  padding: 0.25rem 0 0;
   max-width: none;
   flex-shrink: 0;
 }
@@ -78,56 +78,80 @@ body {
   display: none !important;
 }
 
-/* Dev row — single compact row (Auto · New · Copy). */
-.suki-bet-dev {
+/* Dev row — inline with balance in HUD (Auto · New · Copy). */
+.hud-dev-actions .suki-bet-dev {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
   justify-items: stretch;
+  width: 100%;
 }
 
-.suki-bet-dev > .suki-bet-dev-btn {
+.hud-dev-actions .suki-bet-dev > .suki-bet-dev-btn {
   flex: unset;
   max-width: none;
   min-width: 0;
   width: 100%;
   white-space: nowrap;
-  padding: 0.38rem 0.35rem;
-  font-size: 0.65rem;
+  padding: 0.32rem 0.35rem;
+  font-size: 0.62rem;
 }
 
-.suki-bet-dev > .suki-bet-copy-replay {
+.hud-dev-actions .suki-bet-dev > .suki-bet-copy-replay {
   width: auto;
 }
 
-/* Keep copy slot reserved in dev (betUi toggles [hidden] until first hand). */
-.suki-bet-dev > .suki-bet-copy-replay[hidden] {
+.hud-dev-actions .suki-bet-dev > .suki-bet-copy-replay[hidden] {
   display: block;
   visibility: hidden;
   pointer-events: none;
 }
 
+/* Hide dev row if it ever remains inside bet UI. */
+.suki-controls-slot .suki-bet-dev {
+  display: none !important;
+}
+
 /* Shell grid: no separate controls column — they live inside the game core. */
 .suki-stake-shell {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
-    'brand'
     'core'
     'footer';
+}
+
+/* Title row removed — burger menu floats over the game area. */
+.suki-brand {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 0;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.suki-brand h1,
+.suki-brand .subtitle {
+  display: none;
+}
+
+.suki-brand .suki-game-menu {
+  pointer-events: auto;
 }
 
 /* Landscape / desktop — character flank left, large board center-right. */
 .suki-stake-shell[data-suki-orientation='landscape'] {
   grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   grid-template-areas:
-    'brand brand'
     'flankL core';
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-brand {
   text-align: left;
-  padding: 0.45rem 0.85rem 0.25rem;
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-left {
@@ -169,14 +193,14 @@ body {
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .game-core-stack .suki-controls-slot {
-  padding: 0.35rem 0 0;
+  padding: 0.2rem 0 0;
   max-width: 26rem;
   justify-self: center;
   width: 100%;
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .hud {
-  max-width: 28rem;
+  max-width: 26rem;
   margin-inline: auto;
   width: 100%;
 }
@@ -206,6 +230,32 @@ body {
   border: 1px solid #2a3548;
   background: rgba(10, 14, 20, 0.92);
   overflow: hidden;
+}
+
+/* Popout S — drop cluster ledger; viewport too small for side panel + board. */
+.suki-stake-shell[data-suki-screen='popout-s'] .multiplier-panel {
+  display: none !important;
+}
+
+/* Popout S — hide character flank and use full width for reels + controls. */
+.suki-stake-shell[data-suki-screen='popout-s'][data-suki-orientation='landscape'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'core';
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .suki-flank-left {
+  display: none !important;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-suki-orientation='landscape'] .suki-game-core {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0 0.35rem 0.25rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-suki-orientation='landscape'] .game-core-stack .suki-controls-slot,
+.suki-stake-shell[data-suki-screen='popout-s'][data-suki-orientation='landscape'] .hud {
+  max-width: none;
 }
 
 .multiplier-panel-table {
@@ -285,14 +335,26 @@ body {
 
 .hud {
   grid-area: hud;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-  padding-bottom: 0.15rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+  padding-bottom: 0.05rem;
   width: 100%;
   max-width: 100%;
   flex-shrink: 0;
+}
+
+.hud-balance {
+  flex: 0 0 auto;
+  min-width: 5.5rem;
+}
+
+.hud-dev-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .stat {
@@ -539,4 +601,30 @@ body {
   font-variant-numeric: tabular-nums;
   color: #9aa8bc;
   font-size: 0.58rem;
+}
+
+/* ── Background art (assets/) — overrides suki-engine gradient placeholders ── */
+
+.suki-bg-mobile-l {
+  background-color: #06080c;
+  background-image: url('/assets/1125x2001_bg.webp');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.suki-bg-mobile-ms {
+  background-color: #06080c;
+  background-image: url('/assets/l-mob-bg-only.png');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.suki-bg-landscape {
+  background-color: #06080c;
+  background-image: url('/assets/l-desk-bg-only.png');
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }

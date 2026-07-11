@@ -49,19 +49,12 @@
 
           <div class="suki-controls-slot" id="bet-ui-root"></div>
 
-          <section class="hud" id="balance-hud" aria-label="Balance">
-            <div class="stat">
+          <section class="hud" id="balance-hud" aria-label="Balance and dev tools">
+            <div class="stat hud-balance">
               <span class="label" id="balance-label">Balance</span>
               <span class="value" id="balance">$0.00</span>
             </div>
-            <div class="stat">
-              <span class="label" id="last-result-label">Last result</span>
-              <span class="value" id="last-result">—</span>
-            </div>
-            <div class="stat">
-              <span class="label" id="session-best-hud-label">Session best</span>
-              <span class="value" id="session-best-hud">—</span>
-            </div>
+            <div class="hud-dev-actions" id="hud-dev-actions" hidden></div>
             <div class="stat" id="session-timer-stat" hidden>
               <span class="label">Session time</span>
               <span class="value tabular" id="session-timer">00:00</span>
