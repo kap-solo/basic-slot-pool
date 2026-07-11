@@ -192,8 +192,8 @@ function showTallPreviewBoard() {
   setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
 }
 
-function displayRoundResult({ summary, multiplier, payout, profit }) {
-  resultEl.textContent = `${summary} → ${fmtWin(payout)}`;
+function displayRoundResult({ payout }) {
+  resultEl.textContent = fmtWin(payout);
 }
 
 function showStaticRound(round) {
@@ -343,10 +343,7 @@ function flushRoundSettledUI() {
   });
 
   displayRoundResult({
-    summary,
-    multiplier: result.multiplier,
     payout,
-    profit: payout - debitDisplay,
   });
 
   devStatsOverlay.recordRound({
@@ -433,6 +430,7 @@ const game = createGameBootstrap({
     },
     applyBalance: (balanceObj) => {
       balance = apiToDisplay(balanceObj.amount);
+      syncHud();
     },
     buildSettledResult: buildGameSettledResult,
     playingMessage: 'Spinning…',
@@ -685,17 +683,8 @@ function handleAuthRoundOutcome(authOutcome) {
     setMessage('Round resumed.');
   } else if (authOutcome.status === 'completed' && authOutcome.result) {
     const result = authOutcome.result;
-    const summary =
-      result.multiplier <= 0
-        ? 'No win'
-        : result.cascadeSteps > 1
-          ? `${result.cascadeSteps} cascades · ${formatMult(result.multiplier)}`
-          : `Win · ${formatMult(result.multiplier)}`;
     displayRoundResult({
-      summary,
-      multiplier: result.multiplier,
       payout: apiToDisplay(result.payoutApi),
-      profit: apiToDisplay(result.profitApi),
     });
     setMessage('Last completed round restored.');
   }
