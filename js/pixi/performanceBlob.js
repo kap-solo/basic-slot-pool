@@ -52,8 +52,8 @@ function isRowBlobEligible(col, board, row) {
 /** Client-only strip symbol id — not in maths or books. */
 export const PERFORMANCE_BLOB_SYMBOL = 'BL';
 
-/** ~35% of spins. */
-export const BLOB_SPIN_CHANCE = 0.35;
+/** ~25% of spins. */
+export const BLOB_SPIN_CHANCE = 0.25;
 
 function blobsForcedFromUrl() {
   return new URLSearchParams(window.location.search).get('blobs') === 'always';
