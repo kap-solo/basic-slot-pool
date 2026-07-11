@@ -947,6 +947,16 @@ export class ReelColumn {
     };
   }
 
+  /** @param {number} speed */
+  cascadeRefillTiming(speed) {
+    return {
+      spinDuration: Math.max(120, TIMING.tumbleDropMs / speed),
+      jellyLandImpactScale: 1,
+      maxSettleMs: TIMING.cascadeJiggleSettleMs / speed,
+      jellyMinMs: TIMING.spinJellyMinMs / speed,
+    };
+  }
+
   /**
    * @param {object} opts
    * @param {import('pixi.js').Container} opts.strip
@@ -957,7 +967,8 @@ export class ReelColumn {
    * @param {number[]} [opts.initialRowOffsets]
    * @param {number} opts.speed
    * @param {object | null} [opts.pendingFinalize]
-   * @param {'spin' | 'refill'} [opts.profile]
+   * @param {'spin' | 'refill' | 'cascade'} [opts.profile]
+   * @param {number} [opts.landVisibleRows]
    */
   launchResultStripLand({
     strip,
@@ -969,10 +980,16 @@ export class ReelColumn {
     speed = 1,
     pendingFinalize = null,
     profile = 'spin',
+    landVisibleRows = this.visibleRows,
   }) {
-    const timing = profile === 'refill' ? this.revealRefillTiming(speed) : this.spinRevealTiming(speed);
+    const timing =
+      profile === 'refill'
+        ? this.revealRefillTiming(speed)
+        : profile === 'cascade'
+          ? this.cascadeRefillTiming(speed)
+          : this.spinRevealTiming(speed);
     const { spinDuration, jellyLandImpactScale, maxSettleMs, jellyMinMs } = timing;
-    const refillProfile = profile === 'refill';
+    const stripLandProfile = profile === 'refill' || profile === 'cascade';
 
     const spinAnim = animateReelSpin({
       strip,
@@ -981,7 +998,7 @@ export class ReelColumn {
       totalScroll,
       duration: spinDuration,
       cellH: this.cellH,
-      visibleRows: this.visibleRows,
+      visibleRows: landVisibleRows,
       maxSettleMs: maxSettleMs ?? TIMING.spinJiggleSettleMs / speed,
       stripStiffness: TIMING.jiggleStripStiffness,
       stripDamping: TIMING.jiggleStripDamping,
@@ -995,7 +1012,7 @@ export class ReelColumn {
       maxRowLagPx: this.cellH * TIMING.jiggleMaxRowLagRatio,
       landWindowStartIdx,
       initialRowOffsets,
-      drive: refillProfile ? easeCascadeFall : undefined,
+      drive: stripLandProfile ? easeCascadeFall : undefined,
       jellyStiffness: TIMING.spinJellyStiffness,
       jellyDamping: TIMING.spinJellyDamping,
       jellyMinMs: jellyMinMs ?? TIMING.spinJellyMinMs / speed,
@@ -1005,10 +1022,10 @@ export class ReelColumn {
       jellyMaxAboveRatio: TIMING.spinJellyMaxAboveRatio,
       jellyTailMs: TIMING.spinJellyTailMs / speed,
       jellyChainCoupling: TIMING.spinJellyChainCoupling,
-      jellyLandDelayMs: refillProfile ? 0 : (this.reelIndex * TIMING.spinJellyLandStaggerMs) / speed,
+      jellyLandDelayMs: stripLandProfile ? 0 : (this.reelIndex * TIMING.spinJellyLandStaggerMs) / speed,
       jellyLandImpactScale,
       blockAware: this.tallEnabled,
-      immediateLandJelly: refillProfile,
+      immediateLandJelly: stripLandProfile,
     });
 
     if (pendingFinalize) {
@@ -1796,6 +1813,83 @@ export class ReelColumn {
   }
 
   /**
+   * Cascade refill — incoming symbols scroll in as a packed strip (top rows).
+   * @param {{ row: number, symbol: string }[]} colFills sorted by row
+   * @param {import('pixi.js').Container} mainStrip
+   * @param {(ReturnType<typeof createSymbolNode> | null)[]} nextNodes
+   * @param {number} speed
+   */
+  async tumbleFillStripLand(colFills, mainStrip, nextNodes, speed = 1) {
+    if (!colFills.length || !(mainStrip instanceof Container)) return;
+
+    const fillIds = colFills.map((fill) => fill.symbol);
+    const fillCount = fillIds.length;
+    const stripCtx = {
+      cellW: this.cellW,
+      cellH: this.cellH,
+      spineRegistry: this.spineRegistry,
+      visibleRows: fillCount,
+      mergeSegments: [[0, fillCount - 1]],
+    };
+    const { strip: fillStrip, nodes } = buildSpinStripFromRowIds(fillIds, stripCtx, false);
+
+    nodes.forEach((node) => node?.setState('static'));
+
+    const stripStartY = -(fillCount * this.cellH);
+    const totalScroll = fillCount * this.cellH;
+
+    fillStrip.y = stripStartY;
+    this.window.addChild(fillStrip);
+
+    const spinAnim = this.launchResultStripLand({
+      strip: fillStrip,
+      nodes,
+      stripStartY,
+      totalScroll,
+      landWindowStartIdx: 0,
+      initialRowOffsets: Array.from({ length: fillCount }, () => 0),
+      speed,
+      profile: 'cascade',
+      landVisibleRows: fillCount,
+    });
+
+    this.landJellyCancel = spinAnim.cancel ?? null;
+
+    try {
+      await spinAnim;
+      if (spinAnim.impactApplied) {
+        await spinAnim.impactApplied;
+      }
+      if (spinAnim.settled) {
+        await spinAnim.settled;
+      }
+    } finally {
+      this.cancelSpinAnim = null;
+      this.landJellyCancel = null;
+    }
+
+    const stripYBefore = fillStrip.y;
+    for (let index = 0; index < colFills.length; index += 1) {
+      const fill = colFills[index];
+      const node = nodes[index];
+      if (!node?.root) continue;
+      node.root.x = colCenterX(this.cellW);
+      node.root.y = stripYBefore + node.root.y;
+      if (node.root.parent === fillStrip) {
+        fillStrip.removeChild(node.root);
+      }
+      mainStrip.addChild(node.root);
+      nextNodes[fill.row] = node;
+    }
+
+    this.window.removeChild(fillStrip);
+    fillStrip.destroy({ children: false });
+
+    this.reanchorStripY();
+    this.normalizeSymbolGrid();
+  }
+
+  /**
    * Gravity tumble — survivors fall, new symbols drop into empty top cells.
    * Reuses live symbol nodes; no full-column rebuild.
    * @param {string[]} nextColumn
@@ -1815,134 +1909,116 @@ export class ReelColumn {
     const prev = [...this.currentColumn];
     const colFills = [...fills].sort((a, b) => a.row - b.row);
 
-    /** @type {{ symbol: string, oldRow: number, newRow: number, node: ReturnType<typeof createSymbolNode> | null }[]} */
-    const survivors = [];
-    for (let row = 0; row < this.visibleRows; row += 1) {
-      if (removed.has(row)) continue;
-      survivors.push({
-        symbol: prev[row],
-        oldRow: row,
-        newRow: row,
-        node: this.symbolNodes[row],
-      });
-    }
-
-    const gap = this.visibleRows - survivors.length;
-    survivors.forEach((entry, index) => {
-      entry.newRow = gap + index;
-    });
-
-    strip = this.window.children[0];
-    if (!(strip instanceof Container)) {
-      this.rebuildStrip(prev);
-      strip = this.window.children[0];
-    }
-
-    const rowCenterYLocal = (row) => rowCenterY(row, this.cellH);
-    /** @type {{ node: ReturnType<typeof createSymbolNode>, targetY: number, delayMs?: number }[]} */
-    const cascadeEntries = [];
-
-    for (const entry of survivors) {
-      if (!entry.node) {
-        const spineData = this.spineRegistry.get(entry.symbol) ?? null;
-        entry.node = createSymbolNode({
-          id: entry.symbol,
-          cellW: this.cellW,
-          cellH: this.cellH,
-          span: 1,
-          spineData,
-          state: 'static',
+    try {
+      /** @type {{ symbol: string, oldRow: number, newRow: number, node: ReturnType<typeof createSymbolNode> | null }[]} */
+      const survivors = [];
+      for (let row = 0; row < this.visibleRows; row += 1) {
+        if (removed.has(row)) continue;
+        survivors.push({
+          symbol: prev[row],
+          oldRow: row,
+          newRow: row,
+          node: this.symbolNodes[row],
         });
-        entry.node.root.x = colCenterX(this.cellW);
-        strip.addChild(entry.node.root);
       }
 
-      entry.node.setDimmed(false);
-      entry.node.setWinHighlight(false);
-      entry.node.setState('static');
-      entry.node.root.alpha = 1;
-      entry.node.root.scale.set(1);
-      entry.node.root.x = colCenterX(this.cellW);
-
-      if (entry.oldRow === entry.newRow) continue;
-
-      cascadeEntries.push({
-        node: entry.node,
-        startY: entry.node.root.y,
-        targetY: rowCenterYLocal(entry.newRow),
-        fallMs: TIMING.tumbleGravityMs,
-        delayMs: 0,
+      const gap = this.visibleRows - survivors.length;
+      survivors.forEach((entry, index) => {
+        entry.newRow = gap + index;
       });
-    }
 
-    /** @type {(ReturnType<typeof createSymbolNode> | null)[]} */
-    const nextNodes = Array.from({ length: this.visibleRows }, () => null);
+      strip = this.window.children[0];
+      if (!(strip instanceof Container)) {
+        this.rebuildStrip(prev);
+        strip = this.window.children[0];
+      }
 
-    for (const entry of survivors) {
-      nextNodes[entry.newRow] = entry.node;
-    }
+      const rowCenterYLocal = (row) => rowCenterY(row, this.cellH);
+      /** @type {{ node: ReturnType<typeof createSymbolNode>, targetY: number, delayMs?: number }[]} */
+      const cascadeEntries = [];
 
-    colFills.forEach((fill, index) => {
-      const spineData = this.spineRegistry.get(fill.symbol) ?? null;
-      const node = createSymbolNode({
-        id: fill.symbol,
-        cellW: this.cellW,
-        cellH: this.cellH,
-        span: 1,
-        spineData,
-        state: 'static',
-      });
-      node.root.x = colCenterX(this.cellW);
-      const endY = rowCenterYLocal(fill.row);
-      const startY = tumbleFillStartY(index, colFills.length, this.cellH);
-      node.root.y = startY;
-      node.root.alpha = 0;
-      strip.addChild(node.root);
-      nextNodes[fill.row] = node;
+      for (const entry of survivors) {
+        if (!entry.node) {
+          const spineData = this.spineRegistry.get(entry.symbol) ?? null;
+          entry.node = createSymbolNode({
+            id: entry.symbol,
+            cellW: this.cellW,
+            cellH: this.cellH,
+            span: 1,
+            spineData,
+            state: 'static',
+          });
+          entry.node.root.x = colCenterX(this.cellW);
+          strip.addChild(entry.node.root);
+        }
 
-      cascadeEntries.push({
-        node,
-        startY,
-        targetY: endY,
-        fallMs: TIMING.tumbleDropMs,
-        delayMs: fill.row * TIMING.tumbleFillStaggerMs,
-      });
-    });
+        entry.node.setDimmed(false);
+        entry.node.setWinHighlight(false);
+        entry.node.setState('static');
+        entry.node.root.alpha = 1;
+        entry.node.root.scale.set(1);
+        entry.node.root.x = colCenterX(this.cellW);
 
-    if (cascadeEntries.length) {
-      const cascadeAnim = animateCascadeJiggle(cascadeEntries, {
-        cellH: this.cellH,
-        fallMs: TIMING.tumbleDropMs,
-        maxSettleMs: TIMING.cascadeJiggleSettleMs,
-        jellyStiffness: TIMING.spinJellyStiffness,
-        jellyDamping: TIMING.spinJellyDamping,
-        jellyMinMs: TIMING.spinJellyMinMs,
-        jellyLandVelFactor: TIMING.spinJellyLandVelFactor,
-        jellyMaxBelowRatio: TIMING.spinJellyMaxBelowRatio,
-        jellyMaxAboveRatio: TIMING.spinJellyMaxAboveRatio,
-        jellyTailMs: TIMING.spinJellyTailMs,
-        jellyChainCoupling: TIMING.spinJellyChainCoupling,
-        chainReleaseMs: TIMING.cascadeChainReleaseMs,
-        speed,
-      });
-      this.cascadeJellyCancel = cascadeAnim.cancel ?? null;
-      await cascadeAnim;
-      this.cascadeJellyCancel = null;
-      this.cascadeJellySettledPromise = cascadeAnim.settled ?? Promise.resolve();
-      this.cascadeJellySettledPromise.finally(() => {
-        this.cascadeJellySettledPromise = null;
+        if (entry.oldRow === entry.newRow) continue;
+
+        cascadeEntries.push({
+          node: entry.node,
+          startY: entry.node.root.y,
+          targetY: rowCenterYLocal(entry.newRow),
+          fallMs: TIMING.tumbleGravityMs,
+          delayMs: 0,
+        });
+      }
+
+      /** @type {(ReturnType<typeof createSymbolNode> | null)[]} */
+      const nextNodes = Array.from({ length: this.visibleRows }, () => null);
+
+      for (const entry of survivors) {
+        nextNodes[entry.newRow] = entry.node;
+      }
+
+      if (cascadeEntries.length) {
+        const cascadeAnim = animateCascadeJiggle(cascadeEntries, {
+          cellH: this.cellH,
+          fallMs: TIMING.tumbleGravityMs,
+          maxSettleMs: TIMING.cascadeJiggleSettleMs,
+          jellyStiffness: TIMING.spinJellyStiffness,
+          jellyDamping: TIMING.spinJellyDamping,
+          jellyMinMs: TIMING.spinJellyMinMs,
+          jellyLandVelFactor: TIMING.spinJellyLandVelFactor,
+          jellyMaxBelowRatio: TIMING.spinJellyMaxBelowRatio,
+          jellyMaxAboveRatio: TIMING.spinJellyMaxAboveRatio,
+          jellyTailMs: TIMING.spinJellyTailMs,
+          jellyChainCoupling: TIMING.spinJellyChainCoupling,
+          chainReleaseMs: TIMING.cascadeChainReleaseMs,
+          speed,
+        });
+        this.cascadeJellyCancel = cascadeAnim.cancel ?? null;
+        await cascadeAnim;
+        this.cascadeJellyCancel = null;
+        if (!colFills.length) {
+          this.cascadeJellySettledPromise = cascadeAnim.settled ?? Promise.resolve();
+          this.cascadeJellySettledPromise.finally(() => {
+            this.cascadeJellySettledPromise = null;
+            this.reanchorStripY();
+            this.normalizeSymbolGrid();
+          });
+        }
+      }
+
+      if (colFills.length) {
+        await this.tumbleFillStripLand(colFills, strip, nextNodes, speed);
+      }
+
+      this.symbolNodes = nextNodes;
+      if (!this.cascadeJellySettledPromise && !this.landJellySettledPromise) {
         this.reanchorStripY();
         this.normalizeSymbolGrid();
-      });
+      }
+      this.currentColumn = [...nextColumn];
+      this.boardSealed = true;
+    } finally {
+      this.spinning = false;
     }
-
-    this.symbolNodes = nextNodes;
-    if (!this.cascadeJellySettledPromise) {
-      this.reanchorStripY();
-      this.normalizeSymbolGrid();
-    }
-    this.currentColumn = [...nextColumn];
-    this.boardSealed = true;
-    this.spinning = false;
   }
 }
