@@ -26,6 +26,7 @@ import {
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
 import { BET_OPTIONS, DEFAULT_BET, GAME, GAME_MODES } from './config.js';
+import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
 import { registerGameModals } from './menu.js';
 import {
@@ -179,9 +180,6 @@ function syncSessionBestHud() {
 function syncHud() {
   balanceEl.textContent = replayMode ? '—' : fmtBalance(balance);
   syncSessionBestHud();
-  if (isTallSymbolPreview()) {
-    document.getElementById('game-subtitle').textContent = 'Tall-symbol preview (client-only)';
-  }
 }
 
 function showTallPreviewBoard() {
@@ -728,6 +726,17 @@ async function startGame() {
   await game.start();
 }
 
+function attachPreloaderCommitLabel() {
+  const overlay = shellEl.querySelector('.suki-game-preloader');
+  if (!overlay || overlay.querySelector('.game-preloader-commit')) return;
+
+  const commitEl = document.createElement('span');
+  commitEl.className = 'game-preloader-commit';
+  commitEl.textContent = BUILD_COMMIT;
+  commitEl.setAttribute('aria-hidden', 'true');
+  overlay.appendChild(commitEl);
+}
+
 betUi.renderBetLevels();
 syncHud();
 syncCopyReplayButton();
@@ -751,4 +760,5 @@ if (replayMode) {
       gameAudio.unlock();
     },
   });
+  attachPreloaderCommitLabel();
 }

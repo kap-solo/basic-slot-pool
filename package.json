@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prestart": "node scripts/write-build-info.mjs",
     "start": "node server.mjs",
     "validate-math": "node node_modules/@kap-solo/suki-engine/tools/validate-math.mjs ./data",
     "generate:books": "node scripts/generate-book-pool.mjs",

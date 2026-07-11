@@ -304,6 +304,18 @@ body {
   display: none !important;
 }
 
+.game-preloader-commit {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.5rem;
+  color: #5a5a5a;
+  font-size: 0.68rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}
+
 .suki-footer {
   padding: 0;
   min-height: 0;
