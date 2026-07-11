@@ -38,7 +38,6 @@ import {
   animateSlotSpin,
   createSlotBoard,
   describeRoundResult,
-  formatMult,
 } from './slot.js';
 import {
   countTallBlocks,
@@ -65,25 +64,22 @@ const gameMenu = createGameMenu({
 });
 
 const balanceEl = document.getElementById('balance');
-const resultEl = document.getElementById('last-result');
 const messageEl = document.getElementById('message');
 const replayBanner = document.getElementById('replay-banner');
 const balanceHud = document.getElementById('balance-hud');
+const hudDevActions = document.getElementById('hud-dev-actions');
 const sessionTimerStat = document.getElementById('session-timer-stat');
 const sessionTimerEl = document.getElementById('session-timer');
 const slotRoot = document.getElementById('slot-board');
 const balanceLabelEl = document.getElementById('balance-label');
-const lastResultLabelEl = document.getElementById('last-result-label');
-const sessionBestHudLabelEl = document.getElementById('session-best-hud-label');
-const sessionBestHudEl = document.getElementById('session-best-hud');
 const replayNoteEl = document.getElementById('replay-note');
 const multiplierPanel = createMultiplierPanel({
   panelEl: document.getElementById('multiplier-panel'),
   ledgerEl: document.getElementById('multiplier-ledger'),
 });
 
-document.getElementById('game-title').textContent = GAME.title;
-document.getElementById('game-subtitle').textContent = GAME.subtitle;
+document.getElementById('game-title').hidden = true;
+document.getElementById('game-subtitle').hidden = true;
 
 /** @type {Awaited<ReturnType<typeof createSlotBoard>> | null} */
 let slotBoard = null;
@@ -167,20 +163,14 @@ function playButtonLabel() {
   return copyTerm('drop');
 }
 
-function formatSessionBestWin() {
-  if (!session || session.highestWin <= 0) return '—';
-  return `${formatMult(session.highestMultiplier)} (${fmtWin(session.highestWin)})`;
-}
-
-function syncSessionBestHud() {
-  if (sessionBestHudEl) {
-    sessionBestHudEl.textContent = formatSessionBestWin();
-  }
-}
-
 function syncHud() {
   balanceEl.textContent = replayMode ? '—' : fmtBalance(balance);
-  syncSessionBestHud();
+}
+
+function mountHudDevControls() {
+  const devRow = betUi.elements.testControls;
+  if (!hudDevActions || !devRow) return;
+  hudDevActions.appendChild(devRow);
 }
 
 function showTallPreviewBoard() {
@@ -189,10 +179,6 @@ function showTallPreviewBoard() {
   slotBoard.setBoard(preview);
   const tallCount = countTallBlocks(preview);
   setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
-}
-
-function displayRoundResult({ payout }) {
-  resultEl.textContent = fmtWin(payout);
 }
 
 function showStaticRound(round) {
@@ -334,6 +320,9 @@ function syncDevButtons() {
 /** Dev row is pool-only tooling — visible strictly with ?dev=true. */
 function syncDevControlsVisibility() {
   const show = isDevMode() && !replayMode;
+  if (hudDevActions) {
+    hudDevActions.hidden = !show;
+  }
   if (betUi.elements.testControls) {
     betUi.elements.testControls.hidden = !show;
   }
@@ -384,10 +373,6 @@ function flushRoundSettledUI() {
       multiplier: result.multiplier,
       payout,
     },
-  });
-
-  displayRoundResult({
-    payout,
   });
 
   devStatsOverlay.recordRound({
@@ -443,8 +428,6 @@ const game = createGameBootstrap({
       sessionTimer: sessionTimerEl,
       sessionTimerContainer: sessionTimerStat,
       balanceLabel: balanceLabelEl,
-      lastResultLabel: lastResultLabelEl,
-      sessionBestHudLabel: sessionBestHudLabelEl,
       replayNote: replayNoteEl,
       dropButton: betUi.elements.dropButton,
     },
@@ -723,10 +706,6 @@ function handleAuthRoundOutcome(authOutcome) {
   if (authOutcome.status === 'resumed') {
     setMessage('Round resumed.');
   } else if (authOutcome.status === 'completed' && authOutcome.result) {
-    const result = authOutcome.result;
-    displayRoundResult({
-      payout: apiToDisplay(result.payoutApi),
-    });
     setMessage('Last completed round restored.');
   }
 }
@@ -736,8 +715,6 @@ async function onNewSession() {
   game.sessionTimer?.reset();
   devStatsOverlay.reset();
   session = resetSession();
-  resultEl.textContent = '—';
-  if (sessionBestHudEl) sessionBestHudEl.textContent = '—';
   lastReplayUrl = '';
   setLastReplayUrl('');
   setMessage('New session — reconnecting…');
@@ -785,6 +762,7 @@ function attachPreloaderCommitLabel() {
 }
 
 betUi.renderBetLevels();
+mountHudDevControls();
 syncHud();
 syncDevControlsVisibility();
 syncDevTools();
