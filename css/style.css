@@ -44,10 +44,10 @@ body {
   display: none !important;
 }
 
-/* Dev row — fixed 2×1 grid so copy-replay never reflows Autoplay / New session. */
+/* Dev row — single compact row (Auto · New · Copy). */
 .suki-bet-dev {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
   justify-items: stretch;
 }
@@ -58,14 +58,15 @@ body {
   min-width: 0;
   width: 100%;
   white-space: nowrap;
+  padding: 0.38rem 0.35rem;
+  font-size: 0.65rem;
 }
 
 .suki-bet-dev > .suki-bet-copy-replay {
-  grid-column: 1 / -1;
   width: auto;
 }
 
-/* Keep copy-replay row height reserved in dev (betUi toggles [hidden] until first hand). */
+/* Keep copy slot reserved in dev (betUi toggles [hidden] until first hand). */
 .suki-bet-dev > .suki-bet-copy-replay[hidden] {
   display: block;
   visibility: hidden;

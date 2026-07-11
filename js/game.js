@@ -285,20 +285,36 @@ function buildHandReplayUrl({ event, amountApi, mode, lang }) {
   return url.toString();
 }
 
-function syncCopyReplayButton() {
-  const btn = betUi.elements.copyReplay;
-  if (!btn || replayMode || !showDevTools()) return;
-  btn.hidden = false;
-  btn.textContent = 'Copy replay';
-  btn.title = lastReplayUrl
-    ? 'Copy a replay URL for the last completed hand'
-    : 'Play a hand first — then copy its replay URL';
+function syncDevButtons() {
+  if (replayMode || !showDevTools()) return;
+
+  const { autoplay, newSession, copyReplay } = betUi.elements;
+
+  if (autoplay) {
+    autoplay.hidden = false;
+    autoplay.textContent = 'Auto';
+    autoplay.title = 'Autoplay 100 spins';
+  }
+
+  if (newSession) {
+    newSession.hidden = false;
+    newSession.textContent = 'New';
+    newSession.title = 'Start a new session';
+  }
+
+  if (copyReplay) {
+    copyReplay.hidden = false;
+    copyReplay.textContent = 'Copy';
+    copyReplay.title = lastReplayUrl
+      ? 'Copy a replay URL for the last completed hand'
+      : 'Play a hand first — then copy its replay URL';
+  }
 }
 
 function setLastReplayUrl(url) {
   lastReplayUrl = url || '';
   betUi.setLastReplayUrl(lastReplayUrl);
-  syncCopyReplayButton();
+  syncDevButtons();
   syncControls();
 }
 
@@ -476,10 +492,8 @@ const game = createGameBootstrap({
     },
     onAuthRound: handleAuthRoundOutcome,
     onSyncDevTools: () => {
-      betUi.elements.autoplay.hidden = false;
-      betUi.elements.newSession.hidden = false;
       betUi.elements.testControls.hidden = false;
-      syncCopyReplayButton();
+      syncDevButtons();
     },
   },
   onJurisdictionChange: () => {
@@ -744,7 +758,7 @@ function attachPreloaderCommitLabel() {
 
 betUi.renderBetLevels();
 syncHud();
-syncCopyReplayButton();
+syncDevButtons();
 syncDevTools();
 syncControls();
 
