@@ -2,6 +2,8 @@
  * Free-spins feature chrome — counter overlay + intro/end banners.
  */
 
+import { TIMING } from './pixi/timing.js';
+
 /**
  * @param {object} opts
  * @param {HTMLElement} opts.stageEl — slot stage root
@@ -27,11 +29,9 @@ export function createFeatureChrome({ stageEl }) {
   counter.className = 'feature-chrome__counter';
   counter.hidden = true;
   counter.innerHTML = `
-    <span class="feature-chrome__counter-label">Free spin</span>
+    <span class="feature-chrome__counter-label">Free spins remaining</span>
     <span class="feature-chrome__counter-value">
-      <span class="feature-chrome__spin-current">0</span>
-      <span class="feature-chrome__spin-sep">/</span>
-      <span class="feature-chrome__spin-total">8</span>
+      <span class="feature-chrome__spin-remaining">8</span>
     </span>
   `;
 
@@ -42,15 +42,16 @@ export function createFeatureChrome({ stageEl }) {
   root.append(intro, counter, endBanner);
   stageEl.appendChild(root);
 
-  const spinCurrentEl = counter.querySelector('.feature-chrome__spin-current');
-  const spinTotalEl = counter.querySelector('.feature-chrome__spin-total');
+  const spinRemainingEl = counter.querySelector('.feature-chrome__spin-remaining');
   const continueBtn = intro.querySelector('.feature-chrome__continue');
 
   let introTimer = null;
   let endTimer = null;
+  let counterTimer = null;
   /** @type {{ cleanup: () => void } | null} */
   let pendingContinue = null;
   let active = false;
+  let spinTotal = 8;
 
   function clearTimers() {
     if (introTimer) {
@@ -87,6 +88,19 @@ export function createFeatureChrome({ stageEl }) {
   function showShell(animate) {
     root.hidden = false;
     if (!animate) return;
+  }
+
+  function setRemaining(remaining, { pulse = false } = {}) {
+    spinRemainingEl.textContent = String(Math.max(0, remaining));
+    if (!pulse) return;
+    counter.classList.remove('feature-chrome__counter--pulse');
+    void counter.offsetWidth;
+    counter.classList.add('feature-chrome__counter--pulse');
+  }
+
+  /** Remaining spins not yet used — includes the spin currently in progress. */
+  function remainingForSpin(current) {
+    return spinTotal - current + 1;
   }
 
   function waitForUserContinue() {
@@ -145,10 +159,16 @@ export function createFeatureChrome({ stageEl }) {
           ? 'Feature activated'
           : 'Scatter trigger';
 
-    if (!animate) return;
+    if (!animate) {
+      counter.hidden = false;
+      setRemaining(total);
+      return;
+    }
 
     await waitForUserContinue();
     intro.hidden = true;
+    counter.hidden = false;
+    setRemaining(total);
   }
 
   /**
@@ -156,6 +176,7 @@ export function createFeatureChrome({ stageEl }) {
    * @param {{ animate?: boolean }} [opts]
    */
   async function onUpdateFreeSpin(event, { animate = true } = {}) {
+    spinTotal = event.total ?? spinTotal;
     if (!active) {
       active = true;
       showShell(animate);
@@ -163,12 +184,34 @@ export function createFeatureChrome({ stageEl }) {
       intro.hidden = true;
       endBanner.hidden = true;
     }
-    spinTotalEl.textContent = String(event.total ?? 8);
-    spinCurrentEl.textContent = String(event.current ?? 0);
-    if (!animate) return;
-    counter.classList.remove('feature-chrome__counter--pulse');
-    void counter.offsetWidth;
-    counter.classList.add('feature-chrome__counter--pulse');
+    if (!animate) {
+      setRemaining(remainingForSpin(event.current ?? 1));
+    }
+  }
+
+  /**
+   * Drop remaining count when the free-spin reel animation begins (not on updateFreeSpin).
+   * Count includes the active spin — first spin still shows the full award (e.g. 8).
+   *
+   * @param {object} opts
+   * @param {number} opts.current — freeSpin index from gameReveal
+   * @param {boolean} [opts.animate]
+   */
+  function onFreeSpinStart({ current, animate = true }) {
+    if (!active) return;
+    if (counterTimer) {
+      clearTimeout(counterTimer);
+      counterTimer = null;
+    }
+    const apply = () => {
+      counterTimer = null;
+      setRemaining(remainingForSpin(current), { pulse: animate });
+    };
+    if (!animate) {
+      apply();
+      return;
+    }
+    counterTimer = setTimeout(apply, TIMING.freeSpinCounterDelayMs);
   }
 
   /**
@@ -197,6 +240,7 @@ export function createFeatureChrome({ stageEl }) {
     reset,
     onEnterBonus,
     onUpdateFreeSpin,
+    onFreeSpinStart,
     onFreeSpinEnd,
     isActive: () => active,
   };

@@ -712,6 +712,13 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
     animate && round ? planRoundBlobPresentation(event.board, round, event) : null;
   const revealBoard = blobPlan?.visualBoard ?? event.board;
 
+  if (event.freeSpin != null && featureChrome?.isActive()) {
+    featureChrome.onFreeSpinStart({
+      current: event.freeSpin,
+      animate,
+    });
+  }
+
   if (animate) {
     await animateReveal(revealBoard);
     reelSpinAudio.stop();

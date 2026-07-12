@@ -105,21 +105,28 @@
 
 .feature-chrome__counter {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.2rem;
   font-weight: 700;
-  font-size: 0.82rem;
+  min-width: 5.5rem;
 }
 
 .feature-chrome__counter-label {
   color: #9ec5ff;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  font-size: 0.58rem;
+  line-height: 1.2;
+  max-width: 7rem;
 }
 
 .feature-chrome__counter-value {
   font-variant-numeric: tabular-nums;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f4f8ff;
+  line-height: 1;
 }
 
 .feature-chrome__counter--pulse {
@@ -152,6 +159,6 @@
   font-size: 0.82rem;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__counter {
-  font-size: 0.72rem;
+.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__counter-value {
+  font-size: 1.05rem;
 }

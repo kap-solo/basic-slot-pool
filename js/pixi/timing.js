@@ -57,6 +57,8 @@ export const TIMING = {
   blobHoldMs: 250,
   /** gameReveal — blank beat between fall-off and result drop-in (ms). */
   revealBlankMs: 120,
+  /** Free-spin counter — tick when refill drop-in begins (see assignment below). */
+  freeSpinCounterDelayMs: 0,
   /** gameReveal refill strip scroll — slightly slower than cascade tumbleDropMs. */
   revealRefillMs: 440,
   /**
@@ -65,3 +67,5 @@ export const TIMING = {
   cascadeChainReleaseMs: 340,
   cascadeJiggleSettleMs: 640,
 };
+
+TIMING.freeSpinCounterDelayMs = TIMING.preSpinMs + TIMING.revealBlankMs;
