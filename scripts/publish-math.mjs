@@ -36,7 +36,7 @@ const MODES = [
     required: true,
   },
   {
-    name: 'buy',
+    name: 'bb',
     cost: 20.0,
     booksJsonl: join(dataDir, 'books_buy.jsonl'),
     booksZst: join(dataDir, 'books_buy.jsonl.zst'),

@@ -14,7 +14,7 @@ const MODE_PATHS = {
     lookupPath: join(root, 'data', 'lookUpTable_base_0.csv'),
     booksPath: join(root, 'data', 'books_base.jsonl'),
   },
-  BUY: {
+  BB: {
     lookupPath: join(root, 'data', 'lookUpTable_buy_0.csv'),
     booksPath: join(root, 'data', 'books_buy.jsonl'),
   },
@@ -69,7 +69,7 @@ function logMathStats() {
   );
 
   try {
-    const buy = getMathBundle('BUY');
+    const buy = getMathBundle('BB');
     const buyStats = analyzeLookup(buy.lookup, buy.books);
     const buyRtp = buyStats.rtpPercent / BUY_COST_MULT;
     console.log(
@@ -94,7 +94,8 @@ export const GAME_ID = 'basic-slot';
 export const REPLAY_VERSION = '1';
 
 function roundFromBook(book, amountApi, mode = 'BASE') {
-  const costMult = mode === 'BUY' ? BUY_COST_MULT : 1;
+  const norm = String(mode).toUpperCase();
+  const costMult = norm === 'BB' || norm === 'BUY' ? BUY_COST_MULT : 1;
   const baseBetApi = Math.round(amountApi / costMult);
   const payoutMultiplier = book.payoutMultiplier / 100;
   const payout = Math.round(baseBetApi * payoutMultiplier);
@@ -121,14 +122,14 @@ export function createGameMockRgs() {
       betLevels: [0.5, 1, 2, 5, 10].map((d) => Math.round(d * API_MULT)),
       betModes: {
         BASE: { mode: 'BASE', costMultiplier: 1, feature: false },
-        BUY: { mode: 'BUY', costMultiplier: BUY_COST_MULT, feature: true },
+        BB: { mode: 'BB', costMultiplier: BUY_COST_MULT, feature: true },
       },
     },
     resolvePlay(_session, body) {
       const amount = Number(body.amount);
       const mode = String(body.mode || 'BASE').toUpperCase();
-      const modeKey = mode === 'BUY' ? 'BUY' : 'BASE';
-      const costMult = modeKey === 'BUY' ? BUY_COST_MULT : 1;
+      const modeKey = mode === 'BB' || mode === 'BUY' ? 'BB' : 'BASE';
+      const costMult = modeKey === 'BB' ? BUY_COST_MULT : 1;
       const { books } = getMathBundle(modeKey);
       const simId = pickSimulationId(modeKey);
       const book = books.get(simId);

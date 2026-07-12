@@ -7,7 +7,7 @@
       "weights": "lookUpTable_base_0.csv"
     },
     {
-      "name": "buy",
+      "name": "bb",
       "cost": 20,
       "events": "books_buy.jsonl.zst",
       "weights": "lookUpTable_buy_0.csv"

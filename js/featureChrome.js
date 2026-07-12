@@ -139,10 +139,10 @@ export function createFeatureChrome({ stageEl }) {
     const total = event.total ?? 8;
     intro.querySelector('.feature-chrome__title').textContent = `${total} free spins`;
     intro.querySelector('.feature-chrome__sub').textContent =
-      event.source === 'buy'
-        ? 'Bonus buy'
-        : event.scatters != null
-          ? `${event.scatters} scatters on the board`
+      event.scatters != null && event.scatters > 0
+        ? `${event.scatters} scatters on the board`
+        : event.source === 'bb' || event.source === 'buy'
+          ? 'Feature activated'
           : 'Scatter trigger';
 
     if (!animate) return;

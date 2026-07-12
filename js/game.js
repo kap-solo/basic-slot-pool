@@ -21,12 +21,13 @@ import {
   isReplayMode,
   isDevMode,
   messageForRgsCode,
+  play,
   requestReplay,
   registerBuyBonusConfirm,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, createReelSpinAudio, wireTemplateAudio } from './audio.js';
-import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST } from './config.js';
+import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST, BB_MODE } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
@@ -545,16 +546,18 @@ function winStatLabel() {
   return game.copy.socialCasino ? 'Earn' : 'Win';
 }
 
+/** Base bet shown in the HUD — always 1× tier, not feature debit. */
+function baseBetDisplay() {
+  return bet;
+}
+
+/** Cost of one base-mode spin (same as base bet). */
 function playCostDisplay() {
-  const baseApi = displayToApi(bet);
-  const playApi = game.betModes.playAmountApi(baseApi);
-  return apiToDisplay(playApi);
+  return baseBetDisplay();
 }
 
 function playCostForBet(level) {
-  const baseApi = displayToApi(level);
-  const playApi = game.betModes.playAmountApi(baseApi);
-  return apiToDisplay(playApi);
+  return level;
 }
 
 function buyCostDisplay() {
@@ -566,7 +569,7 @@ function canBuyBonus() {
     !replayMode
     && game.rgsReady
     && game.betModes.canBuyFeature()
-    && game.betModes.canSelectMode('buy')
+    && game.betModes.canSelectMode(BB_MODE)
     && !spinning
     && !autoplaying
     && !isBoardPresenting()
@@ -1299,7 +1302,7 @@ const betChromeHandlers = {
   onStepUp: () => stepBet(1),
   onStepDown: () => stepBet(-1),
   getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
-  getBet: () => fmtBalance(playCostDisplay()),
+  getBet: () => fmtBalance(baseBetDisplay()),
   getBetLabel: () => copyTerm('bet'),
   getWinLabel: winStatLabel,
   getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
@@ -1371,26 +1374,26 @@ async function onBuyBonus() {
 }
 
 async function executeBuyBonus() {
-  if (!game.betModes.setActiveMode('buy')) return;
-
-  try {
-    await withSpinLock(async () => {
-      try {
-        gameAudio.playSfx('play');
-        await lifecycle.executeDrop({ animate: true });
-      } catch (err) {
-        console.error(err);
-        const policy = classifyRgsError(String(err.message));
-        setMessage(policy.message);
-        if (String(err.message) === 'ERR_IPB') {
-          showPlayerNotice(policy.message);
-        }
+  await withSpinLock(async () => {
+    try {
+      gameAudio.playSfx('play');
+      const baseBetApi = displayToApi(bet);
+      const amountApi = Math.round(baseBetApi * BUY_MODE_COST);
+      const playRes = await play({ amountApi, mode: 'BB' });
+      if (playRes.balance?.amount != null) {
+        balance = apiToDisplay(playRes.balance.amount);
+        syncHud();
       }
-    });
-  } finally {
-    game.betModes.setActiveMode('base');
-    syncControls();
-  }
+      await lifecycle.completeRound(playRes.round, { animate: true });
+    } catch (err) {
+      console.error(err);
+      const policy = classifyRgsError(String(err.message));
+      setMessage(policy.message);
+      if (String(err.message) === 'ERR_IPB') {
+        showPlayerNotice(policy.message);
+      }
+    }
+  });
 }
 
 async function onSpin() {

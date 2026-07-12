@@ -144,12 +144,13 @@ export function simulateFeatureBook(seed, { freeSpinSeeds = [], refill = 'natura
     freeSpinSeeds,
     refillKind: refill,
     includeScatterTrigger: true,
+    bonusSource: 'natural',
     bookId,
   });
 }
 
 /**
- * Buy Bonus — skip scatter hunt; opener + 8 free spins from buy-tuned refill.
+ * Buy Bonus — 3-scatter trigger presentation + 8 free spins (buy-tuned refill).
  *
  * @param {number} seed
  * @param {{ freeSpinSeeds?: number[] }} [opts]
@@ -157,20 +158,22 @@ export function simulateFeatureBook(seed, { freeSpinSeeds = [], refill = 'natura
 export function simulateBuyFeatureBook(seed, { freeSpinSeeds = [] } = {}) {
   return simulateFeatureBookInternal(seed, {
     freeSpinSeeds,
-    refillKind: 'buy',
-    includeScatterTrigger: false,
+    refillKind: 'bb',
+    includeScatterTrigger: true,
+    bonusSource: 'bb',
     bookIdOffset: 10_000,
   });
 }
 
 /**
  * @param {number} seed
- * @param {{ freeSpinSeeds?: number[], refillKind?: 'natural' | 'buy', includeScatterTrigger?: boolean, bookIdOffset?: number, bookId?: number }} opts
+ * @param {{ freeSpinSeeds?: number[], refillKind?: 'natural' | 'bb', includeScatterTrigger?: boolean, bonusSource?: 'natural' | 'bb', bookIdOffset?: number, bookId?: number }} opts
  */
 function simulateFeatureBookInternal(seed, {
   freeSpinSeeds = [],
   refillKind = 'natural',
   includeScatterTrigger = true,
+  bonusSource = 'natural',
   bookIdOffset = 9000,
   bookId = null,
 } = {}) {
@@ -213,7 +216,7 @@ function simulateFeatureBookInternal(seed, {
     reason: 'freeSpins',
     total: FREE_SPINS_AWARDED,
     scatters: includeScatterTrigger ? SCATTER_TRIGGER_COUNT : 0,
-    ...(includeScatterTrigger ? {} : { source: 'buy' }),
+    ...(bonusSource === 'bb' ? { source: 'bb' } : {}),
   });
 
   let featureMult = 0;
@@ -229,7 +232,7 @@ function simulateFeatureBookInternal(seed, {
     const spinSeed = freeSpinSeeds[spin - 1] ?? seed + spin * 9973;
     const spinRng = mulberry32(spinSeed);
     const fsRefill =
-      refillKind === 'buy'
+      refillKind === 'bb'
         ? createBuyFreeSpinRefillSymbolRng(spinRng)
         : createFreeSpinRefillSymbolRng(spinRng);
     const initial = randomFeatureBoard(spinRng);
@@ -261,7 +264,7 @@ function simulateFeatureBookInternal(seed, {
     totalMultiplier: payoutInt / 100,
     featureMultiplier: featureMult,
     scatterCount: includeScatterTrigger ? SCATTER_TRIGGER_COUNT : 0,
-    source: includeScatterTrigger ? 'natural' : 'buy',
+    source: bonusSource,
   };
 }
 
