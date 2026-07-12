@@ -48,12 +48,30 @@ Then upload the **contents** of `data/publish/` (not `math/`, not the whole repo
 
 Local mock RGS still reads uncompressed `data/books_base.jsonl` for dev; `npm run validate-math` validates against the uncompressed books file referenced in `index.json`.
 
+## Publish frontend to Stake Engine
+
+Build a self-contained static bundle (game files + Suki client + Pixi/Spine vendors):
+
+```bash
+npm run frontend:publish
+```
+
+Then upload the **contents** of `dist/` to Stake Engine ACP (frontend section). The published `index.html` uses relative `vendor/` paths so it works on Stake static hosting without the Node dev server.
+
+Preview the bundle locally before upload:
+
+```bash
+npx --yes serve dist -p 4173
+```
+
+Open http://127.0.0.1:4173/ — for a live spin you still need a sandbox launch URL from ACP with `sessionID` and `rgs_url` (the local preview has no mock RGS).
+
 ## Identity (pool-specific)
 
 | Item | Value |
 |------|-------|
 | `BUILD_REF` | `BS-POOL` |
-| `GAME.id` | `basic-slot` (shared books/math for now) |
+| `GAME.id` | `basic-slot` — must match your ACP game registration |
 | RGS session | `basicSlotPool.rgsSessionID` |
 | Session stats | `basicSlotPool.session` |
 | Server label | `Basic Slot Pool` |

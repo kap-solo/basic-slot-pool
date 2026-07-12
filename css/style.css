@@ -618,3 +618,57 @@ body {
   background: var(--game-surface-bg);
   background-image: none;
 }
+
+/* Player-facing notices — #message is hidden in Pool. */
+.player-notice {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bet-ui-mobile-chrome-height, 6.75rem) + 0.55rem);
+  z-index: 45;
+  max-width: min(22rem, calc(100% - 1.5rem));
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 120, 120, 0.45);
+  background: rgba(24, 10, 12, 0.94);
+  color: #ffb4b4;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.player-notice.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .player-notice {
+  bottom: 5.5rem;
+}
+
+.play-hit-wrap {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.play-afford-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.bet-ui-mobile__spin .play-hit-wrap,
+.bet-ui-mobile__spin .play-afford-blocker {
+  border-radius: 999px;
+}

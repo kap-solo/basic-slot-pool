@@ -47,8 +47,13 @@ import { createMultiplierPanel } from './multiplierPanel.js';
 import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/performanceBlob.js';
 import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
+import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
+mountPlayerNotice(shellEl);
+
+/** @type {HTMLButtonElement | null} */
+let playAffordBlocker = null;
 const brandEl = document.querySelector('.suki-brand');
 const modalHost = createModalHost({ root: shellEl });
 const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
@@ -372,6 +377,53 @@ let session = loadSession();
 
 function setMessage(text) {
   messageEl.textContent = text;
+}
+
+function showInsufficientBalance() {
+  showPlayerNotice(copyTerm('insufficientBalance'));
+}
+
+function canAffordPlay() {
+  return balance >= playCostDisplay();
+}
+
+function ensurePlayHitWrap() {
+  const btn = betUi.elements.dropButton;
+  if (!btn?.parentNode) return null;
+  if (btn.parentElement?.classList.contains('play-hit-wrap')) {
+    return btn.parentElement;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'play-hit-wrap';
+  btn.parentNode.insertBefore(wrap, btn);
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function syncPlayAffordBlocker() {
+  const wrap = ensurePlayHitWrap();
+  if (!wrap) return;
+
+  const showBlocker = game.rgsReady
+    && !replayMode
+    && !spinning
+    && !autoplaying
+    && !canAffordPlay()
+    && betUi.elements.dropButton.disabled;
+
+  if (showBlocker) {
+    if (!playAffordBlocker) {
+      playAffordBlocker = document.createElement('button');
+      playAffordBlocker.type = 'button';
+      playAffordBlocker.className = 'play-afford-blocker';
+      playAffordBlocker.setAttribute('aria-label', 'Insufficient balance');
+      playAffordBlocker.addEventListener('click', showInsufficientBalance);
+      wrap.appendChild(playAffordBlocker);
+    }
+    playAffordBlocker.hidden = false;
+  } else if (playAffordBlocker) {
+    playAffordBlocker.hidden = true;
+  }
 }
 
 function fmtBalance(amount) {
@@ -730,6 +782,7 @@ function syncControls() {
   betStepper?.sync();
   mobileBetUi?.sync();
   updateWinUi();
+  syncPlayAffordBlocker();
 }
 
 function isBoardPresenting() {
@@ -1055,6 +1108,7 @@ betStepper = mountBetStepper(betUi.elements.dropButton, {
   onStepUp: () => stepBet(1),
   syncState: syncBetStepperState,
 });
+ensurePlayHitWrap();
 
 mobileBetUi = mountMobileBetUi({
   root: betUiRootEl,
@@ -1109,7 +1163,7 @@ async function onSpin() {
   }
   const playCost = playCostDisplay();
   if (balance < playCost) {
-    setMessage(copyTerm('insufficientBalance'));
+    showInsufficientBalance();
     return;
   }
 
@@ -1133,9 +1187,43 @@ async function onSpin() {
         }
       }
       setMessage(policy.message);
+      if (String(err.message) === 'ERR_IPB') {
+        showPlayerNotice(policy.message);
+      }
     }
   });
 }
+
+function isTypingTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+}
+
+/** Stake compliance — spacebar mirrors the play/bet button (incl. jurisdiction gate). */
+window.addEventListener('keydown', (e) => {
+  if (replayMode || !controls.canSpacebar) return;
+  if (e.code !== 'Space' || e.repeat) return;
+  if (isTypingTarget(e.target)) return;
+  if (autoplaying || !game.rgsReady) return;
+
+  const playing = spinning || isBoardPresenting();
+  const busy = spinning || autoplaying || isBoardPresenting();
+
+  if (playing && controls.canTurbo) {
+    e.preventDefault();
+    closeGameMenu();
+    modalHost.close();
+    return;
+  }
+
+  if (!busy) {
+    e.preventDefault();
+    closeGameMenu();
+    modalHost.close();
+    onSpin();
+  }
+});
 
 function stopAutoplay() {
   if (!autoplaying) return;
