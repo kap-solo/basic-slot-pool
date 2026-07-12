@@ -1,10 +1,17 @@
 :root {
   color-scheme: dark;
-  background: #06080c;
+  --game-font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --game-surface-bg: #808080; /* 50% grey — dev backdrop while tuning UI */
+  background: var(--game-surface-bg);
 }
 
 body {
-  background: #06080c;
+  background: var(--game-surface-bg);
+  font-family: var(--game-font-family);
+}
+
+.suki-stake-shell {
+  font-family: var(--game-font-family);
 }
 
 /* Hide game chrome until preloader mounts; preloader overlay stays visible. */
@@ -76,38 +83,6 @@ body {
 
 .suki-bet-chips {
   display: none !important;
-}
-
-/* Bet row — step down, bet/play, step up */
-.suki-bet-play-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.45rem;
-  align-items: stretch;
-  width: 100%;
-}
-
-.suki-bet-step {
-  min-width: 2.75rem;
-  padding: 0.75rem 0.5rem;
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1;
-  border: 1px solid #2a3344;
-  border-radius: 10px;
-  background: #12161e;
-  color: #e8edf4;
-  cursor: pointer;
-}
-
-.suki-bet-step:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.suki-bet-play-row .suki-bet-play {
-  width: 100%;
-  min-width: 0;
 }
 
 /* Dev row — inline with balance in HUD (Auto · New · Copy). */
@@ -239,7 +214,7 @@ body {
 
 .suki-stake-shell[data-suki-orientation='landscape'] .stage {
   border: none;
-  background: transparent;
+  background: var(--game-surface-bg);
   padding: 0;
   box-shadow: none;
 }
@@ -426,8 +401,8 @@ body {
   min-height: 0;
   width: 100%;
   align-self: stretch;
-  background: linear-gradient(180deg, rgba(14, 18, 26, 0.95), rgba(8, 10, 14, 0.88));
-  border: 1px solid #1f2733;
+  background: var(--game-surface-bg);
+  border: 1px solid #5a5a5a;
   border-radius: 12px;
   padding: 0.75rem;
   display: flex;
@@ -635,28 +610,11 @@ body {
   font-size: 0.58rem;
 }
 
-/* ── Background art (assets/) — overrides suki-engine gradient placeholders ── */
+/* Background art disabled while tuning UI — flat fill only. */
 
-.suki-bg-mobile-l {
-  background-color: #06080c;
-  background-image: url('/assets/1125x2001_bg.webp');
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
-.suki-bg-mobile-ms {
-  background-color: #06080c;
-  background-image: url('/assets/l-mob-bg-only.png');
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
+.suki-bg-mobile-l,
+.suki-bg-mobile-ms,
 .suki-bg-landscape {
-  background-color: #06080c;
-  background-image: url('/assets/l-desk-bg-only.png');
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background: var(--game-surface-bg);
+  background-image: none;
 }

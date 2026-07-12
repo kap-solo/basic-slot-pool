@@ -1,0 +1,84 @@
+/**
+ * Bet UI — desktop vs mobile variants.
+ * Shared rules first; variant blocks below are the design surface for each layout.
+ */
+
+/* --- Shared (both variants) --- */
+.suki-bet-ui-root .suki-bet-play-panel {
+  width: 100%;
+}
+
+.suki-bet-play-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+}
+
+.suki-bet-step {
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid #2a3344;
+  border-radius: 10px;
+  background: #12161e;
+  color: #e8edf4;
+  cursor: pointer;
+}
+
+.suki-bet-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.suki-bet-play-row .suki-bet-play {
+  width: 100%;
+  min-width: 0;
+}
+
+/* --- Desktop (landscape / desktop proportions) --- */
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-controls-slot,
+.suki-bet-ui-root[data-bet-ui-variant='desktop'] {
+  --bet-ui-play-max-width: 26rem;
+  --bet-ui-step-min-width: 2.75rem;
+  --bet-ui-step-font-size: 1.2rem;
+  --bet-ui-row-gap: 0.45rem;
+  --bet-ui-step-padding: 0.75rem 0.5rem;
+}
+
+.suki-bet-ui-root[data-bet-ui-variant='desktop'] .suki-bet-play-row {
+  gap: var(--bet-ui-row-gap);
+  max-width: var(--bet-ui-play-max-width);
+  margin-inline: auto;
+}
+
+.suki-bet-ui-root[data-bet-ui-variant='desktop'] .suki-bet-step {
+  min-width: var(--bet-ui-step-min-width);
+  padding: var(--bet-ui-step-padding);
+  font-size: var(--bet-ui-step-font-size);
+}
+
+/* --- Mobile (mobile L/M/S + portrait) --- */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-controls-slot,
+.suki-bet-ui-root[data-bet-ui-variant='mobile'] {
+  --bet-ui-play-max-width: none;
+  --bet-ui-step-min-width: 3rem;
+  --bet-ui-step-font-size: 1.35rem;
+  --bet-ui-row-gap: 0.55rem;
+  --bet-ui-step-padding: 0.85rem 0.55rem;
+}
+
+.suki-bet-ui-root[data-bet-ui-variant='mobile'] .suki-bet-play-row {
+  gap: var(--bet-ui-row-gap);
+  max-width: var(--bet-ui-play-max-width);
+  width: 100%;
+}
+
+.suki-bet-ui-root[data-bet-ui-variant='mobile'] .suki-bet-step {
+  min-width: var(--bet-ui-step-min-width);
+  padding: var(--bet-ui-step-padding);
+  font-size: var(--bet-ui-step-font-size);
+}
+
+.suki-bet-ui-root[data-bet-ui-variant='mobile'] .suki-bet-play {
+  font-size: 1.05rem;
+}

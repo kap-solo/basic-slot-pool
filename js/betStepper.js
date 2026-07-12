@@ -9,6 +9,7 @@
 export function mountBetStepper(playButton, { onStepDown, onStepUp, syncState }) {
   const row = document.createElement('div');
   row.className = 'suki-bet-play-row';
+  row.dataset.betUiPart = 'play-row';
 
   const downButton = document.createElement('button');
   downButton.type = 'button';
@@ -24,7 +25,7 @@ export function mountBetStepper(playButton, { onStepDown, onStepUp, syncState })
 
   const parent = playButton.parentNode;
   if (!parent) {
-    return { downButton, upButton, sync() {} };
+    return { row, downButton, upButton, sync() {} };
   }
 
   parent.insertBefore(row, playButton);
@@ -34,6 +35,7 @@ export function mountBetStepper(playButton, { onStepDown, onStepUp, syncState })
   upButton.addEventListener('click', () => onStepUp());
 
   return {
+    row,
     downButton,
     upButton,
     sync() {

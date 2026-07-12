@@ -29,6 +29,8 @@ import { BET_OPTIONS, DEFAULT_BET, defaultIdleBoard, GAME, GAME_MODES } from './
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
+import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
+import { mountMobileBetUi } from './betUiMobile.js';
 import { registerGameModals } from './menu.js';
 import {
   buildGameSettledResult,
@@ -80,18 +82,97 @@ document.getElementById('game-subtitle').hidden = true;
 /** @type {Awaited<ReturnType<typeof createSlotBoard>> | null} */
 let slotBoard = null;
 
+const betUiRootEl = document.getElementById('bet-ui-root');
+
 const betUi = createBetUi({
-  root: document.getElementById('bet-ui-root'),
+  root: betUiRootEl,
   showModeRow: false,
 });
 
+/** @type {ReturnType<typeof initBetUiVariant> | null} */
+let betUiVariant = null;
+
 let balance = 0;
+/** Balance value currently painted in the HUD / mobile stat (may tween toward `balance`). */
+let balanceForDisplay = 0;
+/** @type {number | null} */
+let balanceAnimRaf = null;
+
+function cancelBalanceAnimation() {
+  if (balanceAnimRaf != null) {
+    cancelAnimationFrame(balanceAnimRaf);
+    balanceAnimRaf = null;
+  }
+}
+
+function updateBalanceUi() {
+  balanceEl.textContent = replayMode ? '—' : fmtBalance(balanceForDisplay);
+  mobileBetUi?.sync();
+}
+
+function animateBalanceIncrease(from, to) {
+  cancelBalanceAnimation();
+  const delta = to - from;
+  if (delta <= 0) {
+    balanceForDisplay = to;
+    updateBalanceUi();
+    return;
+  }
+
+  const start = performance.now();
+  const duration = Math.min(1000, Math.max(400, 350 + Math.sqrt(delta) * 80));
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - (1 - t) ** 3;
+    balanceForDisplay = from + delta * eased;
+    updateBalanceUi();
+    if (t < 1) {
+      balanceAnimRaf = requestAnimationFrame(tick);
+    } else {
+      balanceForDisplay = to;
+      updateBalanceUi();
+      balanceAnimRaf = null;
+    }
+  }
+
+  balanceAnimRaf = requestAnimationFrame(tick);
+}
+
+function syncHud({ immediate = false } = {}) {
+  if (replayMode) {
+    cancelBalanceAnimation();
+    balanceForDisplay = balance;
+    updateBalanceUi();
+    return;
+  }
+
+  const target = balance;
+  if (immediate || target < balanceForDisplay - 0.0005) {
+    cancelBalanceAnimation();
+    balanceForDisplay = target;
+    updateBalanceUi();
+    return;
+  }
+
+  if (target > balanceForDisplay + 0.0005) {
+    animateBalanceIncrease(balanceForDisplay, target);
+    return;
+  }
+
+  balanceForDisplay = target;
+  updateBalanceUi();
+}
 let bet = DEFAULT_BET;
 /** @type {number[]} */
 let betOptions = [...BET_OPTIONS];
 let spinning = false;
 let autoplaying = false;
+let autoplayStopRequested = false;
+let autoplayTotalRounds = 0;
+let autoplayCurrentRound = 0;
 let animationSpeed = 1;
+let lastWinDisplay = 0;
 const replayMode = isReplayMode();
 
 const devStatsOverlay = createDevStatsOverlay({
@@ -156,7 +237,16 @@ function playCostDisplay() {
 }
 
 function playButtonLabel() {
+  if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE) {
+    return '';
+  }
   return `Bet ${fmtBalance(playCostDisplay())}`;
+}
+
+/** This game does not use turbo / fast-play. */
+function disableTurboForGame(jurisdiction) {
+  jurisdiction.state.disabledTurbo = true;
+  jurisdiction.state.disabledSuperTurbo = true;
 }
 
 /** Keep wager on an authenticate tier (display units). */
@@ -204,6 +294,8 @@ function stepBet(direction) {
 
 /** @type {ReturnType<typeof mountBetStepper> | null} */
 let betStepper = null;
+/** @type {ReturnType<typeof mountMobileBetUi> | null} */
+let mobileBetUi = null;
 
 function syncBetStepperState({ downButton, upButton }) {
   const levels = [...betOptions].sort((a, b) => a - b);
@@ -216,10 +308,6 @@ function syncBetStepperState({ downButton, upButton }) {
 
   downButton.disabled = busy || idx <= 0;
   upButton.disabled = busy || idx >= levels.length - 1;
-}
-
-function syncHud() {
-  balanceEl.textContent = replayMode ? '—' : fmtBalance(balance);
 }
 
 function mountHudDevControls() {
@@ -388,6 +476,7 @@ function setLastReplayUrl(url) {
 function syncControls() {
   betUi.sync();
   betStepper?.sync();
+  mobileBetUi?.sync();
 }
 
 function isBoardPresenting() {
@@ -400,6 +489,7 @@ function flushRoundSettledUI() {
   pendingRoundSettled = null;
 
   const payout = apiToDisplay(result.payoutApi);
+  lastWinDisplay = payout;
   const debitDisplay = apiToDisplay(round.amount);
   session = ensureSession(session);
   recordPlay(session, { payout, multiplier: result.multiplier });
@@ -481,7 +571,10 @@ const game = createGameBootstrap({
       replayNote: replayNoteEl,
       dropButton: betUi.elements.dropButton,
     },
-    screenPreview: { root: shellEl },
+    screenPreview: {
+      root: shellEl,
+      onScreenChange: () => betUiVariant?.refresh(),
+    },
   },
   lifecycle: {
     handlers: {
@@ -531,6 +624,7 @@ const game = createGameBootstrap({
     onConfigured(auth) {
       if (auth.balanceDisplay != null) {
         balance = auth.balanceDisplay;
+        balanceForDisplay = balance;
       }
       const prevBet = bet;
       applyAuthBetConfig(auth, {
@@ -556,7 +650,8 @@ const game = createGameBootstrap({
     onRgsReady: () => syncControls(),
     onReady: () => {
       seedInitialBoard();
-      syncHud();
+      balanceForDisplay = balance;
+      syncHud({ immediate: true });
       setMessage(copyTerm('setBetPrompt'));
     },
     onAuthRound: handleAuthRoundOutcome,
@@ -565,6 +660,7 @@ const game = createGameBootstrap({
     },
   },
   onJurisdictionChange: () => {
+    disableTurboForGame(game.jurisdiction);
     gameMenu.refresh();
     syncControls();
     syncHud();
@@ -574,6 +670,8 @@ const game = createGameBootstrap({
 
 const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
 
+disableTurboForGame(game.jurisdiction);
+
 gameMenu.bind({ game });
 registerGameModals({
   modalHost,
@@ -582,6 +680,83 @@ registerGameModals({
   formatCurrency: (amount) => game.formatCurrency(amount),
   formatWin: (amount) => game.formatWin(amount),
 });
+
+function clearPopupPositionStyles(popup) {
+  if (!popup) return;
+  for (const prop of ['position', 'top', 'left', 'right', 'bottom', 'width', 'maxWidth', 'maxHeight', 'zIndex']) {
+    popup.style[prop] = '';
+  }
+}
+
+function resetGameMenuAnchorStyles() {
+  const { wrap, popup } = gameMenu.elements;
+  if (!wrap || !popup) return;
+  if (shellEl && popup.parentNode === shellEl) {
+    wrap.appendChild(popup);
+  }
+  clearPopupPositionStyles(popup);
+  wrap.style.position = '';
+  wrap.style.top = '';
+  wrap.style.left = '';
+  wrap.style.right = '';
+  wrap.style.bottom = '';
+}
+
+function positionGameMenuForMobile() {
+  if (shellEl?.dataset.betUiVariant !== BET_UI_VARIANT.MOBILE || !gameMenu.isOpen()) return;
+
+  const { popup } = gameMenu.elements;
+  if (!popup || !shellEl) return;
+
+  const pad = 8;
+  const gap = 8;
+  const shellRect = shellEl.getBoundingClientRect();
+  const chromeHeight = parseFloat(
+    getComputedStyle(shellEl).getPropertyValue('--bet-ui-mobile-chrome-height'),
+  ) || 0;
+  const maxWidth = Math.min(264, Math.max(120, shellRect.width - pad * 2));
+  const maxHeight = Math.floor(Math.max(120, shellRect.height - chromeHeight - gap - pad * 2));
+
+  if (popup.parentNode !== shellEl) {
+    shellEl.appendChild(popup);
+  }
+
+  popup.style.position = 'absolute';
+  popup.style.left = `${pad}px`;
+  popup.style.right = 'auto';
+  popup.style.top = 'auto';
+  popup.style.bottom = `${chromeHeight + gap}px`;
+  popup.style.width = `${Math.round(maxWidth)}px`;
+  popup.style.maxWidth = `${Math.round(maxWidth)}px`;
+  popup.style.maxHeight = `${maxHeight}px`;
+  popup.style.zIndex = '9055';
+}
+
+function queueMobileGameMenuPosition() {
+  requestAnimationFrame(() => {
+    positionGameMenuForMobile();
+    requestAnimationFrame(() => positionGameMenuForMobile());
+  });
+}
+
+function closeGameMenu() {
+  gameMenu.close();
+  resetGameMenuAnchorStyles();
+}
+
+function openGameMenu() {
+  if (gameMenu.isOpen()) {
+    closeGameMenu();
+    return;
+  }
+  gameMenu.refresh();
+  gameMenu.setOpen(true);
+  if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE) {
+    queueMobileGameMenuPosition();
+  }
+}
+
+window.addEventListener('resize', () => queueMobileGameMenuPosition());
 
 betUi.bind({
   game,
@@ -605,16 +780,14 @@ betUi.bind({
     syncControls();
   },
   onDismissOverlays: () => {
-    gameMenu.close();
+    closeGameMenu();
     modalHost.close();
   },
   modalHost,
   getCopyTerm: copyTerm,
   formatCurrency: (amount) => game.formatCurrency(amount),
   onPlay: onSpin,
-  onTurbo: () => {
-    animationSpeed = 3;
-  },
+  onTurbo: () => {},
   onAutoplay: runAutoplay,
   onNewSession: onNewSession,
   onCopyReplay: onCopyReplayLink,
@@ -627,6 +800,50 @@ betStepper = mountBetStepper(betUi.elements.dropButton, {
   onStepDown: () => stepBet(-1),
   onStepUp: () => stepBet(1),
   syncState: syncBetStepperState,
+});
+
+mobileBetUi = mountMobileBetUi({
+  root: betUiRootEl,
+  shell: shellEl,
+  playButton: betUi.elements.dropButton,
+  playRow: betStepper.row,
+  handlers: {
+    onMenu: () => openGameMenu(),
+    onAuto: () => {
+      if (autoplaying) {
+        stopAutoplay();
+        return;
+      }
+      if (betUi.elements.autoplay) {
+        betUi.elements.autoplay.click();
+        return;
+      }
+      runAutoplay(100);
+    },
+    onStepUp: () => stepBet(1),
+    onStepDown: () => stepBet(-1),
+    getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
+    getBet: () => fmtBalance(playCostDisplay()),
+    getWin: () => (replayMode ? '—' : fmtWin(lastWinDisplay)),
+    getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
+    getAutoplayActive: () => autoplaying,
+    getAutoplayProgress: () => ({
+      current: autoplayCurrentRound,
+      total: autoplayTotalRounds,
+    }),
+    getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
+    syncStepper: syncBetStepperState,
+  },
+});
+
+betUiVariant = initBetUiVariant({
+  shell: shellEl,
+  betUiRoot: betUiRootEl,
+  onChange: (variant) => {
+    closeGameMenu();
+    mobileBetUi?.setActive(variant === BET_UI_VARIANT.MOBILE);
+    syncControls();
+  },
 });
 
 async function onSpin() {
@@ -665,9 +882,20 @@ async function onSpin() {
   });
 }
 
+function stopAutoplay() {
+  if (!autoplaying) return;
+  autoplayStopRequested = true;
+  slotBoard?.cancelPresentation?.();
+  syncControls();
+}
+
 async function runAutoplay(roundCount) {
   if (spinning || autoplaying || !controls.canAutoplay) return;
   if (!game.rgsReady || balance < playCostDisplay()) return;
+
+  autoplayStopRequested = false;
+  autoplayTotalRounds = roundCount;
+  autoplayCurrentRound = 0;
 
   slotBoard?.cancelPresentation?.();
   if (slotBoard?.waitUntilIdle) {
@@ -676,23 +904,36 @@ async function runAutoplay(roundCount) {
 
   autoplaying = true;
   syncControls();
-  let count = 0;
   try {
     for (let i = 0; i < roundCount; i += 1) {
-      if (balance < playCostDisplay()) {
-        setMessage(`${copyTerm('autoplayStopped')} ${count} spins.`);
+      if (autoplayStopRequested) {
+        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
         break;
       }
-      setMessage(copyTerm('autoplayProgress', { current: i + 1, total: roundCount }));
-      await lifecycle.executeDrop({ animate: false });
-      if (slotBoard?.fadeOutCascadeLadder) {
-        await slotBoard.fadeOutCascadeLadder();
+
+      const playCost = playCostDisplay();
+      if (balance < playCost) {
+        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
+        break;
       }
-      flushRoundSettledUI();
+
+      autoplayCurrentRound = i + 1;
+      lastWinDisplay = 0;
+      balance = Math.max(0, balance - playCost);
       syncHud();
-      count += 1;
+      syncControls();
+
+      await withSpinLock(async () => {
+        gameAudio.playSfx('play');
+        await lifecycle.executeDrop({ animate: true });
+      });
+
+      if (autoplayStopRequested) {
+        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
+        break;
+      }
     }
-    if (count === roundCount) {
+    if (autoplayCurrentRound === roundCount && !autoplayStopRequested) {
       setMessage(copyTerm('autoplayComplete', { count: roundCount }));
     }
   } catch (err) {
@@ -700,6 +941,9 @@ async function runAutoplay(roundCount) {
     setMessage(messageForRgsCode(String(err.message)));
   } finally {
     autoplaying = false;
+    autoplayStopRequested = false;
+    autoplayTotalRounds = 0;
+    autoplayCurrentRound = 0;
     syncControls();
   }
 }
@@ -826,7 +1070,8 @@ function attachPreloaderCommitLabel() {
 
 betUi.renderBetLevels();
 mountHudDevControls();
-syncHud();
+balanceForDisplay = balance;
+syncHud({ immediate: true });
 syncDevControlsVisibility();
 syncDevTools();
 syncControls();

@@ -1,0 +1,267 @@
+/**
+ * Mobile bet UI — bottom chrome (actions row + balance / bet / win row).
+ */
+
+.bet-ui-mobile-active .suki-bet-ui .suki-bet-play-panel {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] {
+  --bet-ui-mobile-spin-size: 4.75rem;
+  --bet-ui-mobile-auto-size: 2.35rem;
+  --bet-ui-mobile-auto-spin-gap: 0.35rem;
+  --bet-ui-mobile-actions-height: 5.25rem;
+  --bet-ui-mobile-info-height: 2.325rem;
+  --bet-ui-mobile-info-gap: 0.4rem;
+  --bet-ui-mobile-chrome-gap: 0.5rem;
+  --bet-ui-mobile-chrome-height: calc(
+    var(--bet-ui-mobile-actions-height) + var(--bet-ui-mobile-info-height) + var(--bet-ui-mobile-chrome-gap)
+  );
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-game-core {
+  padding-bottom: var(--bet-ui-mobile-chrome-height);
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .game-core-stack {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'stage';
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-controls-slot {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] #balance-hud {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-brand .suki-game-menu-trigger {
+  display: none !important;
+  pointer-events: none;
+}
+
+/* Keep popup mount in the DOM — mobile chrome uses its own menu button. */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-brand .suki-game-menu {
+  pointer-events: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'].suki-game-menu-open > .suki-game-menu-popup {
+  display: flex !important;
+  z-index: 9055;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'].suki-game-menu-open .suki-brand {
+  pointer-events: auto;
+}
+
+/* Bottom chrome — both rows stacked, pinned to shell bottom */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile-chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bet-ui-mobile-chrome-gap);
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Actions row --- */
+.bet-ui-mobile__actions {
+  position: relative;
+  min-height: var(--bet-ui-mobile-actions-height, 5.25rem);
+  padding-inline: 0.25rem;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.bet-ui-mobile__actions-start {
+  position: absolute;
+  left: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.bet-ui-mobile__spin-cluster {
+  position: absolute;
+  left: calc(
+    50% - var(--bet-ui-mobile-auto-size) - var(--bet-ui-mobile-auto-spin-gap) -
+      (var(--bet-ui-mobile-spin-size) / 2)
+  );
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--bet-ui-mobile-auto-spin-gap);
+}
+
+.bet-ui-mobile__auto-cluster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.bet-ui-mobile__auto-progress {
+  position: absolute;
+  top: calc(100% + 0.12rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.52rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #f5f5f5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bet-ui-mobile__icon-btn--stop .bet-ui-mobile__icon {
+  font-size: 0.85rem;
+}
+
+.bet-ui-mobile__spin {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bet-ui-mobile__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  cursor: pointer;
+}
+
+.bet-ui-mobile__icon-btn--auto {
+  width: var(--bet-ui-mobile-auto-size, 2.35rem);
+  height: var(--bet-ui-mobile-auto-size, 2.35rem);
+  flex-shrink: 0;
+}
+
+.bet-ui-mobile__icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bet-ui-mobile__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.bet-ui-mobile__icon-btn--auto .bet-ui-mobile__icon {
+  font-size: 1rem;
+}
+
+.bet-ui-mobile__play.suki-bet-play {
+  width: var(--bet-ui-mobile-spin-size, 4.75rem);
+  height: var(--bet-ui-mobile-spin-size, 4.75rem);
+  min-width: var(--bet-ui-mobile-spin-size, 4.75rem);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.bet-ui-mobile__play.suki-bet-play:disabled {
+  opacity: 0.45;
+}
+
+/* --- Info row --- */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--bet-ui-mobile-info-gap);
+  align-items: stretch;
+  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
+  margin: 0;
+  padding: 0 var(--bet-ui-mobile-info-gap);
+  flex-shrink: 0;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.55rem 0.55rem 0 0;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  text-align: center;
+  overflow: hidden;
+}
+
+.bet-ui-mobile__stat-label {
+  flex-shrink: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.bet-ui-mobile__stat-value {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--bet-ui-mobile-stat-value-size, 0.95rem);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__bet-cluster {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr) 2.1rem;
+  align-items: stretch;
+  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
+  overflow: hidden;
+  border-radius: 0.55rem 0.55rem 0 0;
+}
+
+.bet-ui-mobile__bet-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: #8a8a8a;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bet-ui-mobile__bet-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bet-ui-mobile__bet-cluster .bet-ui-mobile__stat {
+  border-radius: 0;
+  min-height: 0;
+  min-width: 0;
+  padding-inline: 0.35rem;
+}
