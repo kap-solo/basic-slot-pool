@@ -28,6 +28,7 @@ import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
 import { BET_OPTIONS, DEFAULT_BET, GAME, GAME_MODES } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
+import { mountBetStepper } from './betStepper.js';
 import { registerGameModals } from './menu.js';
 import {
   buildGameSettledResult,
@@ -160,7 +161,66 @@ function playCostDisplay() {
 }
 
 function playButtonLabel() {
-  return copyTerm('drop');
+  return `Bet ${fmtBalance(playCostDisplay())}`;
+}
+
+/** Keep wager on an authenticate tier (display units). */
+function snapBetToLevel(amount) {
+  const levels = [...betOptions].sort((a, b) => a - b);
+  if (!levels.length) return amount;
+
+  if (levels.includes(amount)) return amount;
+
+  let best = levels[0];
+  let bestDistance = Math.abs(amount - best);
+  for (const level of levels) {
+    const distance = Math.abs(amount - level);
+    if (distance < bestDistance) {
+      best = level;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+/**
+ * @param {number} direction -1 = lower level, +1 = higher level
+ */
+function stepBet(direction) {
+  if (spinning || autoplaying || isBoardPresenting() || replayMode || !game.rgsReady) return;
+
+  const levels = [...betOptions].sort((a, b) => a - b);
+  if (!levels.length) return;
+
+  let idx = levels.indexOf(bet);
+  if (idx < 0) {
+    idx = levels.findIndex((level) => level >= bet);
+    if (idx < 0) idx = levels.length - 1;
+  }
+
+  const nextIdx = idx + direction;
+  if (nextIdx < 0 || nextIdx >= levels.length || nextIdx === idx) return;
+
+  bet = levels[nextIdx];
+  betUi.renderBetLevels();
+  syncHud();
+  syncControls();
+}
+
+/** @type {ReturnType<typeof mountBetStepper> | null} */
+let betStepper = null;
+
+function syncBetStepperState({ downButton, upButton }) {
+  const levels = [...betOptions].sort((a, b) => a - b);
+  let idx = levels.indexOf(bet);
+  if (idx < 0) {
+    idx = levels.findIndex((level) => level >= bet);
+    if (idx < 0) idx = levels.length - 1;
+  }
+  const busy = spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode;
+
+  downButton.disabled = busy || idx <= 0;
+  upButton.disabled = busy || idx >= levels.length - 1;
 }
 
 function syncHud() {
@@ -338,6 +398,7 @@ function setLastReplayUrl(url) {
 
 function syncControls() {
   betUi.sync();
+  betStepper?.sync();
 }
 
 function isBoardPresenting() {
@@ -466,21 +527,23 @@ const game = createGameBootstrap({
     },
     setMessage,
     getBetApi: () => displayToApi(bet),
-    setBetFromApi: (amountApi) => {
-      bet = apiToDisplay(amountApi);
+    setBetFromApi: () => {
+      // Bet is player-controlled via the stepper. Lifecycle sync from round.amount
+      // can clamp unrelated API values onto the highest tier (e.g. $10). Resume and
+      // active-round overrides are applied in auth.onConfigured instead.
     },
   },
   auth: {
     defaultBetDisplay: DEFAULT_BET,
     gameModes: GAME_MODES,
     copyOverrides: {
-      drop: 'Spin',
       setBetPrompt: 'Press Spin to play.',
     },
     onConfigured(auth) {
       if (auth.balanceDisplay != null) {
         balance = auth.balanceDisplay;
       }
+      const prevBet = bet;
       applyAuthBetConfig(auth, {
         betUi,
         getBet: () => bet,
@@ -488,6 +551,13 @@ const game = createGameBootstrap({
         getBetOptions: () => betOptions,
         setBetOptions: (levels) => { betOptions = levels; },
       });
+      // Keep stepper selection across background re-auth; active-round resume still wins.
+      if (!auth.usesActiveRoundBet && betOptions.includes(prevBet)) {
+        bet = prevBet;
+        betUi.renderBetLevels();
+      } else {
+        bet = snapBetToLevel(bet);
+      }
     },
   },
   ui: {
@@ -564,6 +634,12 @@ betUi.bind({
   onReplayAgain: () => {
     if (replayRound && !spinning) playReplayAnimation(replayRound);
   },
+});
+
+betStepper = mountBetStepper(betUi.elements.dropButton, {
+  onStepDown: () => stepBet(-1),
+  onStepUp: () => stepBet(1),
+  syncState: syncBetStepperState,
 });
 
 async function onSpin() {

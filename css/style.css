@@ -78,6 +78,38 @@ body {
   display: none !important;
 }
 
+/* Bet row — step down, bet/play, step up */
+.suki-bet-play-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.suki-bet-step {
+  min-width: 2.75rem;
+  padding: 0.75rem 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid #2a3344;
+  border-radius: 10px;
+  background: #12161e;
+  color: #e8edf4;
+  cursor: pointer;
+}
+
+.suki-bet-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.suki-bet-play-row .suki-bet-play {
+  width: 100%;
+  min-width: 0;
+}
+
 /* Dev row — inline with balance in HUD (Auto · New · Copy). */
 .hud-dev-actions .suki-bet-dev {
   display: grid;
