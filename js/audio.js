@@ -1,26 +1,14 @@
 /**
  * Game audio — wire paths when files exist under assets/audio/.
- * Empty by default so the preloader and console stay clean until you add MP3/OGG.
  */
 
 /** @type {{ music: string | null, sfx: Record<string, string> }} */
 export const GAME_AUDIO_ASSETS = {
   music: null,
-  sfx: {},
+  sfx: {
+    reels: 'assets/audio/reels3.wav',
+  },
 };
-
-/**
- * Uncomment and add files to enable audio:
- *
- * export const GAME_AUDIO_ASSETS = {
- *   music: 'assets/audio/music.mp3',
- *   sfx: {
- *     play: 'assets/audio/play.mp3',
- *     win: 'assets/audio/win.mp3',
- *     lose: 'assets/audio/lose.mp3',
- *   },
- * };
- */
 
 /** Paths to front-load during the Suki preloader. */
 export function buildPreloadAssets() {
@@ -39,4 +27,46 @@ export function buildPreloadAssets() {
  */
 export function wireTemplateAudio(gameAudio) {
   gameAudio.setAssets(GAME_AUDIO_ASSETS);
+}
+
+/**
+ * Looping reel spin bed — starts with the spin animation and stops when reels land.
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ */
+export function createReelSpinAudio(audioPrefs) {
+  /** @type {HTMLAudioElement | null} */
+  let reelEl = null;
+
+  function ensureElement() {
+    const url = GAME_AUDIO_ASSETS.sfx?.reels;
+    if (!url) return null;
+    const resolved = new URL(url, window.location.href).href;
+    if (reelEl && reelEl.src !== resolved) {
+      reelEl.pause();
+      reelEl = null;
+    }
+    if (!reelEl) {
+      reelEl = new Audio(url);
+      reelEl.loop = true;
+      reelEl.preload = 'auto';
+    }
+    return reelEl;
+  }
+
+  return {
+    start(unlock) {
+      if (!audioPrefs.sfx.enabled) return;
+      const el = ensureElement();
+      if (!el) return;
+      unlock?.();
+      el.currentTime = 0;
+      el.play().catch(() => {});
+    },
+    stop() {
+      if (!reelEl) return;
+      reelEl.pause();
+      reelEl.currentTime = 0;
+    },
+  };
 }

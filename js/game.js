@@ -24,7 +24,7 @@ import {
   requestReplay,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
-import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
+import { buildPreloadAssets, createReelSpinAudio, wireTemplateAudio } from './audio.js';
 import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
@@ -61,6 +61,7 @@ const modalHost = createModalHost({ root: shellEl });
 const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
 const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
 wireTemplateAudio(gameAudio);
+const reelSpinAudio = createReelSpinAudio(audioPrefs);
 const recentResults = createRecentResultsStore({ max: 25 });
 const gameMenu = createGameMenu({
   brand: brandEl,
@@ -644,7 +645,12 @@ function showStaticRound(round) {
 
 async function animateReveal(board) {
   if (!slotBoard) return;
-  await animateSlotSpin(slotBoard, board, { speed: animationSpeed });
+  try {
+    reelSpinAudio.start(() => gameAudio.unlock());
+    await animateSlotSpin(slotBoard, board, { speed: animationSpeed });
+  } finally {
+    reelSpinAudio.stop();
+  }
 }
 
 async function presentGameReveal(event, { animate = true, round = null } = {}) {
