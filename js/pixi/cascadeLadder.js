@@ -93,11 +93,35 @@ export function createCascadeLadder({ maxSteps = 8 } = {}) {
      * @param {{ boardW: number, boardH: number, cellW: number, ladderBand?: number }} layout
      */
     layout({ boardW, boardH, cellW, ladderBand = 28 }) {
-      fontSize = Math.max(10, Math.round(cellW * 0.22));
-      slotH = Math.max(18, Math.round(cellW * 0.34));
-      slotW = Math.max(26, Math.round((boardW / maxSteps) * 0.82));
-      const gap = Math.max(2, Math.round(cellW * 0.06));
-      const totalW = maxSteps * slotW + (maxSteps - 1) * gap;
+      const inset = Math.max(2, Math.round(cellW * 0.06));
+      const maxTotalW = Math.max(1, boardW - inset * 2);
+
+      let gap = Math.max(1, Math.round(cellW * 0.05));
+      slotW = (maxTotalW - (maxSteps - 1) * gap) / maxSteps;
+
+      if (slotW < 8) {
+        gap = 1;
+        slotW = (maxTotalW - (maxSteps - 1) * gap) / maxSteps;
+      }
+
+      slotW = Math.max(4, Math.floor(slotW));
+
+      let totalW = maxSteps * slotW + (maxSteps - 1) * gap;
+      if (totalW > maxTotalW) {
+        const scale = maxTotalW / totalW;
+        slotW = Math.max(4, Math.floor(slotW * scale));
+        gap = Math.max(1, Math.floor(gap * scale));
+        totalW = maxSteps * slotW + (maxSteps - 1) * gap;
+      }
+
+      while (totalW > maxTotalW && slotW > 4) {
+        slotW -= 1;
+        totalW = maxSteps * slotW + (maxSteps - 1) * gap;
+      }
+
+      slotH = Math.max(12, Math.min(Math.round(cellW * 0.34), Math.round(slotW * 0.72)));
+      fontSize = Math.max(6, Math.min(Math.round(cellW * 0.22), Math.round(slotW * 0.4)));
+
       let x = -totalW / 2 + slotW / 2;
 
       for (const { bg, label } of slots) {

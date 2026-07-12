@@ -31,6 +31,7 @@ import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantize
 import { mountBetStepper } from './betStepper.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
 import { mountMobileBetUi } from './betUiMobile.js';
+import { mountDesktopBetUi } from './betUiDesktop.js';
 import { registerGameModals } from './menu.js';
 import {
   buildGameSettledResult,
@@ -117,6 +118,7 @@ function cancelBalanceAnimation() {
 function updateBalanceUi() {
   balanceEl.textContent = replayMode ? '—' : fmtBalance(balanceForDisplay);
   mobileBetUi?.sync();
+  desktopBetUi?.sync();
 }
 
 function animateBalanceIncrease(from, to) {
@@ -194,12 +196,14 @@ function winDisplayText() {
 }
 
 function updateWinUi() {
-  mobileBetUi?.updateWin?.({
+  const payload = {
     text: winDisplayText(),
     visible: replayMode || winUiVisible || winFadingOut,
     settled: winUiSettled && (winUiVisible || winFadingOut),
     hiding: winFadingOut,
-  });
+  };
+  mobileBetUi?.updateWin?.(payload);
+  desktopBetUi?.updateWin?.(payload);
 }
 
 function hideWinDisplay({ immediate = false } = {}) {
@@ -541,7 +545,10 @@ function canPickBet() {
 }
 
 function playButtonLabel() {
-  if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE) {
+  if (
+    shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE
+    || shellEl?.dataset.betUiVariant === BET_UI_VARIANT.DESKTOP
+  ) {
     return '';
   }
   return `${copyTerm('bet')} ${fmtBalance(playCostDisplay())}`;
@@ -600,6 +607,8 @@ function stepBet(direction) {
 let betStepper = null;
 /** @type {ReturnType<typeof mountMobileBetUi> | null} */
 let mobileBetUi = null;
+/** @type {ReturnType<typeof mountDesktopBetUi> | null} */
+let desktopBetUi = null;
 
 function syncBetStepperState({ downButton, upButton }) {
   const levels = [...betOptions].sort((a, b) => a - b);
@@ -799,6 +808,7 @@ function syncControls() {
   betUi.sync();
   betStepper?.sync();
   mobileBetUi?.sync();
+  desktopBetUi?.sync();
   updateWinUi();
   syncPlayAffordBlocker();
   if (!canPickBet()) {
@@ -1045,27 +1055,54 @@ function resetGameMenuAnchorStyles() {
   wrap.style.bottom = '';
 }
 
-function positionGameMenuForMobile() {
-  if (shellEl?.dataset.betUiVariant !== BET_UI_VARIANT.MOBILE || !gameMenu.isOpen()) return;
+function chromeHeightCssVar() {
+  const variant = shellEl?.dataset.betUiVariant;
+  if (variant === BET_UI_VARIANT.MOBILE) return '--bet-ui-mobile-chrome-height';
+  if (variant === BET_UI_VARIANT.DESKTOP) return '--bet-ui-desktop-chrome-height';
+  return null;
+}
+
+function chromeInsetPx(property, shellWidth) {
+  if (!shellEl) return 8;
+  const raw = getComputedStyle(shellEl).getPropertyValue(property).trim();
+  if (!raw) return 8;
+  if (raw.endsWith('%')) {
+    return Math.round(shellWidth * (parseFloat(raw) / 100));
+  }
+  return Math.round(parseFloat(raw)) || 8;
+}
+
+function positionGameMenuForChrome() {
+  const cssVar = chromeHeightCssVar();
+  if (!cssVar || !gameMenu.isOpen()) return;
 
   const { popup } = gameMenu.elements;
   if (!popup || !shellEl) return;
 
-  const pad = 8;
   const gap = 8;
   const shellRect = shellEl.getBoundingClientRect();
-  const chromeHeight = parseFloat(
-    getComputedStyle(shellEl).getPropertyValue('--bet-ui-mobile-chrome-height'),
-  ) || 0;
-  const maxWidth = Math.min(264, Math.max(120, shellRect.width - pad * 2));
-  const maxHeight = Math.floor(Math.max(120, shellRect.height - chromeHeight - gap - pad * 2));
+  const isDesktop = shellEl?.dataset.betUiVariant === BET_UI_VARIANT.DESKTOP;
+  const leftPad = isDesktop
+    ? chromeInsetPx('--bet-ui-desktop-inset-inline-start', shellRect.width)
+    : 8;
+  const rightPad = isDesktop
+    ? chromeInsetPx('--bet-ui-desktop-inset-inline-end', shellRect.width)
+    : 8;
+  const chromeHeight = parseFloat(getComputedStyle(shellEl).getPropertyValue(cssVar)) || 0;
+  const isPopoutS = shellEl?.dataset.sukiScreen === 'popout-s';
+  const widthCap = isPopoutS ? 360 : 264;
+  const minWidth = isPopoutS ? 180 : 120;
+  const maxWidth = Math.min(widthCap, Math.max(minWidth, shellRect.width - leftPad - rightPad));
+  const maxHeight = Math.floor(
+    Math.max(isPopoutS ? 96 : 120, shellRect.height - chromeHeight - gap - (isPopoutS ? gap : leftPad)),
+  );
 
   if (popup.parentNode !== shellEl) {
     shellEl.appendChild(popup);
   }
 
   popup.style.position = 'absolute';
-  popup.style.left = `${pad}px`;
+  popup.style.left = `${leftPad}px`;
   popup.style.right = 'auto';
   popup.style.top = 'auto';
   popup.style.bottom = `${chromeHeight + gap}px`;
@@ -1075,10 +1112,10 @@ function positionGameMenuForMobile() {
   popup.style.zIndex = '9055';
 }
 
-function queueMobileGameMenuPosition() {
+function queueGameMenuPosition() {
   requestAnimationFrame(() => {
-    positionGameMenuForMobile();
-    requestAnimationFrame(() => positionGameMenuForMobile());
+    positionGameMenuForChrome();
+    requestAnimationFrame(() => positionGameMenuForChrome());
   });
 }
 
@@ -1094,12 +1131,13 @@ function openGameMenu() {
   }
   gameMenu.refresh();
   gameMenu.setOpen(true);
-  if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE) {
-    queueMobileGameMenuPosition();
+  if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE
+    || shellEl?.dataset.betUiVariant === BET_UI_VARIANT.DESKTOP) {
+    queueGameMenuPosition();
   }
 }
 
-window.addEventListener('resize', () => queueMobileGameMenuPosition());
+window.addEventListener('resize', () => queueGameMenuPosition());
 
 betUi.bind({
   game,
@@ -1146,44 +1184,54 @@ betStepper = mountBetStepper(betUi.elements.dropButton, {
 });
 ensurePlayHitWrap();
 
+const betChromeHandlers = {
+  onMenu: () => openGameMenu(),
+  onAuto: () => {
+    if (autoplaying) {
+      stopAutoplay();
+      return;
+    }
+    if (betUi.elements.autoplay) {
+      betUi.elements.autoplay.click();
+      return;
+    }
+    runAutoplay(100);
+  },
+  onStepUp: () => stepBet(1),
+  onStepDown: () => stepBet(-1),
+  getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
+  getBet: () => fmtBalance(playCostDisplay()),
+  getBetLabel: () => copyTerm('bet'),
+  getWinLabel: winStatLabel,
+  getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
+  getCanPickBet: canPickBet,
+  onBetPick: () => {
+    closeGameMenu();
+    betPicker.open();
+  },
+  getAutoplayActive: () => autoplaying,
+  getAutoplayProgress: () => ({
+    current: autoplayCurrentRound,
+    total: autoplayTotalRounds,
+  }),
+  getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
+  syncStepper: syncBetStepperState,
+};
+
 mobileBetUi = mountMobileBetUi({
   root: betUiRootEl,
   shell: shellEl,
   playButton: betUi.elements.dropButton,
   playRow: betStepper.row,
-  handlers: {
-    onMenu: () => openGameMenu(),
-    onAuto: () => {
-      if (autoplaying) {
-        stopAutoplay();
-        return;
-      }
-      if (betUi.elements.autoplay) {
-        betUi.elements.autoplay.click();
-        return;
-      }
-      runAutoplay(100);
-    },
-    onStepUp: () => stepBet(1),
-    onStepDown: () => stepBet(-1),
-    getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
-    getBet: () => fmtBalance(playCostDisplay()),
-    getBetLabel: () => copyTerm('bet'),
-    getWinLabel: winStatLabel,
-    getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
-    getCanPickBet: canPickBet,
-    onBetPick: () => {
-      closeGameMenu();
-      betPicker.open();
-    },
-    getAutoplayActive: () => autoplaying,
-    getAutoplayProgress: () => ({
-      current: autoplayCurrentRound,
-      total: autoplayTotalRounds,
-    }),
-    getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
-    syncStepper: syncBetStepperState,
-  },
+  handlers: betChromeHandlers,
+});
+
+desktopBetUi = mountDesktopBetUi({
+  root: betUiRootEl,
+  shell: shellEl,
+  playButton: betUi.elements.dropButton,
+  playRow: betStepper.row,
+  handlers: betChromeHandlers,
 });
 
 updateWinUi();
@@ -1193,7 +1241,13 @@ betUiVariant = initBetUiVariant({
   betUiRoot: betUiRootEl,
   onChange: (variant) => {
     closeGameMenu();
-    mobileBetUi?.setActive(variant === BET_UI_VARIANT.MOBILE);
+    if (variant === BET_UI_VARIANT.MOBILE) {
+      desktopBetUi?.setActive(false);
+      mobileBetUi?.setActive(true);
+    } else {
+      mobileBetUi?.setActive(false);
+      desktopBetUi?.setActive(true);
+    }
     syncControls();
   },
 });

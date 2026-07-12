@@ -1,0 +1,437 @@
+/**
+ * Desktop bet UI — bottom chrome bar (semi-transparent, full width).
+ */
+
+.bet-ui-desktop-active .suki-bet-ui .suki-bet-play-panel {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] {
+  --bet-ui-desktop-bar-height: clamp(2.2rem, 18vh, 4.25rem);
+  --bet-ui-desktop-spin-size: clamp(2.85rem, 14vw, 5.75rem);
+  --bet-ui-desktop-auto-size: clamp(1.55rem, 7vw, 2.85rem);
+  --bet-ui-desktop-menu-size: clamp(1.85rem, 7vw, 2.85rem);
+  --bet-ui-desktop-step-size: clamp(1.45rem, 5.5vw, 2.15rem);
+  --bet-ui-desktop-inset-inline-start: 22%;
+  --bet-ui-desktop-inset-inline-end: 10%;
+  --bet-ui-desktop-controls-gap: clamp(0.2rem, 1.1vw, 0.45rem);
+  --bet-ui-desktop-play-cluster-gap: clamp(0.1rem, 0.5vw, 0.2rem);
+  --bet-ui-desktop-bar-gap: clamp(0.3rem, 1.4vw, 0.55rem);
+  --bet-ui-desktop-menu-stats-gap: clamp(1.1rem, 6vw, 3rem);
+  --bet-ui-desktop-stats-gap: clamp(0.35rem, 1.6vw, 0.65rem);
+  --bet-ui-desktop-stat-label-size: clamp(0.5rem, 2.6vw, 0.62rem);
+  --bet-ui-desktop-stat-value-size: clamp(0.68rem, 3.2vw, 1.05rem);
+  --bet-ui-desktop-cluster-label-size: clamp(0.48rem, 2.2vw, 0.56rem);
+  --bet-ui-desktop-cluster-value-size: clamp(0.62rem, 3vw, 0.98rem);
+  --bet-ui-desktop-bet-pick-min-width: clamp(2.5rem, 9vw, 3.75rem);
+  --bet-ui-desktop-bet-pick-max-width: 5.5rem;
+  --bet-ui-desktop-stat-max-width: 6.5rem;
+  --bet-ui-desktop-win-max-width: 5.5rem;
+  --bet-ui-desktop-menu-icon-size: clamp(0.9rem, 3vw, 1.2rem);
+  --bet-ui-desktop-step-font-size: clamp(0.85rem, 3vw, 1.15rem);
+  --bet-ui-desktop-auto-icon-size: clamp(0.8rem, 2.8vw, 1.1rem);
+  --bet-ui-desktop-spin-overlap: calc(var(--bet-ui-desktop-spin-size) * 0.42);
+  --bet-ui-desktop-chrome-height: calc(
+    var(--bet-ui-desktop-bar-height) + var(--bet-ui-desktop-spin-overlap)
+  );
+}
+
+/* Popout L — moderate downscale (800×450). */
+.suki-stake-shell[data-suki-screen='popout-l'][data-bet-ui-variant='desktop'] {
+  --bet-ui-desktop-bar-height: 3.1rem;
+  --bet-ui-desktop-spin-size: 4rem;
+  --bet-ui-desktop-auto-size: 2.2rem;
+  --bet-ui-desktop-menu-size: 2.35rem;
+  --bet-ui-desktop-step-size: 1.85rem;
+  --bet-ui-desktop-inset-inline-start: 14%;
+  --bet-ui-desktop-inset-inline-end: 7%;
+  --bet-ui-desktop-menu-stats-gap: 1.65rem;
+  --bet-ui-desktop-stat-value-size: 0.88rem;
+  --bet-ui-desktop-cluster-value-size: 0.82rem;
+  --bet-ui-desktop-bet-pick-max-width: 4.75rem;
+  --bet-ui-desktop-stat-max-width: 5.75rem;
+  --bet-ui-desktop-win-max-width: 5rem;
+}
+
+/* Popout S — aggressive downscale (400×225). */
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] {
+  --bet-ui-desktop-bar-height: 1.85rem;
+  --bet-ui-desktop-spin-size: 2.65rem;
+  --bet-ui-desktop-spin-overlap: calc(var(--bet-ui-desktop-spin-size) * 0.36);
+  --bet-ui-desktop-auto-size: 1.45rem;
+  --bet-ui-desktop-menu-size: 1.15rem;
+  --bet-ui-desktop-step-size: 1.3rem;
+  --bet-ui-desktop-inset-inline-start: 8%;
+  --bet-ui-desktop-inset-inline-end: 3%;
+  --bet-ui-desktop-controls-gap: 0.15rem;
+  --bet-ui-desktop-play-cluster-gap: 0.08rem;
+  --bet-ui-desktop-bar-gap: 0.25rem;
+  --bet-ui-desktop-menu-stats-gap: 0.9rem;
+  --bet-ui-desktop-stats-gap: 0.25rem;
+  --bet-ui-desktop-stat-label-size: 0.46rem;
+  --bet-ui-desktop-stat-value-size: 0.62rem;
+  --bet-ui-desktop-cluster-label-size: 0.44rem;
+  --bet-ui-desktop-cluster-value-size: 0.58rem;
+  --bet-ui-desktop-bet-pick-min-width: 2.1rem;
+  --bet-ui-desktop-bet-pick-max-width: 3.25rem;
+  --bet-ui-desktop-stat-max-width: 4.25rem;
+  --bet-ui-desktop-win-max-width: 3.75rem;
+  --bet-ui-desktop-menu-icon-size: 0.6rem;
+  --bet-ui-desktop-step-font-size: 0.75rem;
+  --bet-ui-desktop-auto-icon-size: 0.72rem;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-game-core {
+  padding-bottom: var(--bet-ui-desktop-chrome-height);
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .game-core-stack {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'stage';
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-controls-slot {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] #balance-hud {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-brand .suki-game-menu-trigger {
+  display: none !important;
+  pointer-events: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-brand .suki-game-menu {
+  pointer-events: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'].suki-game-menu-open > .suki-game-menu-popup {
+  display: flex !important;
+  z-index: 9055;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'].suki-game-menu-open .suki-brand {
+  pointer-events: auto;
+}
+
+/* Bottom chrome — pinned to shell, spin overlaps upward */
+.suki-stake-shell[data-bet-ui-variant='desktop'] .bet-ui-desktop-chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding-top: var(--bet-ui-desktop-spin-overlap);
+  pointer-events: none;
+}
+
+.bet-ui-desktop__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--bet-ui-desktop-bar-gap);
+  min-height: var(--bet-ui-desktop-bar-height);
+  max-height: var(--bet-ui-desktop-bar-height);
+  padding: 0 var(--bet-ui-desktop-inset-inline-end) 0 var(--bet-ui-desktop-inset-inline-start);
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  overflow: visible;
+}
+
+.bet-ui-desktop__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bet-ui-desktop-menu-size);
+  height: var(--bet-ui-desktop-menu-size);
+  max-width: var(--bet-ui-desktop-menu-size);
+  max-height: var(--bet-ui-desktop-menu-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bet-ui-desktop__icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bet-ui-desktop__icon {
+  font-size: var(--bet-ui-desktop-menu-icon-size);
+  line-height: 1;
+}
+
+.bet-ui-desktop__stats {
+  display: flex;
+  align-items: stretch;
+  gap: var(--bet-ui-desktop-stats-gap);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: var(--bet-ui-desktop-stat-max-width);
+  margin-inline-start: var(--bet-ui-desktop-menu-stats-gap);
+}
+
+.bet-ui-desktop__stat--center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  padding: 0.2rem 0.35rem;
+  max-width: var(--bet-ui-desktop-win-max-width);
+}
+
+.bet-ui-desktop__stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12rem;
+  min-width: 0;
+  max-width: var(--bet-ui-desktop-stat-max-width);
+  padding: 0.2rem 0.35rem;
+  color: #f5f5f5;
+  text-align: center;
+  overflow: hidden;
+}
+
+.bet-ui-desktop__bet-pick {
+  width: auto;
+  min-width: var(--bet-ui-desktop-bet-pick-min-width);
+  max-width: var(--bet-ui-desktop-bet-pick-max-width);
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  appearance: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  transition: background 120ms ease;
+  align-self: center;
+  padding: 0.22rem 0.4rem;
+  overflow: hidden;
+}
+
+.bet-ui-desktop__bet-pick:hover:not(:disabled) {
+  background: transparent;
+}
+
+.bet-ui-desktop__bet-pick:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bet-ui-desktop__stat-label {
+  flex-shrink: 0;
+  font-size: var(--bet-ui-desktop-stat-label-size);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.bet-ui-desktop__play-cluster .bet-ui-desktop__stat-value {
+  font-size: var(--bet-ui-desktop-cluster-value-size);
+}
+
+.bet-ui-desktop__play-cluster .bet-ui-desktop__stat-label {
+  font-size: var(--bet-ui-desktop-cluster-label-size);
+}
+
+.bet-ui-desktop__stat-value {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--bet-ui-desktop-stat-value-size);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bet-ui-desktop__stat-value--win {
+  opacity: 0;
+  transition: opacity 240ms ease;
+  min-height: calc(var(--bet-ui-desktop-stat-value-size) * 1.1);
+}
+
+.bet-ui-desktop__stat-value--win.is-visible {
+  opacity: 1;
+}
+
+.bet-ui-desktop__stat-value--win.is-visible.is-settled {
+  opacity: 0.5;
+}
+
+.bet-ui-desktop__stat-value--win.is-visible.is-hiding,
+.bet-ui-desktop__stat-value--win.is-visible.is-settled.is-hiding {
+  opacity: 0;
+}
+
+.bet-ui-desktop__controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--bet-ui-desktop-controls-gap);
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding-bottom: 0.3rem;
+  position: relative;
+  z-index: 2;
+  max-width: 58%;
+}
+
+.bet-ui-desktop__play-cluster {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--bet-ui-desktop-play-cluster-gap);
+  flex-shrink: 1;
+  min-width: 0;
+  padding: 0.15rem 0.3rem 0.3rem 0.2rem;
+  border-radius: 2.5rem;
+  background: transparent;
+}
+
+.bet-ui-desktop__stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.bet-ui-desktop__bet-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bet-ui-desktop-step-size);
+  height: var(--bet-ui-desktop-step-size);
+  max-width: var(--bet-ui-desktop-step-size);
+  max-height: var(--bet-ui-desktop-step-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-size: var(--bet-ui-desktop-step-font-size);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bet-ui-desktop__bet-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bet-ui-desktop__spin {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-shrink: 0;
+  margin-top: calc(-1 * var(--bet-ui-desktop-spin-overlap));
+}
+
+.bet-ui-desktop__play.suki-bet-play {
+  width: var(--bet-ui-desktop-spin-size);
+  height: var(--bet-ui-desktop-spin-size);
+  min-width: var(--bet-ui-desktop-spin-size);
+  max-width: var(--bet-ui-desktop-spin-size);
+  max-height: var(--bet-ui-desktop-spin-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.bet-ui-desktop__play.suki-bet-play::before {
+  content: '↻';
+  display: block;
+  font-size: calc(var(--bet-ui-desktop-spin-size) * 0.41);
+  font-weight: 700;
+  line-height: 1;
+  color: #f5f5f5;
+}
+
+.bet-ui-desktop__play.suki-bet-play:disabled {
+  opacity: 0.45;
+}
+
+.bet-ui-desktop__auto-cluster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.bet-ui-desktop__icon-btn--auto {
+  width: var(--bet-ui-desktop-auto-size);
+  height: var(--bet-ui-desktop-auto-size);
+  max-width: var(--bet-ui-desktop-auto-size);
+  max-height: var(--bet-ui-desktop-auto-size);
+}
+
+.bet-ui-desktop__icon-btn--auto .bet-ui-desktop__icon {
+  font-size: var(--bet-ui-desktop-auto-icon-size);
+}
+
+.bet-ui-desktop__icon-btn--stop .bet-ui-desktop__icon {
+  font-size: calc(var(--bet-ui-desktop-auto-icon-size) * 0.82);
+}
+
+.bet-ui-desktop__auto-progress {
+  position: absolute;
+  top: calc(100% + 0.15rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(0.46rem, 2vw, 0.58rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #f5f5f5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.bet-ui-desktop__spin .play-hit-wrap,
+.bet-ui-desktop__spin .play-afford-blocker {
+  border-radius: 999px;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu {
+  width: var(--bet-ui-desktop-menu-size);
+  height: var(--bet-ui-desktop-menu-size);
+  max-width: var(--bet-ui-desktop-menu-size);
+  max-height: var(--bet-ui-desktop-menu-size);
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu .bet-ui-desktop__icon {
+  font-size: var(--bet-ui-desktop-menu-icon-size);
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__controls {
+  max-width: 62%;
+  padding-bottom: 0.15rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__play-cluster {
+  padding: 0.1rem 0.18rem 0.18rem 0.12rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__stat,
+.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__stat--center {
+  padding: 0.1rem 0.2rem;
+}

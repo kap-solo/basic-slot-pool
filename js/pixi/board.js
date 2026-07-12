@@ -79,29 +79,46 @@ export async function createPixiSlotBoard(hostEl) {
   let layoutW = 0;
   let layoutH = 0;
 
-  const FRAME_PAD_TOP = 10;
-  const FRAME_PAD_BOTTOM = 10;
-  const VIEW_MARGIN = 0.92;
+  function isPopoutS() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'popout-s';
+  }
+
+  function viewMargin() {
+    return isPopoutS() ? 1 : 0.92;
+  }
+
+  function framePadTop() {
+    return isPopoutS() ? 4 : 10;
+  }
+
+  function framePadBottom() {
+    return isPopoutS() ? 4 : 10;
+  }
+
+  function ladderHeightFactor() {
+    return isPopoutS() ? 0.34 : 0.42;
+  }
 
   /** Ladder row height scales with cell size — must be reserved before fitting the grid. */
   function ladderBandForBoardH(boardH) {
-    return Math.max(24, Math.round((boardH / GAME.rows) * 0.42));
+    return Math.max(24, Math.round((boardH / GAME.rows) * ladderHeightFactor()));
   }
 
   /** Total painted cabinet height: ladder band + frame padding + reel grid. */
   function totalVisualHeight(boardH) {
-    return boardH + FRAME_PAD_TOP + FRAME_PAD_BOTTOM + ladderBandForBoardH(boardH);
+    return boardH + framePadTop() + framePadBottom() + ladderBandForBoardH(boardH);
   }
 
   function snapBoardDimensions(boardW, boardH) {
     const cellW = snapPx(boardW / GAME.reels);
     const cellH = snapPx(boardH / GAME.rows);
+    const ladderFactor = ladderHeightFactor();
     return {
       cellW,
       cellH,
       boardW: snapPx(cellW * GAME.reels),
       boardH: snapPx(cellH * GAME.rows),
-      ladderBand: Math.max(24, Math.round(cellH * 0.42)),
+      ladderBand: Math.max(24, Math.round(cellH * ladderFactor)),
     };
   }
 
@@ -111,8 +128,8 @@ export async function createPixiSlotBoard(hostEl) {
 
   function drawFrame() {
     const { boardW, boardH, cellW, cellH, ladderBand } = layout;
-    const padX = FRAME_PAD_TOP;
-    const padBottom = FRAME_PAD_BOTTOM;
+    const padX = framePadTop();
+    const padBottom = framePadBottom();
     const outerW = boardW + padX * 2;
     const outerH = boardH + padBottom + padX + ladderBand;
     const outerTop = -boardH / 2 - padX - ladderBand;
@@ -369,15 +386,16 @@ export async function createPixiSlotBoard(hostEl) {
     app.renderer.resize(w, h);
 
     const boardAspect = GAME.reels / GAME.rows;
-    const maxW = w * VIEW_MARGIN;
-    const maxH = h * VIEW_MARGIN;
-    const framePad = FRAME_PAD_TOP + FRAME_PAD_BOTTOM;
+    const maxW = w * viewMargin();
+    const maxH = h * viewMargin();
+    const framePad = framePadTop() + framePadBottom();
+    const ladderFactor = ladderHeightFactor();
 
     let boardW = maxW;
     let boardH = boardW / boardAspect;
 
     if (totalVisualHeight(boardH) > maxH) {
-      boardH = (maxH - framePad - 24) / (1 + 0.42 / GAME.rows);
+      boardH = (maxH - framePad - 24) / (1 + ladderFactor / GAME.rows);
       boardW = boardH * boardAspect;
     }
 
@@ -402,7 +420,7 @@ export async function createPixiSlotBoard(hostEl) {
     layout = snapped;
 
     stage.x = w / 2;
-    stage.y = h / 2 + (snapped.ladderBand + FRAME_PAD_TOP - FRAME_PAD_BOTTOM) / 2;
+    stage.y = h / 2 + (snapped.ladderBand + framePadTop() - framePadBottom()) / 2;
 
     reels.forEach((reel, index) => {
       reel.root.x = Math.round((-layout.boardW / 2 + index * layout.cellW) * 100) / 100;
