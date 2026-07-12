@@ -17,7 +17,11 @@
  * @param {() => void} options.handlers.onStepDown
  * @param {() => string} options.handlers.getBalance
  * @param {() => string} options.handlers.getBet
+ * @param {() => string} [options.handlers.getBetLabel]
+ * @param {() => string} [options.handlers.getWinLabel]
  * @param {() => boolean} options.handlers.getBusy
+ * @param {() => boolean} [options.handlers.getCanPickBet]
+ * @param {() => void} [options.handlers.onBetPick]
  * @param {() => boolean} options.handlers.getAutoEnabled
  * @param {(buttons: { downButton: HTMLButtonElement, upButton: HTMLButtonElement }) => void} [options.handlers.syncStepper]
  */
@@ -63,10 +67,10 @@ export function mountMobileBetUi({
   betCluster.className = 'bet-ui-mobile__bet-cluster';
 
   const betUpBtn = createChevronButton('up', 'Increase bet', '▲');
-  const betStat = createStatBlock('bet', 'Bet');
+  const betPickBtn = createBetPickButton();
   const betDownBtn = createChevronButton('down', 'Decrease bet', '▼');
 
-  betCluster.append(betDownBtn, betStat.root, betUpBtn);
+  betCluster.append(betDownBtn, betPickBtn.root, betUpBtn);
 
   const winStat = createStatBlock('win', 'Win');
   winStat.valueEl.classList.add('bet-ui-mobile__stat-value--win');
@@ -76,12 +80,12 @@ export function mountMobileBetUi({
   chrome.append(actions, info);
   stakeShell.appendChild(chrome);
 
-  const statValueEls = [balanceStat.valueEl, betStat.valueEl, winStat.valueEl];
+  const statValueEls = [balanceStat.valueEl, betPickBtn.valueEl, winStat.valueEl];
   const resizeObserver = typeof ResizeObserver !== 'undefined'
     ? new ResizeObserver(() => fitAllStatValues())
     : null;
 
-  for (const stat of [balanceStat, betStat, winStat]) {
+  for (const stat of [balanceStat, betPickBtn, winStat]) {
     resizeObserver?.observe(stat.root);
   }
 
@@ -148,13 +152,17 @@ export function mountMobileBetUi({
     if (!active) return;
 
     balanceStat.valueEl.textContent = handlers.getBalance();
-    betStat.valueEl.textContent = handlers.getBet();
+    betPickBtn.labelEl.textContent = handlers.getBetLabel?.() ?? 'Bet';
+    betPickBtn.valueEl.textContent = handlers.getBet();
+    winStat.labelEl.textContent = handlers.getWinLabel?.() ?? 'Win';
     fitAllStatValues();
     requestAnimationFrame(() => fitAllStatValues());
 
     const busy = handlers.getBusy();
+    const canPickBet = handlers.getCanPickBet?.() ?? !busy;
     betUpBtn.disabled = busy;
     betDownBtn.disabled = busy;
+    betPickBtn.button.disabled = !canPickBet;
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
     const progress = handlers.getAutoplayProgress?.() ?? { current: 0, total: 0 };
@@ -189,6 +197,10 @@ export function mountMobileBetUi({
   autoBtn.addEventListener('click', () => handlers.onAuto());
   betUpBtn.addEventListener('click', () => handlers.onStepUp());
   betDownBtn.addEventListener('click', () => handlers.onStepDown());
+  betPickBtn.button.addEventListener('click', () => {
+    if (betPickBtn.button.disabled) return;
+    handlers.onBetPick?.();
+  });
 
   return {
     setActive,
@@ -234,6 +246,27 @@ function createChevronButton(part, label, glyph) {
 }
 
 /**
+ * Bet amount picker — label comes from game copy (Bet / Play in social mode).
+ */
+function createBetPickButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bet-ui-mobile__stat bet-ui-mobile__stat--bet bet-ui-mobile__bet-pick';
+  button.dataset.betUiPart = 'bet';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'bet-ui-mobile__stat-label';
+  labelEl.textContent = 'Bet';
+
+  const valueEl = document.createElement('span');
+  valueEl.className = 'bet-ui-mobile__stat-value';
+  valueEl.textContent = '—';
+
+  button.append(labelEl, valueEl);
+  return { root: button, button, labelEl, valueEl };
+}
+
+/**
  * @param {string} part
  * @param {string} label
  */
@@ -251,5 +284,5 @@ function createStatBlock(part, label) {
   valueEl.textContent = '—';
 
   root.append(labelEl, valueEl);
-  return { root, valueEl };
+  return { root, labelEl, valueEl };
 }

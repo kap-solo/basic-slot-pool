@@ -82,3 +82,59 @@
 .suki-bet-ui-root[data-bet-ui-variant='mobile'] .suki-bet-play {
   font-size: 1.05rem;
 }
+
+/* Bet picker dialog — 3-column scrollable grid */
+.suki-modal-dialog:has(.bet-picker-grid) {
+  width: min(100%, 28rem);
+}
+
+.suki-modal-body:has(.bet-picker-grid) {
+  padding: 0.75rem 0.85rem 0.9rem;
+}
+
+.bet-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  max-height: min(52vh, 20rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.1rem;
+}
+
+.bet-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.85rem;
+  padding: 0.45rem 0.3rem;
+  border: 1px solid #2a3344;
+  border-radius: 8px;
+  background: #12161e;
+  color: #e8edf4;
+  font-size: clamp(0.62rem, 2.6vw, 0.84rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.bet-picker-option:hover:not(:disabled) {
+  border-color: #3d4f66;
+  background: #171d28;
+}
+
+.bet-picker-option.is-active {
+  border-color: #4a9eff;
+  background: #152238;
+  color: #dbeafe;
+  box-shadow: inset 0 0 0 1px rgba(74, 158, 255, 0.35);
+}
+
+.bet-picker-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

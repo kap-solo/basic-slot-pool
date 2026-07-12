@@ -48,6 +48,7 @@ import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/perfor
 import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
+import { createBetPicker } from './betPicker.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
 mountPlayerNotice(shellEl);
@@ -516,17 +517,34 @@ function copyTerm(key, vars) {
   return game.copy.t(key, vars);
 }
 
+/** HUD win stat — Win (real) / Earn (social). */
+function winStatLabel() {
+  const term = copyTerm('win');
+  if (term !== 'win') return term;
+  return game.copy.socialCasino ? 'Earn' : 'Win';
+}
+
 function playCostDisplay() {
   const baseApi = displayToApi(bet);
   const playApi = game.betModes.playAmountApi(baseApi);
   return apiToDisplay(playApi);
 }
 
+function playCostForBet(level) {
+  const baseApi = displayToApi(level);
+  const playApi = game.betModes.playAmountApi(baseApi);
+  return apiToDisplay(playApi);
+}
+
+function canPickBet() {
+  return !spinning && !autoplaying && !isBoardPresenting() && !replayMode && game.rgsReady;
+}
+
 function playButtonLabel() {
   if (shellEl?.dataset.betUiVariant === BET_UI_VARIANT.MOBILE) {
     return '';
   }
-  return `Bet ${fmtBalance(playCostDisplay())}`;
+  return `${copyTerm('bet')} ${fmtBalance(playCostDisplay())}`;
 }
 
 /** This game does not use turbo / fast-play. */
@@ -783,6 +801,9 @@ function syncControls() {
   mobileBetUi?.sync();
   updateWinUi();
   syncPlayAffordBlocker();
+  if (!canPickBet()) {
+    betPicker.closeIfOpen();
+  }
 }
 
 function isBoardPresenting() {
@@ -988,6 +1009,21 @@ registerGameModals({
   formatWin: (amount) => game.formatWin(amount),
 });
 
+const betPicker = createBetPicker({
+  modalHost,
+  getTitle: () => copyTerm('betAmount'),
+  getLevels: () => betOptions,
+  getCurrentBet: () => bet,
+  setBet: (level) => {
+    bet = level;
+    betUi.renderBetLevels();
+    syncHud();
+    syncControls();
+  },
+  formatLevelAmount: (level) => fmtBalance(playCostForBet(level)),
+  getCanOpen: canPickBet,
+});
+
 function clearPopupPositionStyles(popup) {
   if (!popup) return;
   for (const prop of ['position', 'top', 'left', 'right', 'bottom', 'width', 'maxWidth', 'maxHeight', 'zIndex']) {
@@ -1132,7 +1168,14 @@ mobileBetUi = mountMobileBetUi({
     onStepDown: () => stepBet(-1),
     getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
     getBet: () => fmtBalance(playCostDisplay()),
+    getBetLabel: () => copyTerm('bet'),
+    getWinLabel: winStatLabel,
     getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
+    getCanPickBet: canPickBet,
+    onBetPick: () => {
+      closeGameMenu();
+      betPicker.open();
+    },
     getAutoplayActive: () => autoplaying,
     getAutoplayProgress: () => ({
       current: autoplayCurrentRound,
