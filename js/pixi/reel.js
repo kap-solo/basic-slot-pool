@@ -304,6 +304,10 @@ export class ReelColumn {
     }
 
     if (incompleteBoard) {
+      if (this.currentColumn?.length) {
+        this.rebuildBoardAtCellSize(winCells, dimNonWin);
+        return;
+      }
       const sx = cellW / prevCellW;
       const sy = cellH / prevCellH;
       if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
@@ -334,9 +338,13 @@ export class ReelColumn {
    */
   flushLayoutRescale({ winCells = null, dimNonWin = false } = {}) {
     if (!this.layoutRescalePending) return;
-    if (!this.currentColumn?.length || !this.hasLiveBoard()) {
+    if (!this.currentColumn?.length) {
       this.window.scale.set(1, 1);
       this.layoutRescalePending = false;
+      return;
+    }
+    if (!this.hasLiveBoard()) {
+      this.rebuildBoardAtCellSize(winCells, dimNonWin);
       return;
     }
     this.rebuildBoardAtCellSize(winCells, dimNonWin);

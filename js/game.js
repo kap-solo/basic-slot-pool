@@ -25,7 +25,7 @@ import {
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
-import { BET_OPTIONS, DEFAULT_BET, GAME, GAME_MODES } from './config.js';
+import { BET_OPTIONS, DEFAULT_BET, defaultIdleBoard, GAME, GAME_MODES } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
@@ -233,12 +233,16 @@ function mountHudDevControls() {
   hudDevActions.appendChild(devRow);
 }
 
-function showTallPreviewBoard() {
-  if (!slotBoard || !isTallSymbolPreview()) return;
-  const preview = tallPreviewBoard();
-  slotBoard.setBoard(preview);
-  const tallCount = countTallBlocks(preview);
-  setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
+function seedInitialBoard() {
+  if (!slotBoard) return;
+  if (isTallSymbolPreview()) {
+    const preview = tallPreviewBoard();
+    slotBoard.setBoard(preview);
+    const tallCount = countTallBlocks(preview);
+    setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
+    return;
+  }
+  slotBoard.setBoard(defaultIdleBoard());
 }
 
 function showStaticRound(round) {
@@ -566,7 +570,7 @@ const game = createGameBootstrap({
     isBusy: () => spinning || autoplaying || isBoardPresenting(),
     onRgsReady: () => syncControls(),
     onReady: () => {
-      showTallPreviewBoard();
+      seedInitialBoard();
       syncHud();
       if (!isTallSymbolPreview()) {
         setMessage(copyTerm('setBetPrompt'));
@@ -814,7 +818,7 @@ async function onCopyReplayLink() {
 
 async function initSlotStage() {
   slotBoard = await createSlotBoard(slotRoot);
-  showTallPreviewBoard();
+  seedInitialBoard();
 }
 
 async function startGame() {

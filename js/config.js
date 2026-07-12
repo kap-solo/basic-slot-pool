@@ -19,6 +19,11 @@ export function defaultBoardColumn() {
   return Array.from({ length: GAME.rows }, (_, row) => PLACEHOLDER_SYMBOLS[row % PLACEHOLDER_SYMBOLS.length]);
 }
 
+/** Idle attract board — column-major [reel][row]. */
+export function defaultIdleBoard() {
+  return Array.from({ length: GAME.reels }, () => defaultBoardColumn());
+}
+
 export const DEFAULT_BET = 1;
 export const BET_OPTIONS = [0.5, 1, 2, 5, 10];
 
