@@ -23,6 +23,9 @@
  * @param {() => boolean} [options.handlers.getCanPickBet]
  * @param {() => void} [options.handlers.onBetPick]
  * @param {() => boolean} options.handlers.getAutoEnabled
+ * @param {() => void} [options.handlers.onBuy]
+ * @param {() => boolean} [options.handlers.getBuyEnabled]
+ * @param {() => string} [options.handlers.getBuyLabel]
  * @param {(buttons: { downButton: HTMLButtonElement, upButton: HTMLButtonElement }) => void} [options.handlers.syncStepper]
  */
 export function mountDesktopBetUi({
@@ -79,7 +82,8 @@ export function mountDesktopBetUi({
   autoCluster.append(autoBtn, autoProgress);
 
   controls.append(playCluster, autoCluster);
-  bar.append(menuBtn, stats, winStat.root, controls);
+  const buyBtn = createBuyButton();
+  bar.append(menuBtn, stats, winStat.root, controls, buyBtn);
   chrome.append(bar);
   stakeShell.appendChild(chrome);
 
@@ -187,6 +191,9 @@ export function mountDesktopBetUi({
 
     autoBtn.disabled = autoplayActive ? false : (!handlers.getAutoEnabled() || busy);
 
+    buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
+    buyBtn.textContent = handlers.getBuyLabel?.() ?? 'Buy';
+
     handlers.syncStepper?.({ downButton: betDownBtn, upButton: betUpBtn });
   }
 
@@ -198,6 +205,7 @@ export function mountDesktopBetUi({
     handlers.onMenu();
   });
   autoBtn.addEventListener('click', () => handlers.onAuto());
+  buyBtn.addEventListener('click', () => handlers.onBuy?.());
   betUpBtn.addEventListener('click', () => handlers.onStepUp());
   betDownBtn.addEventListener('click', () => handlers.onStepDown());
   betPickBtn.button.addEventListener('click', () => {
@@ -216,6 +224,16 @@ export function mountDesktopBetUi({
       root.classList.remove('bet-ui-desktop-active');
     },
   };
+}
+
+function createBuyButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bet-ui-desktop__buy-btn';
+  button.dataset.betUiPart = 'buy';
+  button.setAttribute('aria-label', 'Buy bonus');
+  button.textContent = 'Buy';
+  return button;
 }
 
 /**

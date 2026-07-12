@@ -11,6 +11,7 @@ const host = createSukiHost({
   rgs: createGameMockRgs(),
   sukiPackageDir: resolveSukiPackageDir(__dirname),
   label: 'Reflecting Pool',
+  port: Number(process.env.PORT) || 5176,
 });
 
 attachVendorNpm(host, __dirname);

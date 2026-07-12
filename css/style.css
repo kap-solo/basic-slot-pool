@@ -518,6 +518,42 @@ body {
   backdrop-filter: blur(4px);
 }
 
+/* Dev-only feature playback — fixed top-right, all bet UI layouts */
+.dev-feature-btn {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top, 0px));
+  right: max(0.5rem, env(safe-area-inset-right, 0px));
+  z-index: 11;
+  border: 1px solid #3d5a80;
+  border-radius: 8px;
+  padding: 0.38rem 0.62rem;
+  background: rgba(12, 20, 34, 0.92);
+  color: #b8d4ff;
+  font: 700 0.68rem/1.2 'Manrope', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.dev-feature-btn:hover:not(:disabled) {
+  background: rgba(18, 30, 50, 0.96);
+  border-color: #5a8fd4;
+  color: #e8f2ff;
+}
+
+.dev-feature-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .dev-feature-btn {
+  padding: 0.28rem 0.48rem;
+  font-size: 0.58rem;
+  border-radius: 6px;
+}
+
 .dev-stats-head {
   display: flex;
   align-items: center;

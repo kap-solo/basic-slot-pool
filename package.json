@@ -7,7 +7,11 @@
     "start": "node server.mjs",
     "validate-math": "node node_modules/@kap-solo/suki-engine/tools/validate-math.mjs ./data",
     "generate:books": "node scripts/generate-book-pool.mjs",
+    "generate:feature-sample": "node scripts/build-sample-feature-book.mjs",
+    "generate:buy": "node scripts/generate-buy-feature-pool.mjs",
     "tune:lookup": "node scripts/tune-lookup.mjs",
+    "tune:buy": "node scripts/tune-buy-lookup.mjs",
+    "math:buy": "node scripts/generate-buy-feature-pool.mjs && node scripts/tune-buy-lookup.mjs",
     "analyze:math": "node scripts/analyze-math.mjs",
     "math:build": "node scripts/generate-book-pool.mjs && node scripts/tune-lookup.mjs && node scripts/analyze-math.mjs",
     "math:publish": "node scripts/publish-math.mjs",
@@ -19,7 +23,7 @@
   "dependencies": {
     "@esotericsoftware/spine-core": "4.2.74",
     "@esotericsoftware/spine-pixi-v8": "4.2.74",
-    "@kap-solo/suki-engine": "git+https://github.com/kap-solo/suki-engine.git#088f7e3",
+    "@kap-solo/suki-engine": "git+https://github.com/kap-solo/suki-engine.git#49457c6",
     "pixi.js": "8.8.1"
   },
   "engines": {

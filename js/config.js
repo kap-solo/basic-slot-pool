@@ -31,11 +31,17 @@ export const DEFAULT_BET = 1;
 export const BET_OPTIONS = [0.5, 1, 2, 5, 10];
 
 /** Keep in sync with data/index.json — base mode only in v1. */
-export const GAME_MODES = [{ name: 'base', cost: 1 }];
+export const GAME_MODES = [
+  { name: 'base', cost: 1 },
+  { name: 'buy', cost: 20 },
+];
+
+/** Bonus buy debit multiplier — keep in sync with data/index.json buy mode cost. */
+export const BUY_MODE_COST = GAME_MODES.find((mode) => mode.name === 'buy')?.cost ?? 20;
 
 /**
  * Symbol ids used in book JSON and paytable copy.
- * @type {Record<string, { label: string, glyph: string, tier: 'ordinary' | 'premium' | 'wild' }>}
+ * @type {Record<string, { label: string, glyph: string, tier: 'ordinary' | 'premium' | 'wild' | 'scatter' }>}
  */
 export const SYMBOLS = {
   CH: { label: 'Cherry', glyph: '🍒', tier: 'ordinary' },
@@ -47,6 +53,7 @@ export const SYMBOLS = {
   DM: { label: 'Diamond', glyph: '💎', tier: 'premium' },
   CR: { label: 'Crown', glyph: '👑', tier: 'premium' },
   WD: { label: 'Wild', glyph: '✦', tier: 'wild' },
+  SC: { label: 'Scatter', glyph: '☆', tier: 'scatter' },
 };
 
 export const ORDINARY_SYMBOLS = Object.entries(SYMBOLS)
@@ -58,6 +65,7 @@ export const PREMIUM_SYMBOLS = Object.entries(SYMBOLS)
   .map(([id]) => id);
 
 export const WILD_SYMBOL = 'WD';
+export const SCATTER_SYMBOL = 'SC';
 
 /** Random visible board for first paint — column-major [reel][row]. */
 export function randomIdleBoard() {

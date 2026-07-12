@@ -15,6 +15,7 @@ export const INITIAL_SYMBOL_WEIGHTS = {
   DM: 45,
   CR: 45,
   WD: 30,
+  SC: 0,
 };
 
 /** Slightly richer pay mix on refill — keeps cascades active. */
@@ -28,6 +29,35 @@ export const REFILL_SYMBOL_WEIGHTS = {
   DM: 52,
   CR: 52,
   WD: 35,
+  SC: 0,
+};
+
+/** Slightly richer premiums during free spins (v1 single dial). */
+export const FREE_SPIN_REFILL_SYMBOL_WEIGHTS = {
+  CH: 110,
+  LM: 110,
+  OR: 110,
+  GR: 110,
+  ST: 72,
+  S7: 72,
+  DM: 62,
+  CR: 62,
+  WD: 38,
+  SC: 0,
+};
+
+/** Buy Bonus free spins — richer premiums, targets ~19× avg @ 20× price. */
+export const BUY_FREE_SPIN_REFILL_SYMBOL_WEIGHTS = {
+  CH: 88,
+  LM: 88,
+  OR: 88,
+  GR: 88,
+  ST: 84,
+  S7: 84,
+  DM: 74,
+  CR: 74,
+  WD: 44,
+  SC: 0,
 };
 
 /** Aggressive refill for hunting multi-cascade tail books. */
@@ -41,6 +71,7 @@ export const HUNT_REFILL_SYMBOL_WEIGHTS = {
   DM: 70,
   CR: 70,
   WD: 45,
+  SC: 0,
 };
 
 /** Heavy premium bias — offline hero-book hunt only. */
@@ -54,6 +85,7 @@ export const EXTREME_HUNT_REFILL_SYMBOL_WEIGHTS = {
   DM: 100,
   CR: 100,
   WD: 55,
+  SC: 0,
 };
 
 /**
@@ -71,6 +103,8 @@ function normalize(table) {
 
 const INITIAL = normalize(INITIAL_SYMBOL_WEIGHTS);
 const REFILL = normalize(REFILL_SYMBOL_WEIGHTS);
+const FREE_SPIN_REFILL = normalize(FREE_SPIN_REFILL_SYMBOL_WEIGHTS);
+const BUY_FREE_SPIN_REFILL = normalize(BUY_FREE_SPIN_REFILL_SYMBOL_WEIGHTS);
 const HUNT_REFILL = normalize(HUNT_REFILL_SYMBOL_WEIGHTS);
 const EXTREME_HUNT_REFILL = normalize(EXTREME_HUNT_REFILL_SYMBOL_WEIGHTS);
 
@@ -101,6 +135,16 @@ export function createInitialSymbolRng(rng01) {
 /** @param {() => number} rng01 */
 export function createRefillSymbolRng(rng01) {
   return () => pickWeighted(rng01, REFILL);
+}
+
+/** @param {() => number} rng01 */
+export function createFreeSpinRefillSymbolRng(rng01) {
+  return () => pickWeighted(rng01, FREE_SPIN_REFILL);
+}
+
+/** @param {() => number} rng01 */
+export function createBuyFreeSpinRefillSymbolRng(rng01) {
+  return () => pickWeighted(rng01, BUY_FREE_SPIN_REFILL);
 }
 
 /** @param {() => number} rng01 */

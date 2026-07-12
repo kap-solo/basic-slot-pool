@@ -345,6 +345,49 @@ function createWildPlaceholder(id, cellW, blockHeight) {
   return root;
 }
 
+function createScatterPlaceholder(id, cellW, cellH) {
+  const visual = symbolVisual(id);
+  const root = new Container();
+  const { w, h, radius } = tileMetrics(cellW, cellH);
+
+  const bg = new Graphics();
+  drawRoundedTile(bg, w, h, radius);
+  bg.fill({ color: visual.color, alpha: 0.95 });
+  root.addChild(bg);
+
+  const ring = new Graphics();
+  drawRoundedTile(ring, w * 0.9, h * 0.9, radius * 0.85);
+  ring.stroke({ color: visual.accent ?? 0xc080ff, width: Math.max(2, cellW * 0.05), alpha: 0.9 });
+  root.addChild(ring);
+
+  addBadge(root, 'SCATTER', 0, -h / 2 + h * 0.12, cellW * 0.1, {
+    fill: visual.accent ?? 0xc080ff,
+    letterSpacing: 0.8,
+  });
+
+  const glyph = new Text({
+    text: symbolGlyph(id),
+    style: {
+      fontFamily: 'Segoe UI Emoji, Apple Color Emoji, Segoe UI, sans-serif',
+      fontSize: cellW * 0.42,
+      align: 'center',
+      fill: 0xfff4d6,
+      dropShadow: {
+        color: 0x000000,
+        alpha: 0.4,
+        blur: 2,
+        distance: 1,
+      },
+    },
+  });
+  glyph.anchor.set(0.5);
+  glyph.y = h * 0.04;
+  root.addChild(glyph);
+
+  root.eventMode = 'none';
+  return root;
+}
+
 /**
  * @param {string} id
  * @param {number} cellW
@@ -354,6 +397,7 @@ function createWildPlaceholder(id, cellW, blockHeight) {
 export function createPlaceholderSymbol(id, cellW, cellH, span = 1) {
   if (id === PERFORMANCE_BLOB_SYMBOL) return createBlobPlaceholder(cellW, cellH);
   const tier = symbolTier(id);
+  if (tier === 'scatter') return createScatterPlaceholder(id, cellW, cellH);
   if (tier === 'wild') return createWildPlaceholder(id, cellW, cellH * span);
   if (tier === 'premium' && span > 1) return createPremiumTallPlaceholder(id, cellW, cellH);
   if (tier === 'premium') return createPremiumPlaceholder(id, cellW, cellH);

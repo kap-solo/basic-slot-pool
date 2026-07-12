@@ -86,6 +86,38 @@
   z-index: 1;
 }
 
+.bet-ui-mobile__actions-end {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.bet-ui-mobile__buy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.1rem;
+  height: 2.35rem;
+  padding: 0 0.55rem;
+  border: 1px solid #3d5a80;
+  border-radius: 0.55rem;
+  background: linear-gradient(180deg, rgba(28, 52, 92, 0.96), rgba(14, 28, 52, 0.96));
+  color: #d8e8ff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bet-ui-mobile__buy-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .bet-ui-mobile__spin-cluster {
   position: absolute;
   left: calc(

@@ -23,6 +23,9 @@
  * @param {() => boolean} [options.handlers.getCanPickBet]
  * @param {() => void} [options.handlers.onBetPick]
  * @param {() => boolean} options.handlers.getAutoEnabled
+ * @param {() => void} [options.handlers.onBuy]
+ * @param {() => boolean} [options.handlers.getBuyEnabled]
+ * @param {() => string} [options.handlers.getBuyLabel]
  * @param {(buttons: { downButton: HTMLButtonElement, upButton: HTMLButtonElement }) => void} [options.handlers.syncStepper]
  */
 export function mountMobileBetUi({
@@ -58,6 +61,12 @@ export function mountMobileBetUi({
   actionsStart.append(menuBtn);
   spinCluster.append(autoCluster, spinSlot);
   actions.append(actionsStart, spinCluster);
+
+  const actionsEnd = document.createElement('div');
+  actionsEnd.className = 'bet-ui-mobile__actions-end';
+  const buyBtn = createBuyButton();
+  actionsEnd.append(buyBtn);
+  actions.append(actionsEnd);
 
   const info = document.createElement('div');
   info.className = 'bet-ui-mobile__info';
@@ -184,6 +193,9 @@ export function mountMobileBetUi({
 
     autoBtn.disabled = autoplayActive ? false : (!handlers.getAutoEnabled() || busy);
 
+    buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
+    buyBtn.textContent = handlers.getBuyLabel?.() ?? 'Buy';
+
     handlers.syncStepper?.({ downButton: betDownBtn, upButton: betUpBtn });
   }
 
@@ -195,6 +207,7 @@ export function mountMobileBetUi({
     handlers.onMenu();
   });
   autoBtn.addEventListener('click', () => handlers.onAuto());
+  buyBtn.addEventListener('click', () => handlers.onBuy?.());
   betUpBtn.addEventListener('click', () => handlers.onStepUp());
   betDownBtn.addEventListener('click', () => handlers.onStepDown());
   betPickBtn.button.addEventListener('click', () => {
@@ -213,6 +226,16 @@ export function mountMobileBetUi({
       root.classList.remove('bet-ui-mobile-active');
     },
   };
+}
+
+function createBuyButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'bet-ui-mobile__buy-btn';
+  button.dataset.betUiPart = 'buy';
+  button.setAttribute('aria-label', 'Buy bonus');
+  button.textContent = 'Buy';
+  return button;
 }
 
 /**

@@ -286,7 +286,33 @@
   padding-bottom: 0.3rem;
   position: relative;
   z-index: 2;
-  max-width: 58%;
+  max-width: 52%;
+}
+
+.bet-ui-desktop__buy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: clamp(3rem, 8vw, 4.25rem);
+  height: clamp(1.55rem, 6vw, 2.2rem);
+  margin-left: clamp(0.2rem, 1vw, 0.45rem);
+  padding: 0 0.5rem;
+  border: 1px solid #3d5a80;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, rgba(28, 52, 92, 0.96), rgba(14, 28, 52, 0.96));
+  color: #d8e8ff;
+  font-size: clamp(0.52rem, 2.2vw, 0.68rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bet-ui-desktop__buy-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .bet-ui-desktop__play-cluster {

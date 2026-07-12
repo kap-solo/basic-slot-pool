@@ -20,26 +20,34 @@ const root = join(__dirname, '..');
 const dataDir = join(root, 'data');
 const publishDir = join(dataDir, 'publish');
 
-const booksJsonl = join(dataDir, 'books_base.jsonl');
-const booksZst = join(dataDir, 'books_base.jsonl.zst');
-const lookupCsv = join(dataDir, 'lookUpTable_base_0.csv');
-const indexPath = join(dataDir, 'index.json');
-const publishIndex = join(publishDir, 'index.json');
-const publishLookup = join(publishDir, 'lookUpTable_base_0.csv');
-const publishBooksZst = join(publishDir, 'books_base.jsonl.zst');
-
 const zstdCompress = promisify(zlib.zstdCompress);
 
-const stakeIndex = {
-  modes: [
-    {
-      name: 'base',
-      cost: 1.0,
-      events: 'books_base.jsonl.zst',
-      weights: 'lookUpTable_base_0.csv',
-    },
-  ],
-};
+const MODES = [
+  {
+    name: 'base',
+    cost: 1.0,
+    booksJsonl: join(dataDir, 'books_base.jsonl'),
+    booksZst: join(dataDir, 'books_base.jsonl.zst'),
+    lookupCsv: join(dataDir, 'lookUpTable_base_0.csv'),
+    publishLookup: join(publishDir, 'lookUpTable_base_0.csv'),
+    publishBooksZst: join(publishDir, 'books_base.jsonl.zst'),
+    events: 'books_base.jsonl.zst',
+    weights: 'lookUpTable_base_0.csv',
+    required: true,
+  },
+  {
+    name: 'buy',
+    cost: 20.0,
+    booksJsonl: join(dataDir, 'books_buy.jsonl'),
+    booksZst: join(dataDir, 'books_buy.jsonl.zst'),
+    lookupCsv: join(dataDir, 'lookUpTable_buy_0.csv'),
+    publishLookup: join(publishDir, 'lookUpTable_buy_0.csv'),
+    publishBooksZst: join(publishDir, 'books_buy.jsonl.zst'),
+    events: 'books_buy.jsonl.zst',
+    weights: 'lookUpTable_buy_0.csv',
+    required: false,
+  },
+];
 
 function requireFile(path, label) {
   if (!existsSync(path)) {
@@ -58,26 +66,43 @@ function stakeLookupCsv(sourcePath) {
 }
 
 async function main() {
-  requireFile(booksJsonl, 'books JSONL — run npm run math:build first');
-  requireFile(lookupCsv, 'lookup CSV — run npm run tune:lookup first');
+  /** @type {object[]} */
+  const stakeModes = [];
 
-  const raw = readFileSync(booksJsonl);
-  const compressed = await zstdCompress(raw);
-  writeFileSync(booksZst, compressed);
+  for (const mode of MODES) {
+    if (!existsSync(mode.booksJsonl) || !existsSync(mode.lookupCsv)) {
+      if (mode.required) {
+        throw new Error(`Missing ${mode.name} math — run npm run math:build first`);
+      }
+      console.log(`Skipping ${mode.name} mode (run npm run math:buy to include)`);
+      continue;
+    }
 
-  writeFileSync(indexPath, `${JSON.stringify(stakeIndex, null, 2)}\n`);
+    const raw = readFileSync(mode.booksJsonl);
+    const compressed = await zstdCompress(raw);
+    writeFileSync(mode.booksZst, compressed);
+    mkdirSync(publishDir, { recursive: true });
+    writeFileSync(mode.publishLookup, stakeLookupCsv(mode.lookupCsv));
+    writeFileSync(mode.publishBooksZst, compressed);
 
-  mkdirSync(publishDir, { recursive: true });
+    stakeModes.push({
+      name: mode.name,
+      cost: mode.cost,
+      events: mode.events,
+      weights: mode.weights,
+    });
+
+    console.log(`${mode.name}: ${compressed.length} bytes zst, ${stakeLookupCsv(mode.lookupCsv).trim().split('\n').length} lookup rows`);
+  }
+
+  const stakeIndex = { modes: stakeModes };
+  const publishIndex = join(publishDir, 'index.json');
+  writeFileSync(join(dataDir, 'index.json'), `${JSON.stringify(stakeIndex, null, 2)}\n`);
   writeFileSync(publishIndex, `${JSON.stringify(stakeIndex, null, 2)}\n`);
-  writeFileSync(publishLookup, stakeLookupCsv(lookupCsv));
-  writeFileSync(publishBooksZst, compressed);
 
-  console.log('Stake math bundle ready.');
+  console.log('\nStake math bundle ready.');
   console.log(`  index:   ${publishIndex}`);
-  console.log(`  weights: ${publishLookup}`);
-  console.log(`  events:  ${publishBooksZst} (${compressed.length} bytes)`);
-  console.log('');
-  console.log('Upload the contents of data/publish/ to Stake Engine ACP (not math/ or scripts/).');
+  console.log('Upload the contents of data/publish/ to Stake Engine ACP.');
 }
 
 main().catch((err) => {

@@ -1,0 +1,157 @@
+.feature-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.65rem 0.5rem 0;
+}
+
+.feature-chrome--awaiting-continue {
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: rgba(4, 8, 16, 0.58);
+  cursor: pointer;
+}
+
+.feature-chrome__intro,
+.feature-chrome__counter,
+.feature-chrome__end {
+  border-radius: 0.65rem;
+  background: rgba(8, 14, 28, 0.82);
+  border: 1px solid rgba(120, 180, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: #f4f8ff;
+  text-align: center;
+  padding: 0.55rem 0.85rem;
+  backdrop-filter: blur(6px);
+}
+
+.feature-chrome--awaiting-continue .feature-chrome__intro {
+  cursor: default;
+  max-width: min(18rem, 100%);
+  padding: 0.85rem 1rem 0.95rem;
+}
+
+.feature-chrome__eyebrow {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9ec5ff;
+}
+
+.feature-chrome__title {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.feature-chrome__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: #c8d8ef;
+}
+
+.feature-chrome__continue {
+  display: block;
+  width: 100%;
+  margin: 0.75rem 0 0;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #5a8fd4;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, rgba(42, 92, 168, 0.95), rgba(24, 58, 112, 0.95));
+  color: #f4f8ff;
+  font: 700 0.78rem/1.2 'Manrope', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.feature-chrome__continue:hover {
+  border-color: #7eb4ff;
+  background: linear-gradient(180deg, rgba(52, 108, 188, 0.98), rgba(30, 68, 128, 0.98));
+}
+
+.feature-chrome__continue:focus-visible {
+  outline: 2px solid #9ec5ff;
+  outline-offset: 2px;
+}
+
+.feature-chrome__continue-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8aa8cc;
+}
+
+.feature-chrome--awaiting-continue .feature-chrome__continue-hint {
+  animation: feature-continue-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes feature-continue-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.feature-chrome__counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.feature-chrome__counter-label {
+  color: #9ec5ff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+}
+
+.feature-chrome__counter-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.feature-chrome__counter--pulse {
+  animation: feature-counter-pulse 320ms ease-out;
+}
+
+.feature-chrome__end {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #ffe08a;
+}
+
+@keyframes feature-counter-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome {
+  padding-top: 0.35rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__title {
+  font-size: 0.82rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__counter {
+  font-size: 0.72rem;
+}

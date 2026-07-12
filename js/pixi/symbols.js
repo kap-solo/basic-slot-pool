@@ -18,6 +18,7 @@ export const SYMBOL_VISUAL = {
   DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
   CR: { color: 0x8a6500, accent: 0xd4a017, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
   WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
+  SC: { color: 0x4a2080, accent: 0xc080ff, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
   /** Client-only performance blob — green square on the reveal strip. */
   BL: { color: 0x16a34a, accent: 0xbbf7d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
 };
@@ -50,6 +51,11 @@ export function isWildSymbol(id) {
 }
 
 /** @param {string} id */
+export function isScatterSymbol(id) {
+  return symbolTier(id) === 'scatter';
+}
+
+/** @param {string} id */
 export function isPremiumSymbol(id) {
   return symbolTier(id) === 'premium';
 }
@@ -63,6 +69,7 @@ export function isOrdinarySymbol(id) {
 export function symbolPayBadge(id) {
   const tier = symbolTier(id);
   if (tier === 'wild') return 'WILD';
+  if (tier === 'scatter') return null;
   if (tier === 'premium') return '5×';
   return '0.1×';
 }

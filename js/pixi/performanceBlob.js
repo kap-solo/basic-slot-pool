@@ -201,8 +201,28 @@ export function blobCellsToKeys(blobCells) {
 }
 
 /**
+ * @param {object | null | undefined} round
+ */
+export function roundHasFeatureBonus(round) {
+  return (round?.state ?? []).some((event) => event.type === 'enterBonus');
+}
+
+/**
+ * Green squares are base-mode polish only — skip during free spins / feature books.
+ *
+ * @param {object | null | undefined} event — gameReveal book event
+ * @param {object | null | undefined} round
+ */
+export function shouldPlanBlobPresentation(event, round) {
+  if (event?.freeSpin != null) return false;
+  if (roundHasFeatureBonus(round)) return false;
+  return true;
+}
+
+/**
  * @param {string[][]} revealBoard
  * @param {object} round
+ * @param {object | null} [revealEvent] — gameReveal event (for feature / free-spin gating)
  * @returns {{
  *   blobCells: [number, number][],
  *   cellKeys: Set<string>,
@@ -211,8 +231,9 @@ export function blobCellsToKeys(blobCells) {
  *   blobDepthByCol: Map<number, number>,
  * } | null}
  */
-export function planRoundBlobPresentation(revealBoard, round) {
+export function planRoundBlobPresentation(revealBoard, round, revealEvent = null) {
   if (!revealBoard?.length || !round) return null;
+  if (revealEvent && !shouldPlanBlobPresentation(revealEvent, round)) return null;
 
   const rng = createSeededRng(blobSeedFromRound(round));
   if (!shouldShowBlobs(rng)) return null;

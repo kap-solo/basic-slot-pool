@@ -1,4 +1,20 @@
 import { roundPayoutMultiplier } from '@kap-solo/suki-engine/client/rgs.js';
+import { apiToDisplay, displayToApi } from '@kap-solo/suki-engine/client/money.js';
+
+/** Book payout ints use centi-multipliers — 100 = 1× bet (not Stake API units). */
+export function bookCentiMultToMultiplier(amountCentiMult) {
+  return amountCentiMult / 100;
+}
+
+/** @param {number} amountCentiMult @param {number} amountApi — play amount in API units */
+export function bookCentiMultToPayoutApi(amountCentiMult, amountApi) {
+  return Math.round(amountApi * bookCentiMultToMultiplier(amountCentiMult));
+}
+
+/** @param {number} amountCentiMult @param {number} betDisplay */
+export function bookCentiMultToDisplayWin(amountCentiMult, betDisplay) {
+  return apiToDisplay(bookCentiMultToPayoutApi(amountCentiMult, displayToApi(betDisplay)));
+}
 
 export function sortedBookEvents(round) {
   return [...(round.state ?? [])].sort((a, b) => a.index - b.index);

@@ -22,10 +22,11 @@ import {
   isDevMode,
   messageForRgsCode,
   requestReplay,
+  registerBuyBonusConfirm,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, createReelSpinAudio, wireTemplateAudio } from './audio.js';
-import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES } from './config.js';
+import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
@@ -35,6 +36,8 @@ import { mountDesktopBetUi } from './betUiDesktop.js';
 import { registerGameModals } from './menu.js';
 import {
   buildGameSettledResult,
+  bookCentiMultToDisplayWin,
+  bookCentiMultToPayoutApi,
   finalBoardFromRound,
   sortedBookEvents,
 } from './round.js';
@@ -50,6 +53,9 @@ import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
 import { createBetPicker } from './betPicker.js';
+import { createDevFeatureButton } from './devFeatureButton.js';
+import { createFeatureChrome } from './featureChrome.js';
+import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
 mountPlayerNotice(shellEl);
@@ -78,6 +84,7 @@ const hudDevActions = document.getElementById('hud-dev-actions');
 const sessionTimerStat = document.getElementById('session-timer-stat');
 const sessionTimerEl = document.getElementById('session-timer');
 const slotRoot = document.getElementById('slot-board');
+const slotStageEl = document.getElementById('slot-stage');
 const balanceLabelEl = document.getElementById('balance-label');
 const replayNoteEl = document.getElementById('replay-note');
 const multiplierPanel = createMultiplierPanel({
@@ -90,6 +97,8 @@ document.getElementById('game-subtitle').hidden = true;
 
 /** @type {Awaited<ReturnType<typeof createSlotBoard>> | null} */
 let slotBoard = null;
+/** @type {ReturnType<typeof createFeatureChrome> | null} */
+let featureChrome = null;
 /** @type {string[][] | null} */
 let idleBoardSeed = null;
 
@@ -370,6 +379,13 @@ const devStatsOverlay = createDevStatsOverlay({
   enabled: isDevMode() && !replayMode,
 });
 
+const devFeatureControl = createDevFeatureButton({
+  shellEl,
+  onClick: () => {
+    playDevFeatureSample();
+  },
+});
+
 /** @type {object | null} */
 let replayRound = null;
 let lastReplayUrl = '';
@@ -541,6 +557,27 @@ function playCostForBet(level) {
   return apiToDisplay(playApi);
 }
 
+function buyCostDisplay() {
+  return apiToDisplay(Math.round(displayToApi(bet) * BUY_MODE_COST));
+}
+
+function canBuyBonus() {
+  return (
+    !replayMode
+    && game.rgsReady
+    && game.betModes.canBuyFeature()
+    && game.betModes.canSelectMode('buy')
+    && !spinning
+    && !autoplaying
+    && !isBoardPresenting()
+    && balance >= buyCostDisplay()
+  );
+}
+
+function buyButtonLabel() {
+  return `Buy ${BUY_MODE_COST}×`;
+}
+
 function canPickBet() {
   return !spinning && !autoplaying && !isBoardPresenting() && !replayMode && game.rgsReady;
 }
@@ -630,6 +667,14 @@ function mountHudDevControls() {
   hudDevActions.appendChild(devRow);
 }
 
+function syncDevFeatureControl() {
+  const show = isDevMode() && !replayMode;
+  devFeatureControl.sync({
+    visible: show,
+    disabled: spinning || autoplaying || isBoardPresenting(),
+  });
+}
+
 function seedInitialBoard() {
   if (!slotBoard) return;
   idleBoardSeed ??= randomIdleBoard();
@@ -638,6 +683,7 @@ function seedInitialBoard() {
 
 function showStaticRound(round) {
   if (!slotBoard) return;
+  featureChrome?.reset();
   multiplierPanel.clearLedger();
   slotBoard.resetCascadeLadder();
   slotBoard.setBoard(finalBoardFromRound(round));
@@ -659,7 +705,8 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
   await multiplierPanel.fadeOutLedger();
   slotBoard.resetCascadeLadder();
 
-  const blobPlan = animate && round ? planRoundBlobPresentation(event.board, round) : null;
+  const blobPlan =
+    animate && round ? planRoundBlobPresentation(event.board, round, event) : null;
   const revealBoard = blobPlan?.visualBoard ?? event.board;
 
   if (animate) {
@@ -743,9 +790,32 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
   }
 }
 
+async function presentFeatureEvent(event, { animate = true } = {}) {
+  if (!featureChrome) return;
+
+  if (event.type === 'enterBonus') {
+    await featureChrome.onEnterBonus(event, { animate });
+    return;
+  }
+  if (event.type === 'updateFreeSpin') {
+    await featureChrome.onUpdateFreeSpin(event, { animate });
+    return;
+  }
+  if (event.type === 'freeSpinEnd') {
+    await featureChrome.onFreeSpinEnd(event, {
+      animate,
+      formatBookWin: (amountCentiMult) => fmtWin(bookCentiMultToDisplayWin(amountCentiMult, bet)),
+    });
+  }
+}
+
 async function playBookPresentation(round, { animate = true } = {}) {
   for (const event of sortedBookEvents(round)) {
-    if (event.type === 'finalWin') continue;
+    if (event.type === 'finalWin' || event.type === 'setTotalWin') continue;
+    if (event.type === 'enterBonus' || event.type === 'updateFreeSpin' || event.type === 'freeSpinEnd') {
+      await presentFeatureEvent(event, { animate });
+      continue;
+    }
     await presentBookEvent(event, { animate, round });
   }
 }
@@ -801,6 +871,7 @@ function syncDevControlsVisibility() {
   if (betUi.elements.testControls) {
     betUi.elements.testControls.hidden = !show;
   }
+  syncDevFeatureControl();
   if (show) syncDevButtons();
 }
 
@@ -818,6 +889,7 @@ function syncControls() {
   desktopBetUi?.sync();
   updateWinUi();
   syncPlayAffordBlocker();
+  syncDevFeatureControl();
   if (!canPickBet()) {
     betPicker.closeIfOpen();
   }
@@ -887,6 +959,7 @@ async function withSpinLock(fn) {
   spinning = true;
   animationSpeed = 1;
   prepareWinForSpin();
+  featureChrome?.reset();
   syncControls();
   try {
     return await fn();
@@ -931,6 +1004,15 @@ const game = createGameBootstrap({
       },
       tumble: async (event, { animate }) => {
         await presentBookEvent(event, { animate });
+      },
+      enterBonus: async (event, { animate }) => {
+        await presentFeatureEvent(event, { animate });
+      },
+      updateFreeSpin: async (event, { animate }) => {
+        await presentFeatureEvent(event, { animate });
+      },
+      freeSpinEnd: async (event, { animate }) => {
+        await presentFeatureEvent(event, { animate });
       },
       setTotalWin: async (event, { animate }) => {
         await presentBookEvent(event, { animate });
@@ -1039,6 +1121,16 @@ const betPicker = createBetPicker({
   },
   formatLevelAmount: (level) => fmtBalance(playCostForBet(level)),
   getCanOpen: canPickBet,
+});
+
+const buyBonusConfirm = registerBuyBonusConfirm(modalHost, {
+  t: copyTerm,
+  getBuyCost: buyCostDisplay,
+  getBaseBet: () => bet,
+  getCostMultiplier: () => BUY_MODE_COST,
+  formatCurrency: (amount) => game.formatCurrency(amount),
+  getCanConfirm: () => canBuyBonus(),
+  onConfirm: () => executeBuyBonus(),
 });
 
 function clearPopupPositionStyles(popup) {
@@ -1222,6 +1314,9 @@ const betChromeHandlers = {
     total: autoplayTotalRounds,
   }),
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
+  onBuy: () => onBuyBonus(),
+  getBuyEnabled: () => canBuyBonus(),
+  getBuyLabel: () => buyButtonLabel(),
   syncStepper: syncBetStepperState,
 };
 
@@ -1258,6 +1353,45 @@ betUiVariant = initBetUiVariant({
     syncControls();
   },
 });
+
+async function onBuyBonus() {
+  if (spinning || autoplaying || replayMode) return;
+  if (!game.rgsReady) {
+    setMessage(copyTerm('connectingRgs'));
+    return;
+  }
+  const buyCost = buyCostDisplay();
+  if (balance < buyCost) {
+    showInsufficientBalance();
+    return;
+  }
+  if (!canBuyBonus()) return;
+  closeGameMenu();
+  buyBonusConfirm.open();
+}
+
+async function executeBuyBonus() {
+  if (!game.betModes.setActiveMode('buy')) return;
+
+  try {
+    await withSpinLock(async () => {
+      try {
+        gameAudio.playSfx('play');
+        await lifecycle.executeDrop({ animate: true });
+      } catch (err) {
+        console.error(err);
+        const policy = classifyRgsError(String(err.message));
+        setMessage(policy.message);
+        if (String(err.message) === 'ERR_IPB') {
+          showPlayerNotice(policy.message);
+        }
+      }
+    });
+  } finally {
+    game.betModes.setActiveMode('base');
+    syncControls();
+  }
+}
 
 async function onSpin() {
   if (spinning || autoplaying) return;
@@ -1490,8 +1624,44 @@ async function onCopyReplayLink() {
   }
 }
 
+async function playDevFeatureSample() {
+  if (spinning || autoplaying || replayMode || !slotBoard) return;
+
+  await withSpinLock(async () => {
+    const book = SAMPLE_FEATURE_BOOK;
+    const amountApi = displayToApi(bet);
+    const payoutMultiplier = book.payoutMultiplier / 100;
+    const round = {
+      roundID: `dev-feature-${Date.now()}`,
+      amount: amountApi,
+      payout: bookCentiMultToPayoutApi(book.payoutMultiplier, amountApi),
+      payoutMultiplier,
+      mode: 'BASE',
+      state: book.events,
+      active: false,
+    };
+
+    setMessage('Playing sample feature book…');
+    await playBookPresentation(round, { animate: true });
+
+    pendingRoundSettled = {
+      round,
+      result: {
+        ...buildGameSettledResult(round),
+        replayEvent: null,
+        round,
+      },
+    };
+  });
+}
+
 async function initSlotStage() {
   slotBoard = await createSlotBoard(slotRoot);
+  if (slotStageEl && !featureChrome) {
+    featureChrome = createFeatureChrome({
+      stageEl: slotStageEl,
+    });
+  }
   seedInitialBoard();
 }
 
