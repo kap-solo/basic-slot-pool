@@ -58,3 +58,14 @@ export const PREMIUM_SYMBOLS = Object.entries(SYMBOLS)
   .map(([id]) => id);
 
 export const WILD_SYMBOL = 'WD';
+
+/** Random visible board for first paint — column-major [reel][row]. */
+export function randomIdleBoard() {
+  const pool = Object.keys(SYMBOLS);
+  return Array.from({ length: GAME.reels }, () =>
+    Array.from({ length: GAME.rows }, () => {
+      const index = Math.floor(Math.random() * pool.length);
+      return pool[index];
+    }),
+  );
+}

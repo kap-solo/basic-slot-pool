@@ -25,9 +25,9 @@ import {
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import { buildPreloadAssets, wireTemplateAudio } from './audio.js';
-import { BET_OPTIONS, DEFAULT_BET, defaultIdleBoard, GAME, GAME_MODES } from './config.js';
+import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
-import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier } from './cluster.js';
+import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
 import { mountMobileBetUi } from './betUiMobile.js';
@@ -45,6 +45,7 @@ import {
 import { createDevStatsOverlay } from './devStatsOverlay.js';
 import { createMultiplierPanel } from './multiplierPanel.js';
 import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/performanceBlob.js';
+import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
@@ -81,6 +82,8 @@ document.getElementById('game-subtitle').hidden = true;
 
 /** @type {Awaited<ReturnType<typeof createSlotBoard>> | null} */
 let slotBoard = null;
+/** @type {string[][] | null} */
+let idleBoardSeed = null;
 
 const betUiRootEl = document.getElementById('bet-ui-root');
 
@@ -163,6 +166,165 @@ function syncHud({ immediate = false } = {}) {
   balanceForDisplay = target;
   updateBalanceUi();
 }
+
+function cancelWinUiAnimations() {
+  if (winAnimRaf != null) {
+    cancelAnimationFrame(winAnimRaf);
+    winAnimRaf = null;
+  }
+  if (winFadeTimer != null) {
+    clearTimeout(winFadeTimer);
+    winFadeTimer = null;
+  }
+}
+
+function winDisplayText() {
+  if (replayMode) return '—';
+  if (winFadingOut) return fmtWin(winForDisplay);
+  if ((winUiVisible || winAnimRaf != null) && winForDisplay > 0.0005) {
+    return winAnimRaf != null ? fmtBalance(winForDisplay) : fmtWin(winForDisplay);
+  }
+  return '';
+}
+
+function updateWinUi() {
+  mobileBetUi?.updateWin?.({
+    text: winDisplayText(),
+    visible: replayMode || winUiVisible || winFadingOut,
+    settled: winUiSettled && (winUiVisible || winFadingOut),
+    hiding: winFadingOut,
+  });
+}
+
+function hideWinDisplay({ immediate = false } = {}) {
+  cancelWinUiAnimations();
+  lastWinPayout = 0;
+
+  if (immediate || (!winUiVisible && !winFadingOut)) {
+    winUiVisible = false;
+    winFadingOut = false;
+    winUiSettled = false;
+    winForDisplay = 0;
+    updateWinUi();
+    return;
+  }
+
+  winUiVisible = false;
+  winFadingOut = true;
+  updateWinUi();
+
+  winFadeTimer = window.setTimeout(() => {
+    winFadingOut = false;
+    winUiSettled = false;
+    winForDisplay = 0;
+    winFadeTimer = null;
+    updateWinUi();
+  }, WIN_FADE_MS);
+}
+
+function animateWinTo(target, generation = winSpinGeneration) {
+  return new Promise((resolve) => {
+    if (generation !== winSpinGeneration) {
+      resolve();
+      return;
+    }
+
+    cancelWinUiAnimations();
+    const from = winForDisplay;
+    const delta = target - from;
+
+    if (Math.abs(delta) <= 0.0005) {
+      winForDisplay = target;
+      lastWinPayout = target;
+      winUiVisible = target > 0.0005;
+      updateWinUi();
+      resolve();
+      return;
+    }
+
+    winFadingOut = false;
+    if (from <= 0.0005) {
+      winUiVisible = false;
+    }
+
+    const start = performance.now();
+    const duration = Math.min(500, Math.max(260, 220 + Math.sqrt(Math.abs(delta)) * 50));
+
+    function tick(now) {
+      if (generation !== winSpinGeneration) {
+        winAnimRaf = null;
+        resolve();
+        return;
+      }
+
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      winForDisplay = from + delta * eased;
+      if (!winUiVisible && winForDisplay > 0.0005) {
+        winUiVisible = true;
+      }
+      updateWinUi();
+
+      if (t < 1) {
+        winAnimRaf = requestAnimationFrame(tick);
+      } else {
+        winForDisplay = target;
+        lastWinPayout = target;
+        winAnimRaf = null;
+        updateWinUi();
+        resolve();
+      }
+    }
+
+    winAnimRaf = requestAnimationFrame(tick);
+  });
+}
+
+function incrementWinDisplay(delta) {
+  if (delta <= 0.0005) return Promise.resolve();
+  const generation = winSpinGeneration;
+  const target = winForDisplay + delta;
+  winIncrementChain = winIncrementChain.then(() => animateWinTo(target, generation));
+  return winIncrementChain;
+}
+
+async function runClusterWinIncrements(amounts, { delayMs = 0 } = {}) {
+  if (delayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  for (const amount of amounts) {
+    await incrementWinDisplay(amount);
+  }
+}
+
+/** Wait until board win popups are visible before ticking the HUD win stat. */
+function clusterHudWinDelayMs({ firstCascade, speed = 1 }) {
+  const leadMs = firstCascade ? TIMING.firstCascadeLeadMs : TIMING.cascadeLeadMs;
+  const popupRevealMs = TIMING.cascadeDimInMs + TIMING.cascadeWinPopupMs * 0.12;
+  return Math.round((leadMs + popupRevealMs) / speed);
+}
+
+function finalizeWinDisplay(payout) {
+  if (payout <= 0.0005) {
+    hideWinDisplay();
+    return;
+  }
+
+  cancelWinUiAnimations();
+  lastWinPayout = payout;
+  winFadingOut = false;
+  winForDisplay = payout;
+  winUiVisible = true;
+  winUiSettled = true;
+  updateWinUi();
+}
+
+function prepareWinForSpin() {
+  winSpinGeneration += 1;
+  winIncrementChain = Promise.resolve();
+  hideWinDisplay();
+}
+
 let bet = DEFAULT_BET;
 /** @type {number[]} */
 let betOptions = [...BET_OPTIONS];
@@ -172,7 +334,23 @@ let autoplayStopRequested = false;
 let autoplayTotalRounds = 0;
 let autoplayCurrentRound = 0;
 let animationSpeed = 1;
-let lastWinDisplay = 0;
+/** Authoritative payout from the last settled round. */
+let lastWinPayout = 0;
+/** Win value painted in the mobile stat (may tween toward `lastWinPayout`). */
+let winForDisplay = 0;
+let winUiVisible = false;
+let winUiSettled = false;
+let winFadingOut = false;
+/** @type {number | null} */
+let winAnimRaf = null;
+/** @type {number | null} */
+let winFadeTimer = null;
+let winSpinGeneration = 0;
+/** @type {Promise<void>} */
+let winIncrementChain = Promise.resolve();
+
+const WIN_FADE_MS = 240;
+
 const replayMode = isReplayMode();
 
 const devStatsOverlay = createDevStatsOverlay({
@@ -208,15 +386,19 @@ function fmtWin(amount) {
  * Board win popup for one cluster — ladder line when ×2+.
  * @param {{ symbol: string, size?: number, cells?: [number, number][], baseMultiplier?: number }} cluster
  * @param {number} cascadeMultiplier ladder index from the book (1 = no boost)
+ * @param {number | null} [displayAmount] — settled win for this cluster (book-quantized share)
  * @returns {{ amount: string, amountFrom: number, amountTo: number, formatAmount: (value: number) => string, cascadeLabel: string | null } | null}
  */
-function buildClusterWinPopup(cluster, cascadeMultiplier) {
+function buildClusterWinPopup(cluster, cascadeMultiplier, displayAmount = null) {
   const size = cluster.size ?? cluster.cells?.length ?? 0;
   if (size < 1) return null;
   const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
-  const clusterWin = bet * baseMult * cascadeMultiplier;
+  const clusterWin = displayAmount ?? (bet * baseMult * cascadeMultiplier);
   if (clusterWin <= 0) return null;
-  const amountFrom = bet * basePayForSymbol(cluster.symbol);
+  const amountFrom = Math.min(
+    clusterWin,
+    bet * basePayForSymbol(cluster.symbol) * cascadeMultiplier,
+  );
   return {
     amount: `+${fmtWin(clusterWin)}`,
     amountFrom,
@@ -224,6 +406,58 @@ function buildClusterWinPopup(cluster, cascadeMultiplier) {
     formatAmount: (value) => `+${fmtBalance(value)}`,
     cascadeLabel: cascadeMultiplier > 1 ? `Cascade ×${cascadeMultiplier}` : null,
   };
+}
+
+/**
+ * Per-cluster HUD amounts for one cascade step — shares the book's quantized stepMultiplier.
+ * @param {object} event clusterWin book event
+ * @returns {number[]} display-currency amounts per cluster
+ */
+function clusterHudWinAmounts(event) {
+  const cascadeMultiplier = event.cascadeMultiplier ?? 1;
+  const clusters = event.clusters ?? [];
+  if (!clusters.length) return [];
+
+  let stepMult = event.stepMultiplier;
+  if (stepMult == null) {
+    let raw = 0;
+    for (const cluster of clusters) {
+      const size = cluster.size ?? cluster.cells?.length ?? 0;
+      const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
+      raw += baseMult * cascadeMultiplier;
+    }
+    stepMult = quantizeWinMult(raw);
+  }
+  if (stepMult <= 0) return [];
+
+  const stepWinApi = Math.round(displayToApi(bet) * stepMult);
+  if (stepWinApi <= 0) return [];
+
+  if (clusters.length === 1) {
+    return [apiToDisplay(stepWinApi)];
+  }
+
+  const weights = clusters.map((cluster) => {
+    const size = cluster.size ?? cluster.cells?.length ?? 0;
+    const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
+    return baseMult * cascadeMultiplier;
+  });
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  if (weightSum <= 0) return [apiToDisplay(stepWinApi)];
+
+  /** @type {number[]} */
+  const amounts = [];
+  let allocatedApi = 0;
+  for (let i = 0; i < clusters.length; i += 1) {
+    if (i === clusters.length - 1) {
+      amounts.push(apiToDisplay(stepWinApi - allocatedApi));
+      continue;
+    }
+    const shareApi = Math.round(stepWinApi * (weights[i] / weightSum));
+    amounts.push(apiToDisplay(shareApi));
+    allocatedApi += shareApi;
+  }
+  return amounts.filter((amount) => amount > 0.0005);
 }
 
 function copyTerm(key, vars) {
@@ -318,7 +552,8 @@ function mountHudDevControls() {
 
 function seedInitialBoard() {
   if (!slotBoard) return;
-  slotBoard.setBoard(defaultIdleBoard());
+  idleBoardSeed ??= randomIdleBoard();
+  slotBoard.setBoard(idleBoardSeed);
 }
 
 function showStaticRound(round) {
@@ -367,25 +602,42 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
     const winCells = winCellsFromClusters(event.clusters);
     const cascadeMultiplier = event.cascadeMultiplier ?? 1;
     pendingClusterRemoved = event.removed ?? [];
-    for (const cluster of event.clusters ?? []) {
-      const popup = buildClusterWinPopup(cluster, cascadeMultiplier);
+    const clusterAmounts = clusterHudWinAmounts(event);
+    for (let i = 0; i < (event.clusters ?? []).length; i += 1) {
+      const cluster = event.clusters[i];
+      const popup = buildClusterWinPopup(cluster, cascadeMultiplier, clusterAmounts[i] ?? null);
       multiplierPanel.addLedgerEntry(cluster, cascadeMultiplier, popup?.amount ?? '');
     }
     if (animate) {
-      const clusterPresentations = (event.clusters ?? []).map((cluster) => ({
+      const clusterPresentations = (event.clusters ?? []).map((cluster, index) => ({
         winCells: winCellsFromClusters([cluster]),
-        winPopup: buildClusterWinPopup(cluster, cascadeMultiplier),
+        winPopup: buildClusterWinPopup(cluster, cascadeMultiplier, clusterAmounts[index] ?? null),
       }));
+      const hudPromise = runClusterWinIncrements(clusterAmounts, {
+        delayMs: clusterHudWinDelayMs({
+          firstCascade: event.cascade === 1,
+          speed: animationSpeed,
+        }),
+      });
       await slotBoard.animateClusterWin(winCells, {
         speed: animationSpeed,
         clusterPresentations,
         firstCascade: event.cascade === 1,
         cascadeMultiplier,
       });
+      await hudPromise;
       gameAudio.playSfx('win');
     } else {
       slotBoard.setCascadeLadderStep(cascadeMultiplier);
       slotBoard.setBoard(slotBoard.getBoard(), { winCells });
+      for (const amount of clusterAmounts) {
+        winForDisplay += amount;
+      }
+      if (winForDisplay > 0.0005) {
+        lastWinPayout = winForDisplay;
+        winUiVisible = true;
+        updateWinUi();
+      }
     }
     return;
   }
@@ -477,6 +729,7 @@ function syncControls() {
   betUi.sync();
   betStepper?.sync();
   mobileBetUi?.sync();
+  updateWinUi();
 }
 
 function isBoardPresenting() {
@@ -489,7 +742,7 @@ function flushRoundSettledUI() {
   pendingRoundSettled = null;
 
   const payout = apiToDisplay(result.payoutApi);
-  lastWinDisplay = payout;
+  finalizeWinDisplay(payout);
   const debitDisplay = apiToDisplay(round.amount);
   session = ensureSession(session);
   recordPlay(session, { payout, multiplier: result.multiplier });
@@ -542,6 +795,7 @@ async function finishPresentation() {
 async function withSpinLock(fn) {
   spinning = true;
   animationSpeed = 1;
+  prepareWinForSpin();
   syncControls();
   try {
     return await fn();
@@ -824,7 +1078,6 @@ mobileBetUi = mountMobileBetUi({
     onStepDown: () => stepBet(-1),
     getBalance: () => (replayMode ? '—' : fmtBalance(balanceForDisplay)),
     getBet: () => fmtBalance(playCostDisplay()),
-    getWin: () => (replayMode ? '—' : fmtWin(lastWinDisplay)),
     getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
     getAutoplayActive: () => autoplaying,
     getAutoplayProgress: () => ({
@@ -835,6 +1088,8 @@ mobileBetUi = mountMobileBetUi({
     syncStepper: syncBetStepperState,
   },
 });
+
+updateWinUi();
 
 betUiVariant = initBetUiVariant({
   shell: shellEl,
@@ -918,7 +1173,6 @@ async function runAutoplay(roundCount) {
       }
 
       autoplayCurrentRound = i + 1;
-      lastWinDisplay = 0;
       balance = Math.max(0, balance - playCost);
       syncHud();
       syncControls();
@@ -963,6 +1217,7 @@ function setReplayModeUi() {
 
 async function playReplayAnimation(round) {
   spinning = true;
+  prepareWinForSpin();
   syncControls();
   try {
     await playBookPresentation(round, { animate: true });

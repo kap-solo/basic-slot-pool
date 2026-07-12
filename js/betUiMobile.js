@@ -17,7 +17,6 @@
  * @param {() => void} options.handlers.onStepDown
  * @param {() => string} options.handlers.getBalance
  * @param {() => string} options.handlers.getBet
- * @param {() => string} options.handlers.getWin
  * @param {() => boolean} options.handlers.getBusy
  * @param {() => boolean} options.handlers.getAutoEnabled
  * @param {(buttons: { downButton: HTMLButtonElement, upButton: HTMLButtonElement }) => void} [options.handlers.syncStepper]
@@ -70,6 +69,8 @@ export function mountMobileBetUi({
   betCluster.append(betDownBtn, betStat.root, betUpBtn);
 
   const winStat = createStatBlock('win', 'Win');
+  winStat.valueEl.classList.add('bet-ui-mobile__stat-value--win');
+  winStat.valueEl.textContent = '';
 
   info.append(balanceStat.root, betCluster, winStat.root);
   chrome.append(actions, info);
@@ -132,12 +133,22 @@ export function mountMobileBetUi({
     }
   }
 
+  function updateWin({ text, visible, settled = false, hiding = false }) {
+    if (!active) return;
+
+    winStat.valueEl.textContent = text;
+    winStat.valueEl.classList.toggle('is-visible', visible);
+    winStat.valueEl.classList.toggle('is-settled', settled);
+    winStat.valueEl.classList.toggle('is-hiding', hiding);
+    fitStatValue(winStat.valueEl);
+    requestAnimationFrame(() => fitStatValue(winStat.valueEl));
+  }
+
   function sync() {
     if (!active) return;
 
     balanceStat.valueEl.textContent = handlers.getBalance();
     betStat.valueEl.textContent = handlers.getBet();
-    winStat.valueEl.textContent = handlers.getWin();
     fitAllStatValues();
     requestAnimationFrame(() => fitAllStatValues());
 
@@ -182,6 +193,7 @@ export function mountMobileBetUi({
   return {
     setActive,
     sync,
+    updateWin,
     destroy() {
       resizeObserver?.disconnect();
       restorePlayButton();

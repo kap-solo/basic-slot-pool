@@ -232,6 +232,25 @@
   overflow: visible;
 }
 
+.bet-ui-mobile__stat-value--win {
+  opacity: 0;
+  transition: opacity 240ms ease;
+  min-height: calc(var(--bet-ui-mobile-stat-value-size, 0.95rem) * 1.1);
+}
+
+.bet-ui-mobile__stat-value--win.is-visible {
+  opacity: 1;
+}
+
+.bet-ui-mobile__stat-value--win.is-visible.is-settled {
+  opacity: 0.5;
+}
+
+.bet-ui-mobile__stat-value--win.is-visible.is-hiding,
+.bet-ui-mobile__stat-value--win.is-visible.is-settled.is-hiding {
+  opacity: 0;
+}
+
 .suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__bet-cluster {
   display: grid;
   grid-template-columns: 2.1rem minmax(0, 1fr) 2.1rem;
