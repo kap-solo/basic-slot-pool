@@ -4,7 +4,7 @@
  */
 
 import { GAME } from '../config.js';
-import { blockForRow, parseColumnBlocks } from '../tall-symbols.js';
+import { blockForRow, isTallSymbolPreview, parseColumnBlocks } from '../tall-symbols.js';
 import { scaledDelay } from './easing.js';
 import { TIMING } from './timing.js';
 
@@ -23,10 +23,6 @@ export const BLOB_STACK_ROW4_ENABLED = true;
 /** Chance a bottom-row blob also gets a stacked partner on row 4 (same column). */
 export const BLOB_STACK_ROW4_CHANCE = 0.5;
 
-function tallModeFromUrl() {
-  return new URLSearchParams(window.location.search).get('tall') === 'true';
-}
-
 function blobStackRow4Enabled() {
   if (!BLOB_STACK_ROW4_ENABLED) return false;
   if (new URLSearchParams(window.location.search).get('blobs') === 'no-stack') return false;
@@ -40,7 +36,7 @@ function blobStackRow4Enabled() {
  * @param {number} row
  */
 function isRowBlobEligible(col, board, row) {
-  if (!tallModeFromUrl()) return true;
+  if (!isTallSymbolPreview()) return true;
   const column = board[col];
   if (!column?.length || row < 0 || row >= column.length) return false;
   const blocks = parseColumnBlocks(column, { tallEnabled: true });

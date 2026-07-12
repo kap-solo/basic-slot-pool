@@ -40,11 +40,6 @@ import {
   createSlotBoard,
   describeRoundResult,
 } from './slot.js';
-import {
-  countTallBlocks,
-  isTallSymbolPreview,
-  tallPreviewBoard,
-} from './tall-symbols.js';
 import { createDevStatsOverlay } from './devStatsOverlay.js';
 import { createMultiplierPanel } from './multiplierPanel.js';
 import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/performanceBlob.js';
@@ -235,13 +230,6 @@ function mountHudDevControls() {
 
 function seedInitialBoard() {
   if (!slotBoard) return;
-  if (isTallSymbolPreview()) {
-    const preview = tallPreviewBoard();
-    slotBoard.setBoard(preview);
-    const tallCount = countTallBlocks(preview);
-    setMessage(`Tall preview — ${tallCount} double-height block${tallCount === 1 ? '' : 's'} (Crown/Cherry pairs; books unchanged).`);
-    return;
-  }
   slotBoard.setBoard(defaultIdleBoard());
 }
 
@@ -346,9 +334,6 @@ function buildHandReplayUrl({ event, amountApi, mode, lang }) {
     }),
   );
   const current = new URLSearchParams(window.location.search);
-  if (current.get('tall') === 'true') {
-    url.searchParams.set('tall', 'true');
-  }
   if (current.get('dev') === 'true') {
     url.searchParams.set('dev', 'true');
   }
@@ -572,9 +557,7 @@ const game = createGameBootstrap({
     onReady: () => {
       seedInitialBoard();
       syncHud();
-      if (!isTallSymbolPreview()) {
-        setMessage(copyTerm('setBetPrompt'));
-      }
+      setMessage(copyTerm('setBetPrompt'));
     },
     onAuthRound: handleAuthRoundOutcome,
     onSyncDevTools: () => {

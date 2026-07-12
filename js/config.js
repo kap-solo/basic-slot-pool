@@ -24,6 +24,9 @@ export function defaultIdleBoard() {
   return Array.from({ length: GAME.reels }, () => defaultBoardColumn());
 }
 
+/** Pool v1 — all symbols render single-height; tall merge is disabled. */
+export const TALL_SYMBOLS_ENABLED = false;
+
 export const DEFAULT_BET = 1;
 export const BET_OPTIONS = [0.5, 1, 2, 5, 10];
 

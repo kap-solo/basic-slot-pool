@@ -1,10 +1,12 @@
 /**
  * Tall-symbol preview — client-only, no math/book changes.
- * Enable with ?tall=true on the pool server (port 5176).
+ * Gated by TALL_SYMBOLS_ENABLED in config.js (off for Pool v1).
  *
  * Tall tiles render when adjacent rows in the same column share the same
  * eligible symbol ID (same data the cluster math uses).
  */
+
+import { TALL_SYMBOLS_ENABLED } from './config.js';
 
 export const MAX_TALL_SPAN = 2;
 
@@ -27,6 +29,7 @@ export const TALL_ELIGIBLE_SYMBOLS = new Set(['CR', TALL_ORDINARY_SYMBOL]);
 
 /** @returns {boolean} */
 export function isTallSymbolPreview() {
+  if (!TALL_SYMBOLS_ENABLED) return false;
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('tall') === 'true';
 }

@@ -2,7 +2,7 @@
 
 Independent fork of **Basic-Slot-Lab** (port **5176**). Same Suki Engine stack; changes here do not affect Lab (**5175**) or the frozen baseline (**5174** / `Basic-Slot`).
 
-Includes current lab features: Crown/Cherry tall pairs (`?tall=true`), multiplier panel + ledger (desktop landscape).
+Single-height symbols only (Pool v1). Multiplier panel + ledger on desktop landscape.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ npm start
 
 Or run `start-pool.bat` (Windows).
 
-**URL:** http://127.0.0.1:5176/?dev=true&tall=true&sessionID=local-demo&rgs_url=http://127.0.0.1:5176
+**URL:** http://127.0.0.1:5176/?dev=true&sessionID=local-demo&rgs_url=http://127.0.0.1:5176
 
 | Build | Port | Directory |
 |-------|------|-----------|
