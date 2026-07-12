@@ -10,6 +10,7 @@
     "tune:lookup": "node scripts/tune-lookup.mjs",
     "analyze:math": "node scripts/analyze-math.mjs",
     "math:build": "node scripts/generate-book-pool.mjs && node scripts/tune-lookup.mjs && node scripts/analyze-math.mjs",
+    "math:publish": "node scripts/publish-math.mjs",
     "validate:books": "node scripts/validate-cascade-books.mjs",
     "test:smoke": "node node_modules/@kap-solo/suki-engine/harness/smoke.mjs"
   },

@@ -28,6 +28,26 @@ npm run validate-math
 npm run test:smoke
 ```
 
+## Publish math to Stake Engine
+
+Stake ACP expects a folder containing **exactly** these files at the upload root:
+
+| File | Purpose |
+|------|---------|
+| `index.json` | Mode name, cost, paths to books + lookup |
+| `lookUpTable_base_0.csv` | Simulation weights (`id,weight,payout` rows only — **no header**) |
+| `books_base.jsonl.zst` | Zstandard-compressed book events |
+
+Build the upload bundle:
+
+```bash
+npm run math:publish
+```
+
+Then upload the **contents** of `data/publish/` (not `math/`, not the whole repo). The folder must include `index.json` at the top level of the zip/directory you select.
+
+Local mock RGS still reads uncompressed `data/books_base.jsonl` for dev; `npm run validate-math` validates against the uncompressed books file referenced in `index.json`.
+
 ## Identity (pool-specific)
 
 | Item | Value |
