@@ -664,6 +664,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
 
   if (animate) {
     await animateReveal(revealBoard);
+    reelSpinAudio.stop();
     if (blobPlan) {
       slotBoard.syncBookColumnData(event.board);
       await presentBlobAfterReveal(slotBoard, event.board, blobPlan, {

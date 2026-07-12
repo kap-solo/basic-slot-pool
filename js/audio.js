@@ -30,7 +30,7 @@ export function wireTemplateAudio(gameAudio) {
 }
 
 /**
- * Looping reel spin bed — starts with the spin animation and stops when reels land.
+ * Reel spin bed — plays once per spin; stops when reels land.
  *
  * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
  */
@@ -48,7 +48,7 @@ export function createReelSpinAudio(audioPrefs) {
     }
     if (!reelEl) {
       reelEl = new Audio(url);
-      reelEl.loop = true;
+      reelEl.loop = false;
       reelEl.preload = 'auto';
     }
     return reelEl;

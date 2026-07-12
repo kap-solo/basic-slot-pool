@@ -5,7 +5,7 @@ Audio is **off by default** (no preload 404s). Add files here, then wire them in
 | File | Use |
 |------|-----|
 | `music.mp3` | Looping background music |
-| `reels3.wav` | Looping reel spin (wired — enable SFX in burger menu) |
+| `reels3.wav` | Reel spin (plays once per spin — enable SFX in burger menu) |
 | `play.mp3` | Bet / play button |
 | `win.mp3` | Winning round |
 | `lose.mp3` | Losing round |
