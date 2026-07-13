@@ -39,6 +39,7 @@
   --bet-ui-desktop-spin-offset-y: 0px;
   --bet-ui-desktop-bottom-inset: clamp(0.35rem, 1.5vh, 0.75rem);
   --bet-ui-desktop-dock-shift-y: 2px;
+  --bet-ui-desktop-auto-progress-drop: 10px;
   --bet-ui-desktop-chrome-height: calc(
     var(--bet-ui-desktop-bar-height)
     + var(--bet-ui-desktop-spin-overlap)
@@ -99,6 +100,7 @@
   --bet-ui-desktop-step-font-size: 0.75rem;
   --bet-ui-desktop-auto-icon-size: 0.72rem;
   --bet-ui-desktop-bottom-inset: 0.25rem;
+  --bet-ui-desktop-auto-progress-drop: 0px;
 }
 
 .suki-stake-shell[data-bet-ui-variant='desktop'] .suki-game-core {
@@ -507,7 +509,7 @@
 
 .bet-ui-desktop__auto-progress {
   position: absolute;
-  top: calc(100% + 0.15rem);
+  top: calc(100% + 0.15rem + var(--bet-ui-desktop-auto-progress-drop, 0px));
   left: 50%;
   transform: translateX(-50%);
   font-size: clamp(0.46rem, 2vw, 0.58rem);
