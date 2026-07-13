@@ -29,9 +29,8 @@ export function createFeatureChrome({ stageEl }) {
   counter.className = 'feature-chrome__counter';
   counter.hidden = true;
   counter.innerHTML = `
-    <span class="feature-chrome__counter-label">Free spins remaining</span>
-    <span class="feature-chrome__counter-value">
-      <span class="feature-chrome__spin-remaining">8</span>
+    <span class="feature-chrome__counter-value" aria-label="Free spin 1 of 8">
+      <span class="feature-chrome__spin-current">1</span><span class="feature-chrome__spin-sep"> / </span><span class="feature-chrome__spin-total">8</span>
     </span>
   `;
 
@@ -42,7 +41,9 @@ export function createFeatureChrome({ stageEl }) {
   root.append(intro, counter, endBanner);
   stageEl.appendChild(root);
 
-  const spinRemainingEl = counter.querySelector('.feature-chrome__spin-remaining');
+  const spinCurrentEl = counter.querySelector('.feature-chrome__spin-current');
+  const spinTotalEl = counter.querySelector('.feature-chrome__spin-total');
+  const counterValueEl = counter.querySelector('.feature-chrome__counter-value');
   const continueBtn = intro.querySelector('.feature-chrome__continue');
 
   let introTimer = null;
@@ -61,6 +62,10 @@ export function createFeatureChrome({ stageEl }) {
     if (endTimer) {
       clearTimeout(endTimer);
       endTimer = null;
+    }
+    if (counterTimer) {
+      clearTimeout(counterTimer);
+      counterTimer = null;
     }
   }
 
@@ -90,17 +95,15 @@ export function createFeatureChrome({ stageEl }) {
     if (!animate) return;
   }
 
-  function setRemaining(remaining, { pulse = false } = {}) {
-    spinRemainingEl.textContent = String(Math.max(0, remaining));
+  function setSpinProgress(current, total = spinTotal, { pulse = false } = {}) {
+    const spin = Math.max(1, Math.min(current, total));
+    spinCurrentEl.textContent = String(spin);
+    spinTotalEl.textContent = String(total);
+    counterValueEl.setAttribute('aria-label', `Free spin ${spin} of ${total}`);
     if (!pulse) return;
     counter.classList.remove('feature-chrome__counter--pulse');
     void counter.offsetWidth;
     counter.classList.add('feature-chrome__counter--pulse');
-  }
-
-  /** Remaining spins not yet used — includes the spin currently in progress. */
-  function remainingForSpin(current) {
-    return spinTotal - current + 1;
   }
 
   function waitForUserContinue() {
@@ -151,6 +154,8 @@ export function createFeatureChrome({ stageEl }) {
     endBanner.hidden = true;
 
     const total = event.total ?? 8;
+    spinTotal = total;
+    spinTotalEl.textContent = String(total);
     intro.querySelector('.feature-chrome__title').textContent = `${total} free spins`;
     intro.querySelector('.feature-chrome__sub').textContent =
       event.scatters != null && event.scatters > 0
@@ -161,14 +166,14 @@ export function createFeatureChrome({ stageEl }) {
 
     if (!animate) {
       counter.hidden = false;
-      setRemaining(total);
+      setSpinProgress(1, total);
       return;
     }
 
     await waitForUserContinue();
     intro.hidden = true;
     counter.hidden = false;
-    setRemaining(total);
+    setSpinProgress(1, total);
   }
 
   /**
@@ -185,16 +190,15 @@ export function createFeatureChrome({ stageEl }) {
       endBanner.hidden = true;
     }
     if (!animate) {
-      setRemaining(remainingForSpin(event.current ?? 1));
+      setSpinProgress(event.current ?? 1, spinTotal);
     }
   }
 
   /**
-   * Drop remaining count when the free-spin reel animation begins (not on updateFreeSpin).
-   * Count includes the active spin — first spin still shows the full award (e.g. 8).
+   * Bump spin index when the free-spin reel animation begins (not on updateFreeSpin).
    *
    * @param {object} opts
-   * @param {number} opts.current — freeSpin index from gameReveal
+   * @param {number} opts.current — freeSpin index from gameReveal (1–8)
    * @param {boolean} [opts.animate]
    */
   function onFreeSpinStart({ current, animate = true }) {
@@ -205,7 +209,7 @@ export function createFeatureChrome({ stageEl }) {
     }
     const apply = () => {
       counterTimer = null;
-      setRemaining(remainingForSpin(current), { pulse: animate });
+      setSpinProgress(current, spinTotal, { pulse: animate });
     };
     if (!animate) {
       apply();

@@ -1385,8 +1385,8 @@ async function executeBuyBonus() {
     try {
       gameAudio.playSfx('play');
       const baseBetApi = displayToApi(bet);
-      const amountApi = Math.round(baseBetApi * BUY_MODE_COST);
-      const playRes = await play({ amountApi, mode: 'BB' });
+      // Stake RGS debits base bet × mode cost — send base only (cost 20 comes from math index).
+      const playRes = await play({ amountApi: baseBetApi, mode: 'BB' });
       if (playRes.balance?.amount != null) {
         balance = apiToDisplay(playRes.balance.amount);
         syncHud();

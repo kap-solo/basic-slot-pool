@@ -109,6 +109,13 @@ function roundFromBook(book, amountApi, mode = 'BASE') {
   };
 }
 
+function stakeDebitAmount(body) {
+  const amount = Number(body.amount);
+  const mode = String(body.mode || 'BASE').toUpperCase();
+  const costMult = mode === 'BB' || mode === 'BUY' ? BUY_COST_MULT : 1;
+  return Math.round(amount * costMult);
+}
+
 export function createGameMockRgs() {
   return createMockRgs({
     gameId: GAME_ID,
@@ -125,11 +132,11 @@ export function createGameMockRgs() {
         BB: { mode: 'BB', costMultiplier: BUY_COST_MULT, feature: true },
       },
     },
+    resolveDebitAmount: stakeDebitAmount,
     resolvePlay(_session, body) {
       const amount = Number(body.amount);
       const mode = String(body.mode || 'BASE').toUpperCase();
       const modeKey = mode === 'BB' || mode === 'BUY' ? 'BB' : 'BASE';
-      const costMult = modeKey === 'BB' ? BUY_COST_MULT : 1;
       const { books } = getMathBundle(modeKey);
       const simId = pickSimulationId(modeKey);
       const book = books.get(simId);
@@ -137,7 +144,8 @@ export function createGameMockRgs() {
         return { error: { code: 'ERR_GEN', message: `Missing book ${simId}` } };
       }
 
-      const baseBetApi = Math.round(amount / costMult);
+      // Play request amount is base bet; RGS applies mode cost (Stake spec).
+      const baseBetApi = Math.round(amount);
       const payoutMultiplier = book.payoutMultiplier / 100;
       const payout = Math.round(baseBetApi * payoutMultiplier);
 
