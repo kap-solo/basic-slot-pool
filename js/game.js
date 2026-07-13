@@ -1109,6 +1109,7 @@ const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
 
 disableTurboForGame(game.jurisdiction);
 
+modalHost.bind({ game });
 gameMenu.bind({ game });
 registerGameModals({
   modalHost,

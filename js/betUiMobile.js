@@ -53,13 +53,22 @@ export function mountMobileBetUi({
   autoProgress.className = 'bet-ui-mobile__auto-progress';
   autoProgress.hidden = true;
   autoCluster.append(autoBtn, autoProgress);
+
   const spinCluster = document.createElement('div');
   spinCluster.className = 'bet-ui-mobile__spin-cluster';
+
+  const playCluster = document.createElement('div');
+  playCluster.className = 'bet-ui-mobile__play-cluster';
+
+  const betDownBtn = createActionStepButton('down', 'Decrease bet', '−');
   const spinSlot = document.createElement('div');
   spinSlot.className = 'bet-ui-mobile__spin';
+  const betUpBtn = createActionStepButton('up', 'Increase bet', '+');
+
+  playCluster.append(betDownBtn, spinSlot, betUpBtn);
+  spinCluster.append(autoCluster, playCluster);
 
   actionsStart.append(menuBtn);
-  spinCluster.append(autoCluster, spinSlot);
   actions.append(actionsStart, spinCluster);
 
   const actionsEnd = document.createElement('div');
@@ -71,21 +80,18 @@ export function mountMobileBetUi({
   const info = document.createElement('div');
   info.className = 'bet-ui-mobile__info';
 
+  const infoBar = document.createElement('div');
+  infoBar.className = 'bet-ui-mobile__info-bar';
+
   const balanceStat = createStatBlock('balance', 'Balance');
-  const betCluster = document.createElement('div');
-  betCluster.className = 'bet-ui-mobile__bet-cluster';
-
-  const betUpBtn = createChevronButton('up', 'Increase bet', '▲');
   const betPickBtn = createBetPickButton();
-  const betDownBtn = createChevronButton('down', 'Decrease bet', '▼');
-
-  betCluster.append(betDownBtn, betPickBtn.root, betUpBtn);
 
   const winStat = createStatBlock('win', 'Win');
   winStat.valueEl.classList.add('bet-ui-mobile__stat-value--win');
   winStat.valueEl.textContent = '';
 
-  info.append(balanceStat.root, betCluster, winStat.root);
+  infoBar.append(balanceStat.root, betPickBtn.root, winStat.root);
+  info.append(infoBar);
   chrome.append(actions, info);
   stakeShell.appendChild(chrome);
 
@@ -94,8 +100,8 @@ export function mountMobileBetUi({
     ? new ResizeObserver(() => fitAllStatValues())
     : null;
 
-  for (const stat of [balanceStat, betPickBtn, winStat]) {
-    resizeObserver?.observe(stat.root);
+  for (const el of [infoBar, balanceStat.root, betPickBtn.root, betPickBtn.valueEl, winStat.root, playCluster]) {
+    resizeObserver?.observe(el);
   }
 
   let active = false;
@@ -129,12 +135,19 @@ export function mountMobileBetUi({
   function fitStatValue(valueEl) {
     valueEl.style.fontSize = '';
     const max = parseFloat(getComputedStyle(valueEl).fontSize) || 15;
-    const min = Math.max(7, max * 0.42);
+    const min = Math.max(5, max * 0.32);
     let size = max;
     valueEl.style.fontSize = `${size}px`;
 
-    while (size > min && valueEl.scrollWidth > valueEl.clientWidth + 1) {
-      size -= 0.5;
+    const fitWidth = Math.max(
+      1,
+      valueEl.clientWidth
+        || valueEl.parentElement?.clientWidth
+        || valueEl.getBoundingClientRect().width,
+    );
+
+    while (size > min && valueEl.scrollWidth > fitWidth + 1) {
+      size -= 0.25;
       valueEl.style.fontSize = `${size}px`;
     }
   }
@@ -194,7 +207,7 @@ export function mountMobileBetUi({
     autoBtn.disabled = autoplayActive ? false : (!handlers.getAutoEnabled() || busy);
 
     buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
-    buyBtn.textContent = handlers.getBuyLabel?.() ?? 'Buy';
+    buyBtn.textContent = 'Buy';
 
     handlers.syncStepper?.({ downButton: betDownBtn, upButton: betUpBtn });
   }
@@ -258,10 +271,10 @@ function createIconButton(part, label, icon) {
  * @param {string} label
  * @param {string} glyph
  */
-function createChevronButton(part, label, glyph) {
+function createActionStepButton(part, label, glyph) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `bet-ui-mobile__bet-step bet-ui-mobile__bet-step--${part}`;
+  button.className = `bet-ui-mobile__action-step bet-ui-mobile__action-step--${part}`;
   button.dataset.betUiPart = part;
   button.setAttribute('aria-label', label);
   button.textContent = glyph;

@@ -71,6 +71,7 @@
   --bet-ui-desktop-stat-max-width: 5.75rem;
   --bet-ui-desktop-win-max-width: 5rem;
   --bet-ui-desktop-bottom-inset: 0.45rem;
+  --bet-ui-desktop-auto-progress-drop: 5px;
 }
 
 /* Popout S — aggressive downscale (400×225). */

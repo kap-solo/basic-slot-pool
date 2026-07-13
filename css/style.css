@@ -738,6 +738,8 @@ body {
 .bet-ui-mobile__spin .play-hit-wrap,
 .bet-ui-mobile__spin .play-afford-blocker {
   border-radius: 999px;
+  width: 100%;
+  max-width: var(--bet-ui-mobile-spin-size, 4.75rem);
 }
 
 /* Popout S — links left, audio settings right (see Suki gameMenu.css; kept for vendor pin) */

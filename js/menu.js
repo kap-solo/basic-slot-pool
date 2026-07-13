@@ -2,7 +2,7 @@
  * Basic Slot — burger menu modals.
  */
 
-import { appendGeneralDisclaimer } from '@kap-solo/suki-engine/client/rgs.js';
+import { appendGeneralDisclaimer, pickSocialCopy } from '@kap-solo/suki-engine/client/rgs.js';
 import {
   CLUSTER_PAYTABLE,
   CLUSTER_SIZE_MULTIPLIERS,
@@ -32,21 +32,66 @@ export function registerGameModals(ctx) {
   modalHost.register('how-to-play', {
     title: 'How to Play',
     render(body) {
+      const wildLabel = SYMBOLS[WILD_SYMBOL].label;
+      const boardNote =
+        `The ${GAME.reels}×${GAME.rows} board outcome is decided by the RGS before the reels stop — animation is presentation only.`;
+
+      const intro = pickSocialCopy(
+        game,
+        `Choose a ${t('bet').toLowerCase()} and press Spin. ${boardNote}`,
+        `Choose your ${t('betAmount').toLowerCase()} and press Spin. ${boardNote}`,
+      );
+
+      const bullets = pickSocialCopy(
+        game,
+        [
+          'Wins pay on clusters of matching symbols (not paylines).',
+          `Clusters must be at least ${MIN_CLUSTER_SIZE} symbols touching up, down, left, or right.`,
+          `${wildLabel} substitutes for any paying symbol when forming clusters. Wild does not pay on its own.`,
+          'Winning symbols are removed; new symbols tumble in — cascades repeat until no cluster pays.',
+          `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
+          'Premium symbols pay more than ordinary symbols. Larger clusters multiply the win further.',
+        ],
+        [
+          'Qualifying clusters are formed by connected matching symbols (not lines).',
+          `Clusters must be at least ${MIN_CLUSTER_SIZE} symbols touching up, down, left, or right.`,
+          `${wildLabel} substitutes for qualifying symbols when forming clusters. Wild cannot form a cluster on its own.`,
+          'Matched symbols are removed; new symbols tumble in — cascades repeat until no further clusters qualify.',
+          `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
+          'Premium symbols award higher multipliers than ordinary symbols. Larger clusters apply a higher multiplier.',
+        ],
+      );
+
+      const blobIntro =
+        'Sometimes a green square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green squares are not symbols and have no value. This is a visual effect only; your spin result is already decided before the reels stop.';
+
+      const blobBullets = pickSocialCopy(
+        game,
+        [
+          'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
+          'Clusters and wins are evaluated only after the green square disappears — not while it is on screen.',
+          'A green square does not change your win or round result. It can hide winning symbols for a moment, so a good spin may look like a miss until the cascade finishes.',
+        ],
+        [
+          'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
+          'Clusters are evaluated only after the green square disappears — not while it is on screen.',
+          'A green square does not change your round result. It can briefly hide matched symbols, so a successful spin may look like a miss until the cascade finishes.',
+        ],
+      );
+
+      const displayNote = pickSocialCopy(
+        game,
+        'When several clusters win on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
+        'When several clusters qualify on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
+      );
+
       const p = document.createElement('p');
-      p.textContent =
-        `Choose a bet and press Spin. The ${GAME.reels}×${GAME.rows} board outcome is decided by the RGS before the reels stop — animation is presentation only.`;
+      p.textContent = intro;
       body.appendChild(p);
       const ul = document.createElement('ul');
       ul.style.marginTop = '0.75rem';
       ul.style.paddingLeft = '1.1rem';
-      for (const line of [
-        'Wins pay on clusters of matching symbols (not paylines).',
-        `Clusters must be at least ${MIN_CLUSTER_SIZE} symbols touching up, down, left, or right.`,
-        `${SYMBOLS[WILD_SYMBOL].label} substitutes for any paying symbol when forming clusters. Wild does not pay on its own.`,
-        'Winning symbols are removed; new symbols tumble in — cascades repeat until no cluster pays.',
-        `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
-        'Premium symbols pay more than ordinary symbols. Larger clusters multiply the win further.',
-      ]) {
+      for (const line of bullets) {
         const li = document.createElement('li');
         li.textContent = line;
         ul.appendChild(li);
@@ -60,21 +105,16 @@ export function registerGameModals(ctx) {
       blobTitle.textContent = 'Green squares';
       body.appendChild(blobTitle);
 
-      const blobIntro = document.createElement('p');
-      blobIntro.style.marginTop = '0.35rem';
-      blobIntro.style.fontSize = '0.85rem';
-      blobIntro.textContent =
-        'Sometimes a green square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. This is a visual effect only; your spin result is already decided before the reels stop.';
-      body.appendChild(blobIntro);
+      const blobIntroEl = document.createElement('p');
+      blobIntroEl.style.marginTop = '0.35rem';
+      blobIntroEl.style.fontSize = '0.85rem';
+      blobIntroEl.textContent = blobIntro;
+      body.appendChild(blobIntroEl);
 
       const blobUl = document.createElement('ul');
       blobUl.style.marginTop = '0.5rem';
       blobUl.style.paddingLeft = '1.1rem';
-      for (const line of [
-        'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
-        'Clusters and wins are evaluated only after the green square disappears — not while it is on screen.',
-        'A green square does not change your payout. It can hide winning symbols for a moment, so a good spin may look like a miss until the cascade finishes.',
-      ]) {
+      for (const line of blobBullets) {
         const li = document.createElement('li');
         li.textContent = line;
         li.style.fontSize = '0.85rem';
@@ -82,19 +122,27 @@ export function registerGameModals(ctx) {
       }
       body.appendChild(blobUl);
 
-      const displayNote = document.createElement('p');
-      displayNote.style.marginTop = '0.85rem';
-      displayNote.style.fontSize = '0.82rem';
-      displayNote.style.color = '#8b97a8';
-      displayNote.textContent =
-        'When several clusters win on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.';
-      body.appendChild(displayNote);
+      const displayNoteEl = document.createElement('p');
+      displayNoteEl.style.marginTop = '0.85rem';
+      displayNoteEl.style.fontSize = '0.82rem';
+      displayNoteEl.style.color = '#8b97a8';
+      displayNoteEl.textContent = displayNote;
+      body.appendChild(displayNoteEl);
     },
   });
 
   modalHost.register('paytable', {
-    title: 'Paytable',
+    title: ({ game: g }) => g?.copy?.t('paytableTitle') ?? 'Paytable',
     render(body) {
+      const wildLabel = SYMBOLS[WILD_SYMBOL].label;
+      const wildGlyph = SYMBOLS[WILD_SYMBOL].glyph;
+
+      const tableHeaders = pickSocialCopy(
+        game,
+        ['Cluster win', 'Base multiplier'],
+        ['Symbol group', 'Base multiplier'],
+      );
+
       const table = document.createElement('table');
       table.style.width = '100%';
       table.style.borderCollapse = 'collapse';
@@ -102,7 +150,7 @@ export function registerGameModals(ctx) {
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      for (const label of ['Cluster win', 'Base multiplier']) {
+      for (const label of tableHeaders) {
         const th = document.createElement('th');
         th.textContent = label;
         th.style.textAlign = 'left';
@@ -133,7 +181,11 @@ export function registerGameModals(ctx) {
       sizeTitle.style.marginTop = '0.75rem';
       sizeTitle.style.fontSize = '0.82rem';
       sizeTitle.style.color = '#c5d0de';
-      sizeTitle.textContent = 'Cluster size multiplier (applied to base pay):';
+      sizeTitle.textContent = pickSocialCopy(
+        game,
+        'Cluster size multiplier (applied to base pay):',
+        'Cluster size multiplier (applied to the base value above):',
+      );
       body.appendChild(sizeTitle);
 
       const sizeList = document.createElement('p');
@@ -149,14 +201,22 @@ export function registerGameModals(ctx) {
       ladder.style.marginTop = '0.65rem';
       ladder.style.fontSize = '0.82rem';
       ladder.style.color = '#c5d0de';
-      ladder.textContent = `Cascade ladder: 1st win ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step payout = base × cluster size mult × ladder. Each symbol has its own base pay (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} on a $1 bet at minimum cluster size.`;
+      ladder.textContent = pickSocialCopy(
+        game,
+        `Cascade ladder: 1st win ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step payout = base × cluster size mult × ladder. Each symbol has its own base pay (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} on a $1 bet at minimum cluster size.`,
+        `Cascade ladder: 1st qualifying cluster ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step amount = base × cluster size mult × ladder. Each symbol has its own base multiplier (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} at minimum cluster size on a $1 round.`,
+      );
       body.appendChild(ladder);
 
       const wildNote = document.createElement('p');
       wildNote.style.marginTop = '0.65rem';
       wildNote.style.fontSize = '0.82rem';
       wildNote.style.color = '#c5d0de';
-      wildNote.textContent = `${SYMBOLS[WILD_SYMBOL].glyph} ${SYMBOLS[WILD_SYMBOL].label} substitutes for paying symbols in clusters.`;
+      wildNote.textContent = pickSocialCopy(
+        game,
+        `${wildGlyph} ${wildLabel} substitutes for paying symbols in clusters.`,
+        `${wildGlyph} ${wildLabel} substitutes for qualifying symbols in clusters.`,
+      );
       body.appendChild(wildNote);
 
       const info = document.createElement('div');
@@ -176,8 +236,11 @@ export function registerGameModals(ctx) {
 
       const clusterRounding = document.createElement('p');
       clusterRounding.style.margin = '0.25rem 0';
-      clusterRounding.textContent =
-        'Per-cluster win pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.';
+      clusterRounding.textContent = pickSocialCopy(
+        game,
+        'Per-cluster win pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
+        'Per-cluster amount pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
+      );
       info.appendChild(clusterRounding);
       appendGeneralDisclaimer(info, t);
       body.appendChild(info);

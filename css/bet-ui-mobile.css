@@ -7,20 +7,76 @@
 }
 
 .suki-stake-shell[data-bet-ui-variant='mobile'] {
+  --game-core-shell-scale: 1;
   --bet-ui-mobile-spin-size: 4.75rem;
   --bet-ui-mobile-auto-size: 2.35rem;
+  --bet-ui-mobile-action-step-size: 2.35rem;
+  --bet-ui-mobile-spin-step-gap: 0.3rem;
   --bet-ui-mobile-auto-spin-gap: 0.35rem;
+  --bet-ui-mobile-menu-size: 2.4rem;
   --bet-ui-mobile-actions-height: 5.25rem;
   --bet-ui-mobile-info-height: 2.325rem;
   --bet-ui-mobile-info-gap: 0.4rem;
   --bet-ui-mobile-chrome-gap: 0.5rem;
+  --bet-ui-mobile-edge-inset: 0.65rem;
+  --bet-ui-mobile-stat-value-size: clamp(0.62rem, 3.4vw, 0.95rem);
   --bet-ui-mobile-chrome-height: calc(
     var(--bet-ui-mobile-actions-height) + var(--bet-ui-mobile-info-height) + var(--bet-ui-mobile-chrome-gap)
   );
 }
 
+/* Mobile M / S — compact action controls. */
+.suki-stake-shell[data-suki-screen='mobile-m'][data-bet-ui-variant='mobile'],
+.suki-stake-shell[data-suki-screen='mobile-s'][data-bet-ui-variant='mobile'] {
+  --bet-ui-mobile-stat-value-size: clamp(0.48rem, 3.8vw, 0.82rem);
+  --bet-ui-mobile-action-step-size: 2.05rem;
+  --bet-ui-mobile-auto-size: 2.05rem;
+  --bet-ui-mobile-menu-size: 2.2rem;
+  --bet-ui-mobile-info-gap: 0.28rem;
+}
+
+.suki-stake-shell[data-suki-screen='mobile-s'][data-bet-ui-variant='mobile'] {
+  --bet-ui-mobile-stat-value-size: clamp(0.44rem, 4.2vw, 0.76rem);
+  --bet-ui-mobile-action-step-size: 1.85rem;
+  --bet-ui-mobile-auto-size: 1.85rem;
+  --bet-ui-mobile-menu-size: 2rem;
+  --bet-ui-mobile-spin-step-gap: 0.22rem;
+  --bet-ui-mobile-auto-spin-gap: 0.28rem;
+}
+
 .suki-stake-shell[data-bet-ui-variant='mobile'] .suki-game-core {
-  padding-bottom: var(--bet-ui-mobile-chrome-height);
+  /* Chrome overlays the board — do not reserve bottom inset (portrait padding:0 clears this). */
+  padding-bottom: 0;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .stage {
+  border: none;
+}
+
+/* Mobile landscape — full-width core (no character flank); keeps spin aligned with board. */
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='landscape'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'core';
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='landscape'] .suki-flank-left {
+  display: none !important;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='landscape'] .suki-game-core {
+  width: calc(100% * var(--game-core-shell-scale));
+  max-width: calc(100% * var(--game-core-shell-scale));
+  height: calc(100% * var(--game-core-shell-scale));
+  max-height: calc(100% * var(--game-core-shell-scale));
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='landscape'] .multiplier-panel {
+  display: none !important;
 }
 
 .suki-stake-shell[data-bet-ui-variant='mobile'] .game-core-stack {
@@ -58,9 +114,12 @@
 /* Bottom chrome — both rows stacked, pinned to shell bottom */
 .suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile-chrome {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
   bottom: 0;
+  width: calc(100% * var(--game-core-shell-scale));
+  max-width: calc(100% * var(--game-core-shell-scale));
+  transform: translateX(-50%);
   z-index: 30;
   display: flex;
   flex-direction: column;
@@ -73,14 +132,14 @@
 .bet-ui-mobile__actions {
   position: relative;
   min-height: var(--bet-ui-mobile-actions-height, 5.25rem);
-  padding-inline: 0.25rem;
+  padding-inline: 0;
   flex-shrink: 0;
   overflow: visible;
 }
 
 .bet-ui-mobile__actions-start {
   position: absolute;
-  left: 0.25rem;
+  left: max(var(--bet-ui-mobile-edge-inset, 0.65rem), env(safe-area-inset-left, 0px));
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
@@ -88,7 +147,7 @@
 
 .bet-ui-mobile__actions-end {
   position: absolute;
-  right: 0.25rem;
+  right: max(var(--bet-ui-mobile-edge-inset, 0.65rem), env(safe-area-inset-right, 0px));
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
@@ -98,19 +157,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3.1rem;
-  height: 2.35rem;
-  padding: 0 0.55rem;
+  min-width: 2.35rem;
+  height: 2.1rem;
+  padding: 0 0.38rem;
   border: 1px solid #3d5a80;
-  border-radius: 0.55rem;
+  border-radius: 0.5rem;
   background: linear-gradient(180deg, rgba(28, 52, 92, 0.96), rgba(14, 28, 52, 0.96));
   color: #d8e8ff;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   line-height: 1.1;
   cursor: pointer;
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
 .bet-ui-mobile__buy-btn:disabled {
@@ -120,23 +180,30 @@
 
 .bet-ui-mobile__spin-cluster {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bet-ui-mobile__play-cluster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bet-ui-mobile__auto-cluster {
+  position: absolute;
   left: calc(
-    50% - var(--bet-ui-mobile-auto-size) - var(--bet-ui-mobile-auto-spin-gap) -
-      (var(--bet-ui-mobile-spin-size) / 2)
+    50% - (var(--bet-ui-mobile-spin-size) / 2) - var(--bet-ui-mobile-spin-step-gap) -
+      var(--bet-ui-mobile-action-step-size) - var(--bet-ui-mobile-auto-spin-gap) -
+      var(--bet-ui-mobile-auto-size)
   );
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  align-items: center;
-  gap: var(--bet-ui-mobile-auto-spin-gap);
-}
-
-.bet-ui-mobile__auto-cluster {
-  position: relative;
-  display: flex;
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 .bet-ui-mobile__auto-progress {
@@ -158,9 +225,50 @@
 }
 
 .bet-ui-mobile__spin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   justify-content: center;
-  flex-shrink: 0;
+  flex: 0 0 var(--bet-ui-mobile-spin-size, 4.75rem);
+  width: var(--bet-ui-mobile-spin-size, 4.75rem);
+  pointer-events: auto;
+}
+
+.bet-ui-mobile__action-step {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bet-ui-mobile-action-step-size, 2.35rem);
+  height: var(--bet-ui-mobile-action-step-size, 2.35rem);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.bet-ui-mobile__action-step--down {
+  right: calc(50% + (var(--bet-ui-mobile-spin-size) / 2) + var(--bet-ui-mobile-spin-step-gap));
+  transform: translateY(-50%);
+}
+
+.bet-ui-mobile__action-step--up {
+  left: calc(50% + (var(--bet-ui-mobile-spin-size) / 2) + var(--bet-ui-mobile-spin-step-gap));
+  transform: translateY(-50%);
+}
+
+.bet-ui-mobile__action-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .bet-ui-mobile__icon-btn {
@@ -175,6 +283,15 @@
   background: #0a0a0a;
   color: #f5f5f5;
   cursor: pointer;
+}
+
+.bet-ui-mobile__icon-btn--menu {
+  width: var(--bet-ui-mobile-menu-size, 2.4rem);
+  height: var(--bet-ui-mobile-menu-size, 2.4rem);
+}
+
+.bet-ui-mobile__icon-btn--menu .bet-ui-mobile__icon {
+  font-size: 1rem;
 }
 
 .bet-ui-mobile__icon-btn--auto {
@@ -217,16 +334,30 @@
   cursor: not-allowed;
 }
 
-/* --- Info row --- */
+/* --- Info row — single semi-transparent bar --- */
 .suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__info {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: var(--bet-ui-mobile-info-gap);
-  align-items: stretch;
-  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
   margin: 0;
-  padding: 0 var(--bet-ui-mobile-info-gap);
+  padding-inline: max(var(--bet-ui-mobile-edge-inset, 0.65rem), env(safe-area-inset-left, 0px))
+    max(var(--bet-ui-mobile-edge-inset, 0.65rem), env(safe-area-inset-right, 0px));
   flex-shrink: 0;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__info-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.55rem 0.55rem 0 0;
+  background: rgba(0, 0, 0, 0.62);
+  color: #f5f5f5;
+  overflow: hidden;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__info-bar > * {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__stat {
@@ -235,27 +366,31 @@
   justify-content: center;
   gap: 0.15rem;
   min-width: 0;
-  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
-  padding: 0.3rem 0.55rem;
-  border-radius: 0.55rem 0.55rem 0 0;
-  background: #0a0a0a;
-  color: #f5f5f5;
+  min-height: 0;
+  padding: 0.15rem 0.35rem;
+  background: transparent;
+  border-radius: 0;
   text-align: center;
   overflow: hidden;
 }
 
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__stat--balance,
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__bet-pick {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .bet-ui-mobile__bet-pick {
-  width: 100%;
   border: 0;
   cursor: pointer;
   font: inherit;
   appearance: none;
   -webkit-tap-highlight-color: transparent;
   justify-content: flex-start;
+  color: inherit;
 }
 
 .bet-ui-mobile__bet-pick:hover:not(:disabled) {
-  background: #141414;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .bet-ui-mobile__bet-pick:disabled {
@@ -270,11 +405,13 @@
 
 .bet-ui-mobile__bet-pick .bet-ui-mobile__stat-value {
   flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  align-self: stretch;
+  text-align: center;
+  line-height: calc(var(--bet-ui-mobile-stat-value-size, 0.95rem) * 1.1);
   min-height: calc(var(--bet-ui-mobile-stat-value-size, 0.95rem) * 1.1);
   overflow: hidden;
+  text-overflow: clip;
 }
 
 .bet-ui-mobile__stat-label {
@@ -296,7 +433,8 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 .bet-ui-mobile__stat-value--win {
@@ -316,38 +454,4 @@
 .bet-ui-mobile__stat-value--win.is-visible.is-hiding,
 .bet-ui-mobile__stat-value--win.is-visible.is-settled.is-hiding {
   opacity: 0;
-}
-
-.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__bet-cluster {
-  display: grid;
-  grid-template-columns: 2.1rem minmax(0, 1fr) 2.1rem;
-  align-items: stretch;
-  min-height: var(--bet-ui-mobile-info-height, 2.325rem);
-  overflow: hidden;
-  border-radius: 0.55rem 0.55rem 0 0;
-}
-
-.bet-ui-mobile__bet-step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: #8a8a8a;
-  color: #f5f5f5;
-  font-size: 0.95rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.bet-ui-mobile__bet-step:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.bet-ui-mobile__bet-cluster .bet-ui-mobile__stat {
-  border-radius: 0;
-  min-height: 0;
-  min-width: 0;
-  padding-inline: 0.35rem;
 }
