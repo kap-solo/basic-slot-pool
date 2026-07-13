@@ -14,14 +14,29 @@ export { WILD_SYMBOL, ORDINARY_SYMBOLS, PREMIUM_SYMBOLS, PAYING_SYMBOLS } from '
 export const MIN_CLUSTER_SIZE = 5;
 export const MAX_CASCADE_LADDER = 8;
 
+/** Legacy tier anchors — used for docs only; pays are per-symbol below. */
 export const ORDINARY_BASE_PAY = 0.1;
 export const PREMIUM_BASE_PAY = 5;
 
-/** All win multipliers snap to this step (0.1× on a $1 bet = $0.10). */
-export const WIN_MULT_STEP = 0.1;
+/** Snap wins to 0.01× ($0.01 on a $1 bet) so shaped symbol pays survive quantization. */
+export const WIN_MULT_STEP = 0.01;
 
 /**
- * Snap a win multiplier to the nearest 0.1× increment.
+ * Base pay at minimum cluster size (× bet, before size + cascade multipliers).
+ * Ordinary spread is wider than premium — each symbol has its own value.
+ */
+export const SYMBOL_BASE_PAY = {
+  CH: 0.08,
+  LM: 0.1,
+  OR: 0.12,
+  GR: 0.14,
+  ST: 4,
+  S7: 5,
+  DM: 5,
+  CR: 6,
+};
+
+/**
  * @param {number} mult
  */
 export function quantizeWinMult(mult) {
@@ -30,18 +45,12 @@ export function quantizeWinMult(mult) {
 }
 
 /**
- * Book / lookup payout in centi-multipliers (100 = 1×), always a multiple of 10.
+ * Book / lookup payout in centi-multipliers (100 = 1×).
  * @param {number} mult
  */
 export function payoutMultiplierFromMult(mult) {
   return Math.round(quantizeWinMult(mult) * 100);
 }
-
-/** Base pay at minimum cluster size (× bet, before size + cascade multipliers). */
-export const SYMBOL_BASE_PAY = Object.fromEntries([
-  ...ORDINARY_SYMBOLS.map((id) => [id, ORDINARY_BASE_PAY]),
-  ...PREMIUM_SYMBOLS.map((id) => [id, PREMIUM_BASE_PAY]),
-]);
 
 /** Cluster-size multiplier — steeper at the top for polarised tail. */
 export const CLUSTER_SIZE_MULTIPLIERS = {
@@ -87,20 +96,11 @@ export function cascadeMultiplier(cascadeIndex) {
   return Math.min(Math.max(1, cascadeIndex), MAX_CASCADE_LADDER);
 }
 
-/** Display rows for paytable modal (client). */
-export const CLUSTER_PAYTABLE = [
-  {
-    tier: 'ordinary',
-    symbols: ORDINARY_SYMBOLS,
-    minSize: MIN_CLUSTER_SIZE,
-    multiplier: ORDINARY_BASE_PAY,
-    label: 'Ordinary symbols',
-  },
-  {
-    tier: 'premium',
-    symbols: PREMIUM_SYMBOLS,
-    minSize: MIN_CLUSTER_SIZE,
-    multiplier: PREMIUM_BASE_PAY,
-    label: 'Premium symbols',
-  },
-];
+/** Display rows for paytable modal — one row per paying symbol. */
+export const CLUSTER_PAYTABLE = PAYING_SYMBOLS.map((symbolId) => ({
+  symbolId,
+  symbols: [symbolId],
+  minSize: MIN_CLUSTER_SIZE,
+  multiplier: SYMBOL_BASE_PAY[symbolId],
+  label: symbolId,
+}));

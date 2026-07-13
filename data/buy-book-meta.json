@@ -2,341 +2,341 @@
   "10001": {
     "band": "buy_low",
     "seed": 102,
-    "totalMultiplier": 6.5
+    "totalMultiplier": 6.46
   },
   "10002": {
     "band": "buy_low",
-    "seed": 110,
-    "totalMultiplier": 10.2
+    "seed": 104,
+    "totalMultiplier": 11.39
   },
   "10003": {
     "band": "buy_low",
-    "seed": 116,
-    "totalMultiplier": 10.4
+    "seed": 110,
+    "totalMultiplier": 8.22
   },
   "10004": {
     "band": "buy_low",
-    "seed": 117,
-    "totalMultiplier": 11.2
+    "seed": 116,
+    "totalMultiplier": 8.44
   },
   "10005": {
     "band": "buy_low",
-    "seed": 128,
-    "totalMultiplier": 10.1
+    "seed": 122,
+    "totalMultiplier": 10.22
   },
   "10006": {
     "band": "buy_low",
-    "seed": 136,
-    "totalMultiplier": 11.3
+    "seed": 128,
+    "totalMultiplier": 8.1
   },
   "10007": {
     "band": "buy_low",
-    "seed": 161,
-    "totalMultiplier": 11.4
+    "seed": 130,
+    "totalMultiplier": 6.12
   },
   "10008": {
     "band": "buy_low",
-    "seed": 170,
-    "totalMultiplier": 10
+    "seed": 136,
+    "totalMultiplier": 11.32
   },
   "10009": {
     "band": "buy_low",
-    "seed": 179,
-    "totalMultiplier": 11.5
+    "seed": 146,
+    "totalMultiplier": 10.24
   },
   "10010": {
     "band": "buy_low",
-    "seed": 189,
-    "totalMultiplier": 10.3
+    "seed": 153,
+    "totalMultiplier": 6.88
   },
   "10011": {
     "band": "buy_core",
     "seed": 37994,
-    "totalMultiplier": 17.5
+    "totalMultiplier": 18.73
   },
   "10012": {
     "band": "buy_core",
     "seed": 37998,
-    "totalMultiplier": 16.2
+    "totalMultiplier": 15.28
   },
   "10013": {
     "band": "buy_core",
     "seed": 38000,
-    "totalMultiplier": 17.9
+    "totalMultiplier": 16.5
   },
   "10014": {
     "band": "buy_core",
     "seed": 38006,
-    "totalMultiplier": 15.1
+    "totalMultiplier": 15.08
   },
   "10015": {
     "band": "buy_core",
     "seed": 38008,
-    "totalMultiplier": 17.6
+    "totalMultiplier": 16.44
   },
   "10016": {
+    "band": "buy_core",
+    "seed": 38010,
+    "totalMultiplier": 14.65
+  },
+  "10017": {
     "band": "buy_core",
     "seed": 38020,
     "totalMultiplier": 16
   },
-  "10017": {
-    "band": "buy_core",
-    "seed": 38021,
-    "totalMultiplier": 18
-  },
   "10018": {
     "band": "buy_core",
-    "seed": 38029,
-    "totalMultiplier": 19.8
+    "seed": 38021,
+    "totalMultiplier": 16.6
   },
   "10019": {
     "band": "buy_core",
-    "seed": 38035,
-    "totalMultiplier": 20.2
+    "seed": 38027,
+    "totalMultiplier": 16.12
   },
   "10020": {
     "band": "buy_core",
-    "seed": 38036,
-    "totalMultiplier": 16.3
+    "seed": 38029,
+    "totalMultiplier": 20.16
   },
   "10021": {
     "band": "buy_core",
-    "seed": 38037,
-    "totalMultiplier": 15.3
+    "seed": 38030,
+    "totalMultiplier": 15.1
   },
   "10022": {
     "band": "buy_core",
-    "seed": 38045,
-    "totalMultiplier": 20.3
+    "seed": 38035,
+    "totalMultiplier": 17.24
   },
   "10023": {
     "band": "buy_core",
-    "seed": 38046,
-    "totalMultiplier": 15.9
+    "seed": 38036,
+    "totalMultiplier": 16.29
   },
   "10024": {
     "band": "buy_core",
-    "seed": 38052,
-    "totalMultiplier": 17.3
+    "seed": 38038,
+    "totalMultiplier": 15.96
   },
   "10025": {
     "band": "buy_core",
-    "seed": 38057,
-    "totalMultiplier": 17.4
+    "seed": 38041,
+    "totalMultiplier": 17.44
   },
   "10026": {
     "band": "buy_core",
-    "seed": 38062,
-    "totalMultiplier": 14
+    "seed": 38045,
+    "totalMultiplier": 18.34
   },
   "10027": {
     "band": "buy_core",
-    "seed": 38069,
-    "totalMultiplier": 16.1
+    "seed": 38046,
+    "totalMultiplier": 14.92
   },
   "10028": {
     "band": "buy_core",
-    "seed": 38076,
-    "totalMultiplier": 20.5
+    "seed": 38052,
+    "totalMultiplier": 15.98
   },
   "10029": {
     "band": "buy_core",
-    "seed": 38092,
-    "totalMultiplier": 15.4
+    "seed": 38057,
+    "totalMultiplier": 17.68
   },
   "10030": {
     "band": "buy_core",
-    "seed": 38103,
-    "totalMultiplier": 15.6
+    "seed": 38058,
+    "totalMultiplier": 17.12
   },
   "10031": {
     "band": "buy_core",
-    "seed": 38108,
-    "totalMultiplier": 16.5
+    "seed": 38062,
+    "totalMultiplier": 15.32
   },
   "10032": {
     "band": "buy_core",
-    "seed": 38133,
-    "totalMultiplier": 15.2
+    "seed": 38064,
+    "totalMultiplier": 15.18
   },
   "10033": {
     "band": "buy_core",
-    "seed": 38138,
-    "totalMultiplier": 18.9
+    "seed": 38069,
+    "totalMultiplier": 17.1
   },
   "10034": {
     "band": "buy_core",
-    "seed": 38144,
-    "totalMultiplier": 17.2
+    "seed": 38074,
+    "totalMultiplier": 17.3
   },
   "10035": {
     "band": "buy_core",
-    "seed": 38196,
-    "totalMultiplier": 16.6
+    "seed": 38076,
+    "totalMultiplier": 19.62
   },
   "10036": {
     "band": "buy_core",
-    "seed": 38199,
-    "totalMultiplier": 15.5
+    "seed": 38077,
+    "totalMultiplier": 18.8
   },
   "10037": {
     "band": "buy_core",
-    "seed": 38200,
-    "totalMultiplier": 19.7
+    "seed": 38080,
+    "totalMultiplier": 14.2
   },
   "10038": {
     "band": "buy_core",
-    "seed": 38205,
-    "totalMultiplier": 20
+    "seed": 38092,
+    "totalMultiplier": 15.5
   },
   "10039": {
     "band": "buy_strong",
-    "seed": 75890,
-    "totalMultiplier": 21.5
+    "seed": 75887,
+    "totalMultiplier": 22.26
   },
   "10040": {
     "band": "buy_strong",
-    "seed": 75893,
-    "totalMultiplier": 26.4
+    "seed": 75888,
+    "totalMultiplier": 24.48
   },
   "10041": {
+    "band": "buy_strong",
+    "seed": 75893,
+    "totalMultiplier": 26.46
+  },
+  "10042": {
     "band": "buy_strong",
     "seed": 75894,
     "totalMultiplier": 22.6
   },
-  "10042": {
+  "10043": {
+    "band": "buy_strong",
+    "seed": 75895,
+    "totalMultiplier": 21.18
+  },
+  "10044": {
     "band": "buy_strong",
     "seed": 75900,
     "totalMultiplier": 22
   },
-  "10043": {
-    "band": "buy_strong",
-    "seed": 75902,
-    "totalMultiplier": 23.1
-  },
-  "10044": {
-    "band": "buy_strong",
-    "seed": 75912,
-    "totalMultiplier": 27.2
-  },
   "10045": {
     "band": "buy_strong",
-    "seed": 75913,
-    "totalMultiplier": 25.4
+    "seed": 75902,
+    "totalMultiplier": 23.53
   },
   "10046": {
     "band": "buy_strong",
-    "seed": 75920,
-    "totalMultiplier": 21
+    "seed": 75912,
+    "totalMultiplier": 24.12
   },
   "10047": {
     "band": "buy_strong",
-    "seed": 75922,
-    "totalMultiplier": 27.3
+    "seed": 75913,
+    "totalMultiplier": 25.27
   },
   "10048": {
     "band": "buy_strong",
-    "seed": 75940,
-    "totalMultiplier": 23.6
+    "seed": 75922,
+    "totalMultiplier": 25.32
   },
   "10049": {
     "band": "buy_strong",
-    "seed": 75946,
-    "totalMultiplier": 26.3
+    "seed": 75930,
+    "totalMultiplier": 21.92
   },
   "10050": {
     "band": "buy_strong",
-    "seed": 75953,
-    "totalMultiplier": 27.7
+    "seed": 75940,
+    "totalMultiplier": 25.91
   },
   "10051": {
     "band": "buy_strong",
-    "seed": 75958,
-    "totalMultiplier": 26.6
+    "seed": 75953,
+    "totalMultiplier": 25.28
   },
   "10052": {
     "band": "buy_strong",
-    "seed": 75969,
-    "totalMultiplier": 23.7
+    "seed": 75958,
+    "totalMultiplier": 24.86
   },
   "10053": {
     "band": "buy_strong",
-    "seed": 75970,
-    "totalMultiplier": 26.2
+    "seed": 75969,
+    "totalMultiplier": 23.36
   },
   "10054": {
     "band": "buy_strong",
-    "seed": 75971,
-    "totalMultiplier": 21.3
+    "seed": 75970,
+    "totalMultiplier": 25.29
   },
   "10055": {
     "band": "buy_strong",
-    "seed": 75992,
-    "totalMultiplier": 23.2
+    "seed": 75971,
+    "totalMultiplier": 21.1
   },
   "10056": {
     "band": "buy_strong",
-    "seed": 75997,
-    "totalMultiplier": 22.7
+    "seed": 75990,
+    "totalMultiplier": 26.29
   },
   "10057": {
     "band": "buy_peak",
-    "seed": 113778,
-    "totalMultiplier": 28.1
+    "seed": 113782,
+    "totalMultiplier": 29.17
   },
   "10058": {
     "band": "buy_peak",
-    "seed": 113782,
-    "totalMultiplier": 29.6
+    "seed": 113783,
+    "totalMultiplier": 32.08
   },
   "10059": {
     "band": "buy_peak",
-    "seed": 113783,
-    "totalMultiplier": 37.6
+    "seed": 113786,
+    "totalMultiplier": 29.29
   },
   "10060": {
     "band": "buy_peak",
-    "seed": 113786,
-    "totalMultiplier": 30.3
+    "seed": 113796,
+    "totalMultiplier": 37.12
   },
   "10061": {
     "band": "buy_peak",
-    "seed": 113796,
-    "totalMultiplier": 32.6
+    "seed": 113803,
+    "totalMultiplier": 38.24
   },
   "10062": {
     "band": "buy_peak",
-    "seed": 113803,
-    "totalMultiplier": 41.6
+    "seed": 113806,
+    "totalMultiplier": 29.1
   },
   "10063": {
     "band": "buy_peak",
     "seed": 113815,
-    "totalMultiplier": 37.8
+    "totalMultiplier": 36.94
   },
   "10064": {
     "band": "buy_peak",
     "seed": 113818,
-    "totalMultiplier": 28.3
+    "totalMultiplier": 28.38
   },
   "10065": {
     "band": "buy_rare",
     "seed": 151710,
-    "totalMultiplier": 45.4
+    "totalMultiplier": 44.19
   },
   "10066": {
     "band": "buy_rare",
     "seed": 151731,
-    "totalMultiplier": 42.2
+    "totalMultiplier": 44.62
   },
   "10067": {
     "band": "buy_rare",
     "seed": 151740,
-    "totalMultiplier": 61.4
+    "totalMultiplier": 60.16
   },
   "10068": {
     "band": "buy_rare",
     "seed": 151756,
-    "totalMultiplier": 58.8
+    "totalMultiplier": 58.32
   }
 }

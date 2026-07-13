@@ -1,5 +1,5 @@
 /**
- * Desktop bet UI — bottom chrome bar (menu, stats, stepper, spin, autoplay).
+ * Desktop bet UI — four grouped chrome panels (menu/stats, bet, spin, buy).
  */
 
 /**
@@ -39,39 +39,40 @@ export function mountDesktopBetUi({
   chrome.className = 'bet-ui-desktop-chrome';
   chrome.hidden = true;
 
-  const bar = document.createElement('div');
-  bar.className = 'bet-ui-desktop__bar';
+  const dock = document.createElement('div');
+  dock.className = 'bet-ui-desktop__dock';
+
+  const menuStatsGroup = document.createElement('div');
+  menuStatsGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--menu-stats';
+
+  const betGroup = document.createElement('div');
+  betGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--bet';
+
+  const playGroup = document.createElement('div');
+  playGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--play';
+
+  const buyGroup = document.createElement('div');
+  buyGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--buy';
 
   const menuBtn = createIconButton('menu', 'Menu', '☰');
 
-  const stats = document.createElement('div');
-  stats.className = 'bet-ui-desktop__stats';
-
   const balanceStat = createStatBlock('balance', 'Balance');
   const winStat = createStatBlock('win', 'Win');
-  winStat.root.classList.add('bet-ui-desktop__stat--center');
   winStat.valueEl.classList.add('bet-ui-desktop__stat-value--win');
   winStat.valueEl.textContent = '';
+
+  menuStatsGroup.append(menuBtn, balanceStat.root, winStat.root);
+
   const betPickBtn = createBetPickButton();
-
-  stats.append(balanceStat.root);
-
-  const controls = document.createElement('div');
-  controls.className = 'bet-ui-desktop__controls';
-
-  const playCluster = document.createElement('div');
-  playCluster.className = 'bet-ui-desktop__play-cluster';
-
   const stepper = document.createElement('div');
   stepper.className = 'bet-ui-desktop__stepper';
   const betUpBtn = createStepButton('up', 'Increase bet', '+');
   const betDownBtn = createStepButton('down', 'Decrease bet', '−');
   stepper.append(betUpBtn, betDownBtn);
+  betGroup.append(betPickBtn.root, stepper);
 
   const spinSlot = document.createElement('div');
   spinSlot.className = 'bet-ui-desktop__spin';
-
-  playCluster.append(betPickBtn.root, stepper, spinSlot);
 
   const autoCluster = document.createElement('div');
   autoCluster.className = 'bet-ui-desktop__auto-cluster';
@@ -81,10 +82,17 @@ export function mountDesktopBetUi({
   autoProgress.hidden = true;
   autoCluster.append(autoBtn, autoProgress);
 
-  controls.append(playCluster, autoCluster);
+  const autoPanel = document.createElement('div');
+  autoPanel.className = 'bet-ui-desktop__auto-panel';
+  autoPanel.append(autoCluster);
+
+  playGroup.append(spinSlot, autoPanel);
+
   const buyBtn = createBuyButton();
-  bar.append(menuBtn, stats, winStat.root, controls, buyBtn);
-  chrome.append(bar);
+  buyGroup.append(buyBtn);
+
+  dock.append(menuStatsGroup, betGroup, playGroup, buyGroup);
+  chrome.append(dock);
   stakeShell.appendChild(chrome);
 
   const statValueEls = [balanceStat.valueEl, winStat.valueEl, betPickBtn.valueEl];
@@ -95,6 +103,7 @@ export function mountDesktopBetUi({
   for (const stat of [balanceStat, winStat, betPickBtn]) {
     resizeObserver?.observe(stat.root);
   }
+  resizeObserver?.observe(menuStatsGroup);
 
   let active = false;
 
@@ -127,12 +136,12 @@ export function mountDesktopBetUi({
   function fitStatValue(valueEl) {
     valueEl.style.fontSize = '';
     const max = parseFloat(getComputedStyle(valueEl).fontSize) || 15;
-    const min = Math.max(8, max * 0.45);
+    const min = 6;
     let size = max;
     valueEl.style.fontSize = `${size}px`;
 
     while (size > min && valueEl.scrollWidth > valueEl.clientWidth + 1) {
-      size -= 0.5;
+      size -= 0.25;
       valueEl.style.fontSize = `${size}px`;
     }
   }

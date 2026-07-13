@@ -8,6 +8,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeLookup } from '../math/analyze.mjs';
+import { FEATURE_WEIGHT_PROFILE } from '../math/feature-weight-profile.mjs';
+import { TEASE_WEIGHT_PROFILE } from '../math/tease-weight-profile.mjs';
 import { MAX_RTP, TARGET_RTP, WEIGHT_PROFILE } from '../math/weight-profile.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,7 +42,9 @@ const RTP_LOW_TOLERANCE = 0.00005;
 /** @type {{ id: number, weight: number, payout: number, band: string }[]} */
 const lookup = [];
 
-for (const row of WEIGHT_PROFILE) {
+const PROFILE_ROWS = [...WEIGHT_PROFILE, ...TEASE_WEIGHT_PROFILE, ...FEATURE_WEIGHT_PROFILE];
+
+for (const row of PROFILE_ROWS) {
   const ids = idsByBand.get(row.band) ?? [];
   if (!ids.length) {
     console.warn(`warn: no books in band "${row.band}"`);
@@ -49,10 +53,16 @@ for (const row of WEIGHT_PROFILE) {
 
   const bandSpinBudget = row.prob * WEIGHT_SUM;
 
-  if (row.band === 'loss') {
+  const isZeroPayoutBand = row.maxMult === 0 && row.minMult === 0;
+  if (row.band === 'loss' || isZeroPayoutBand) {
     const each = Math.max(1, Math.floor(bandSpinBudget / ids.length));
     for (const id of ids) {
-      lookup.push({ id, band: row.band, weight: each, payout: 0 });
+      lookup.push({
+        id,
+        band: row.band,
+        weight: each,
+        payout: books.get(id).payoutMultiplier,
+      });
     }
     continue;
   }

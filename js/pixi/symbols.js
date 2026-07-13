@@ -4,6 +4,7 @@
  */
 
 import { SYMBOLS } from '../config.js';
+import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 
 /** @typedef {{ skeleton: string, atlas: string, scale?: number }} SpineAssetPaths */
 
@@ -65,11 +66,10 @@ export function isOrdinarySymbol(id) {
   return symbolTier(id) === 'ordinary';
 }
 
-/** Pay badge shown on placeholder tiles. */
+/** Pay badge shown on placeholder tiles — per-symbol shaped pays. */
 export function symbolPayBadge(id) {
   const tier = symbolTier(id);
   if (tier === 'wild') return 'WILD';
   if (tier === 'scatter') return null;
-  if (tier === 'premium') return '5×';
-  return '0.1×';
+  return formatBasePayMult(basePayForSymbol(id));
 }

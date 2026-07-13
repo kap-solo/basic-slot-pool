@@ -1,6 +1,9 @@
 /**
- * Player-facing profile — frequent token wins, moderate 5–8× hits, rare tail.
+ * Player-facing profile — frequent token wins, moderate hits, rare tail.
+ * Per-symbol pays in paytable.mjs — ordinary 0.08–0.14×, premium 4–6×.
  * Target ~45% hit rate, ~55% dead spins, ~96% RTP before lookup fine-tune.
+ * Scatter tease (~1.5% spins) via tease-weight-profile.mjs.
+ * Natural scatter feature adds ~0.5% trigger / ~8% RTP via feature-weight-profile.mjs.
  */
 
 export const TARGET_RTP = 0.96;

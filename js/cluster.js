@@ -1,11 +1,26 @@
 /**
  * Cluster pay rules — math lives in books; these helpers are for client display.
+ * Keep SYMBOL_BASE_PAY in sync with math/paytable.mjs.
  */
 
 import { ORDINARY_SYMBOLS, PREMIUM_SYMBOLS, SYMBOLS, WILD_SYMBOL } from './config.js';
 
 export const MIN_CLUSTER_SIZE = 5;
 export const MAX_CASCADE_LADDER = 8;
+export const WIN_MULT_STEP = 0.01;
+
+/** @type {Record<string, number>} */
+export const SYMBOL_BASE_PAY = {
+  CH: 0.08,
+  LM: 0.1,
+  OR: 0.12,
+  GR: 0.14,
+  ST: 4,
+  S7: 5,
+  DM: 5,
+  CR: 6,
+};
+
 export const ORDINARY_BASE_PAY = 0.1;
 export const PREMIUM_BASE_PAY = 5;
 
@@ -29,23 +44,14 @@ export const CLUSTER_SIZE_MULTIPLIERS = {
  * @property {number} multiplier
  */
 
-/** Display paytable for How to Play / paytable modal. */
-export const CLUSTER_PAYTABLE = [
-  {
-    tier: 'ordinary',
-    symbols: ORDINARY_SYMBOLS,
-    minSize: MIN_CLUSTER_SIZE,
-    multiplier: ORDINARY_BASE_PAY,
-    label: 'Ordinary symbols',
-  },
-  {
-    tier: 'premium',
-    symbols: PREMIUM_SYMBOLS,
-    minSize: MIN_CLUSTER_SIZE,
-    multiplier: PREMIUM_BASE_PAY,
-    label: 'Premium symbols',
-  },
-];
+/** One paytable row per symbol — shaped pays, not flat tiers. */
+export const CLUSTER_PAYTABLE = [...ORDINARY_SYMBOLS, ...PREMIUM_SYMBOLS].map((symbolId) => ({
+  symbolId,
+  symbols: [symbolId],
+  minSize: MIN_CLUSTER_SIZE,
+  multiplier: SYMBOL_BASE_PAY[symbolId],
+  label: SYMBOLS[symbolId]?.label ?? symbolId,
+}));
 
 /** @param {number} col @param {number} row */
 export function clusterCellKey(col, row) {
@@ -67,10 +73,18 @@ export function winCellsFromClusters(clusters) {
 
 /** @param {string} symbolId */
 export function basePayForSymbol(symbolId) {
-  const tier = SYMBOLS[symbolId]?.tier;
-  if (tier === 'ordinary') return ORDINARY_BASE_PAY;
-  if (tier === 'premium') return PREMIUM_BASE_PAY;
-  return 0;
+  return SYMBOL_BASE_PAY[symbolId] ?? 0;
+}
+
+/** @param {number} mult */
+export function formatBasePayMult(mult) {
+  if (!Number.isFinite(mult) || mult <= 0) return '—';
+  if (mult >= 1) {
+    const rounded = Math.round(mult * 10) / 10;
+    return Number.isInteger(rounded) ? `${rounded}×` : `${rounded.toFixed(1)}×`;
+  }
+  const rounded = Math.round(mult * 100) / 100;
+  return `${rounded}×`;
 }
 
 /** @param {number} size */
@@ -91,7 +105,7 @@ export function clusterBaseMultiplier(symbolId, size) {
 /** @param {number} mult */
 export function quantizeWinMult(mult) {
   if (!Number.isFinite(mult) || mult <= 0) return 0;
-  return Math.round(mult / ORDINARY_BASE_PAY) * ORDINARY_BASE_PAY;
+  return Math.round(mult / WIN_MULT_STEP) * WIN_MULT_STEP;
 }
 
 /**

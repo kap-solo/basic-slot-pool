@@ -8,10 +8,10 @@ import {
   CLUSTER_SIZE_MULTIPLIERS,
   MAX_CASCADE_LADDER,
   MIN_CLUSTER_SIZE,
+  formatBasePayMult,
   formatSymbolList,
 } from './cluster.js';
 import { GAME, SYMBOLS, WILD_SYMBOL } from './config.js';
-import { formatMult } from './slot.js';
 
 /**
  * @param {object} ctx
@@ -81,6 +81,14 @@ export function registerGameModals(ctx) {
         blobUl.appendChild(li);
       }
       body.appendChild(blobUl);
+
+      const displayNote = document.createElement('p');
+      displayNote.style.marginTop = '0.85rem';
+      displayNote.style.fontSize = '0.82rem';
+      displayNote.style.color = '#8b97a8';
+      displayNote.textContent =
+        'When several clusters win on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.';
+      body.appendChild(displayNote);
     },
   });
 
@@ -109,7 +117,7 @@ export function registerGameModals(ctx) {
       for (const pay of CLUSTER_PAYTABLE) {
         const tr = document.createElement('tr');
         const label = `${pay.label} (${pay.minSize}+ connected): ${formatSymbolList(pay.symbols)}`;
-        const mult = formatMult(pay.multiplier);
+        const mult = formatBasePayMult(pay.multiplier);
         for (const cell of [label, mult]) {
           const td = document.createElement('td');
           td.textContent = cell;
@@ -141,7 +149,7 @@ export function registerGameModals(ctx) {
       ladder.style.marginTop = '0.65rem';
       ladder.style.fontSize = '0.82rem';
       ladder.style.color = '#c5d0de';
-      ladder.textContent = `Cascade ladder: 1st win ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step payout = base × cluster size mult × ladder. On a $1 bet, ordinary clusters start at $0.10 (0.1×); typical small hits land around $0.20 and $0.60. Premium minimum is $5 (5×).`;
+      ladder.textContent = `Cascade ladder: 1st win ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step payout = base × cluster size mult × ladder. Each symbol has its own base pay (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} on a $1 bet at minimum cluster size.`;
       body.appendChild(ladder);
 
       const wildNote = document.createElement('p');
@@ -165,6 +173,12 @@ export function registerGameModals(ctx) {
       rounding.style.margin = '0.25rem 0';
       rounding.textContent = t('roundingNote');
       info.appendChild(rounding);
+
+      const clusterRounding = document.createElement('p');
+      clusterRounding.style.margin = '0.25rem 0';
+      clusterRounding.textContent =
+        'Per-cluster win pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.';
+      info.appendChild(clusterRounding);
       appendGeneralDisclaimer(info, t);
       body.appendChild(info);
     },

@@ -212,7 +212,9 @@
 }
 
 .bet-ui-mobile__play.suki-bet-play:disabled {
-  opacity: 0.45;
+  opacity: 1;
+  color: #5a5a5a;
+  cursor: not-allowed;
 }
 
 /* --- Info row --- */

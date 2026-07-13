@@ -2,7 +2,7 @@
  * Free-spins feature — book events, scatter trigger, multi-spin simulation.
  *
  * Target (v1): 3 scatters on base reveal → 8 free spins, ~16× avg feature total,
- * funded at ~8% RTP @ 1/200 trigger (lookup tuning later).
+ * funded at ~8% RTP @ 1/200 trigger (see feature-weight-profile.mjs + generate-feature-pool).
  */
 
 import {
