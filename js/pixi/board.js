@@ -127,7 +127,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function drawFrame() {
-    const { boardW, boardH, cellW, cellH, ladderBand } = layout;
+    const { boardW, boardH, ladderBand } = layout;
     const padX = framePadTop();
     const padBottom = framePadBottom();
     const outerW = boardW + padX * 2;
@@ -140,21 +140,8 @@ export async function createPixiSlotBoard(hostEl) {
     frame.stroke({ color: 0x3d4f6f, width: 3, alpha: 0.9 });
 
     frame.roundRect(-boardW / 2, -boardH / 2, boardW, boardH, 10);
+    frame.fill({ color: 0x083797, alpha: 1 });
     frame.stroke({ color: 0x1a2438, width: 2, alpha: 0.85 });
-
-    for (let i = 1; i < GAME.reels; i += 1) {
-      const x = -boardW / 2 + i * cellW;
-      frame.moveTo(x, -boardH / 2 + 4);
-      frame.lineTo(x, boardH / 2 - 4);
-      frame.stroke({ color: 0x1f2a3d, width: 1, alpha: 0.65 });
-    }
-
-    for (let row = 1; row < GAME.rows; row += 1) {
-      const y = -boardH / 2 + row * cellH;
-      frame.moveTo(-boardW / 2 + 4, y);
-      frame.lineTo(boardW / 2 - 4, y);
-      frame.stroke({ color: 0x1f2a3d, width: 1, alpha: 0.45 });
-    }
   }
 
   /** @param {Set<string> | null | undefined} winCells */

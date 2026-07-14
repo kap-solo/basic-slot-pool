@@ -29,6 +29,17 @@ function isLiveSymbolNode(node) {
   return !!(root && !root.destroyed);
 }
 
+/** @param {ReturnType<typeof createSymbolNode> | null | undefined} node @param {boolean} moving */
+function setTumbleMotionState(node, moving) {
+  if (!node) return;
+  node.setState(moving ? 'cascade' : 'static');
+}
+
+/** @param {Iterable<ReturnType<typeof createSymbolNode> | null | undefined>} nodes */
+function settleTumbleSymbols(nodes) {
+  for (const node of nodes) node?.setState('static');
+}
+
 /** @param {number} row @param {number} cellH */
 function rowCenterY(row, cellH) {
   return snapPx((row + 0.5) * cellH);
@@ -1604,7 +1615,7 @@ export class ReelColumn {
       node.setWinHighlight(false);
       node.setState('static');
       node.root.alpha = 1;
-      node.root.scale.set(1);
+      node.resetScale?.();
     });
   }
 
@@ -1770,6 +1781,7 @@ export class ReelColumn {
 
     node.root.x = colCenterX(this.cellW);
     node.root.y = targetY - dropDistance;
+    node.setState('cascade');
     strip.addChild(node.root);
 
     const fallMs = Math.round(TIMING.tumbleDropMs / speed);
@@ -1784,6 +1796,8 @@ export class ReelColumn {
       };
       requestAnimationFrame(step);
     });
+
+    node.setState('static');
 
     if (this.tallEnabled && block) {
       for (let r = block.anchorRow; r < block.anchorRow + block.span; r += 1) {
@@ -1891,13 +1905,15 @@ export class ReelColumn {
         node = this.ensureSymbolNodeForBlock(nextBlock, strip, node, { snapY: false });
         node.setDimmed(false);
         node.setWinHighlight(false);
-        node.setState('static');
         node.root.alpha = 1;
-        node.root.scale.set(1);
+        node.resetScale?.();
 
         survivorNodes.push(node);
 
-        if (Math.abs(startY - targetY) > 0.5) {
+        const moving = Math.abs(startY - targetY) > 0.5;
+        setTumbleMotionState(node, moving);
+
+        if (moving) {
           cascadeEntries.push({
             node,
             startY,
@@ -1950,6 +1966,7 @@ export class ReelColumn {
         this.cascadeJellyCancel = cascadeAnim.cancel ?? null;
         await cascadeAnim;
         this.cascadeJellyCancel = null;
+        settleTumbleSymbols(cascadeEntries.map((entry) => entry.node));
         if (!colFills.length) {
           this.cascadeJellySettledPromise = cascadeAnim.settled ?? Promise.resolve();
           await this.cascadeJellySettledPromise;
@@ -2086,7 +2103,7 @@ export class ReelColumn {
 
     this.adoptCascadeFillStripNodes(fillStrip, nodes, stripIds, mainStrip, nextNodes);
 
-    nodes.forEach((node) => node?.setState('static'));
+    nodes.forEach((node) => node?.setState('cascade'));
 
     const stripStartY = -(rowCount * this.cellH);
     const totalScroll = rowCount * this.cellH;
@@ -2162,6 +2179,7 @@ export class ReelColumn {
 
     this.reanchorStripY();
     this.normalizeSymbolGrid();
+    settleTumbleSymbols(nextNodes);
   }
 
   /**
@@ -2228,12 +2246,14 @@ export class ReelColumn {
 
         entry.node.setDimmed(false);
         entry.node.setWinHighlight(false);
-        entry.node.setState('static');
         entry.node.root.alpha = 1;
-        entry.node.root.scale.set(1);
+        entry.node.resetScale?.();
         entry.node.root.x = colCenterX(this.cellW);
 
-        if (entry.oldRow === entry.newRow) continue;
+        const moving = entry.oldRow !== entry.newRow;
+        setTumbleMotionState(entry.node, moving);
+
+        if (!moving) continue;
 
         cascadeEntries.push({
           node: entry.node,
@@ -2270,6 +2290,7 @@ export class ReelColumn {
         this.cascadeJellyCancel = cascadeAnim.cancel ?? null;
         await cascadeAnim;
         this.cascadeJellyCancel = null;
+        settleTumbleSymbols(cascadeEntries.map((entry) => entry.node));
 
         if (!colFills.length) {
           this.cascadeJellySettledPromise = cascadeAnim.settled ?? Promise.resolve();

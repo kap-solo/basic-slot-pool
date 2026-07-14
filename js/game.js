@@ -50,6 +50,8 @@ import {
 import { createDevStatsOverlay } from './devStatsOverlay.js';
 import { createMultiplierPanel } from './multiplierPanel.js';
 import { presentBlobAfterReveal, planRoundBlobPresentation } from './pixi/performanceBlob.js';
+import { setLedgerSpineRegistry } from './pixi/ledgerSpineIcon.js';
+import { loadSpineSymbolRegistry } from './pixi/spineAssets.js';
 import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
@@ -1668,6 +1670,7 @@ async function playDevFeatureSample() {
 
 async function initSlotStage() {
   slotBoard = await createSlotBoard(slotRoot);
+  setLedgerSpineRegistry(await loadSpineSymbolRegistry());
   if (slotStageEl && !featureChrome) {
     featureChrome = createFeatureChrome({
       stageEl: slotStageEl,

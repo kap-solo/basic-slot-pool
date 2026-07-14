@@ -23,7 +23,7 @@ CH: {
     atlas: 'assets/spine/cherry/cherry.atlas',
     scale: 1,
   },
-  animations: { idle: 'idle', land: 'land', win: 'win' },
+  animations: { ...SYMBOL_ANIMATION_DEFAULTS },
 },
 ```
 
@@ -35,8 +35,11 @@ Reload the game — placeholders are used until paths load successfully.
 |-------|---------------------|------|
 | idle / static | `idle` | yes |
 | spin (optional) | `spin` or `idle` | yes |
-| land | `land` | no |
+| land | `land` | no → idle |
+| cascade | `cascade` | no → idle |
 | win | `win` | yes |
+
+During tumble/cascade, moving symbols and incoming refill cells call `cascade` (falls back to `land` if `cascade` has no keyframes yet).
 
 Export from Spine 4.2.x to match `@esotericsoftware/spine-pixi-v8@4.2.74`.
 

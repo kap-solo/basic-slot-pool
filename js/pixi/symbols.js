@@ -7,21 +7,50 @@ import { SYMBOLS } from '../config.js';
 import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 
 /** @typedef {{ skeleton: string, atlas: string, scale?: number }} SpineAssetPaths */
+/** @typedef {{ idle?: string, land?: string, win?: string, cascade?: string, spin?: string }} SymbolAnimations */
 
-/** @type {Record<string, { color: number, accent?: number, spine?: SpineAssetPaths | null, animations?: { idle?: string, land?: string, win?: string } }>} */
+/** Spine track names — export matching keys from the editor. */
+export const SYMBOL_ANIMATION_DEFAULTS = {
+  idle: 'idle',
+  land: 'land',
+  win: 'win',
+  cascade: 'cascade',
+};
+
+/** @type {Record<string, { color: number, accent?: number, spine?: SpineAssetPaths | null, ledgerIcon?: string, animations?: SymbolAnimations }>} */
 export const SYMBOL_VISUAL = {
-  CH: { color: 0x8b4558, accent: 0xc96a7a, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  LM: { color: 0x7a7a2e, accent: 0xb8b84a, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  OR: { color: 0x9a5520, accent: 0xd47a32, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  GR: { color: 0x5c3d7a, accent: 0x8a5cad, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  ST: { color: 0x1a4a8c, accent: 0x3d8fd9, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  S7: { color: 0x6a1a8c, accent: 0xa040d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  CR: { color: 0x8a6500, accent: 0xd4a017, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
-  SC: { color: 0x4a2080, accent: 0xc080ff, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
+  CH: {
+    color: 0x8b4558,
+    accent: 0xc96a7a,
+    spine: {
+      skeleton: 'assets/spine/cherry/cherry.json',
+      atlas: 'assets/spine/cherry/cherry.atlas',
+      scale: 1,
+    },
+    ledgerIcon: 'assets/spine/cherry/cherry.png',
+    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
+  },
+  LM: { color: 0x7a7a2e, accent: 0xb8b84a, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  OR: {
+    color: 0x9a5520,
+    accent: 0xd47a32,
+    spine: {
+      skeleton: 'assets/spine/orange/orange.json',
+      atlas: 'assets/spine/orange/orange.atlas',
+      scale: 1,
+    },
+    ledgerIcon: 'assets/spine/orange/orange.png',
+    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
+  },
+  GR: { color: 0x5c3d7a, accent: 0x8a5cad, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  ST: { color: 0x1a4a8c, accent: 0x3d8fd9, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  S7: { color: 0x6a1a8c, accent: 0xa040d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  CR: { color: 0x8a6500, accent: 0xd4a017, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  SC: { color: 0x4a2080, accent: 0xc080ff, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
   /** Client-only performance blob — green square on the reveal strip. */
-  BL: { color: 0x16a34a, accent: 0xbbf7d0, spine: null, animations: { idle: 'idle', land: 'land', win: 'win' } },
+  BL: { color: 0x16a34a, accent: 0xbbf7d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
 };
 
 export const SYMBOL_IDS = Object.keys(SYMBOLS);
@@ -34,6 +63,11 @@ export function symbolLabel(id) {
 /** @param {string} id */
 export function symbolGlyph(id) {
   return SYMBOLS[id]?.glyph ?? id ?? '?';
+}
+
+/** Static icon for HTML ledger rows — falls back to glyph when unset. */
+export function symbolLedgerIcon(id) {
+  return symbolVisual(id).ledgerIcon ?? null;
 }
 
 /** @param {string} id */

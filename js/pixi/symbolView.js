@@ -15,7 +15,92 @@ import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
 import { MAX_TALL_SPAN } from '../tall-symbols.js';
 import { animateAlphaTargets } from './easing.js';
 
-/** @typedef {'static' | 'spin' | 'land' | 'win'} SymbolState */
+/** @typedef {'static' | 'spin' | 'land' | 'cascade' | 'win'} SymbolState */
+
+/**
+ * @param {import('@esotericsoftware/spine-core').SkeletonData} data
+ * @param {string | null | undefined} name
+ */
+function spineAnimHasKeyframes(data, name) {
+  if (!name) return false;
+  const anim = data.findAnimation(name);
+  return !!anim && anim.timelines.length > 0;
+}
+
+/**
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @param {SymbolState} state
+ */
+function resolveSpineAnimName(visual, state) {
+  if (state === 'static') return visual.animations?.idle ?? 'idle';
+  return visual.animations?.[state] ?? state;
+}
+
+/**
+ * @param {Spine} spine
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ */
+function queueIdleAfterOneShot(spine, visual, entry) {
+  const idle = visual.animations?.idle ?? 'idle';
+  if (!spineAnimHasKeyframes(spine.skeleton.data, idle)) return;
+  entry.listener = {
+    complete: () => {
+      spine.state.setAnimation(0, idle, true);
+    },
+  };
+}
+
+/**
+ * @param {Spine} spine
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @param {SymbolState} state
+ */
+function playSpineSymbolState(spine, visual, state) {
+  const data = spine.skeleton.data;
+  const primary = resolveSpineAnimName(visual, state);
+  const loop = state === 'static' || state === 'win';
+
+  if (spineAnimHasKeyframes(data, primary)) {
+    const entry = spine.state.setAnimation(0, primary, loop);
+    if (!loop) queueIdleAfterOneShot(spine, visual, entry);
+    return;
+  }
+
+  if (state === 'cascade') {
+    const land = visual.animations?.land ?? 'land';
+    if (spineAnimHasKeyframes(data, land)) {
+      const entry = spine.state.setAnimation(0, land, false);
+      queueIdleAfterOneShot(spine, visual, entry);
+    }
+  }
+}
+
+/**
+ * Ledger icon — play win once when available, then loop idle.
+ * @param {Spine} spine
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ */
+export function playLedgerSpineAnimation(spine, visual) {
+  const data = spine.skeleton.data;
+  const win = visual.animations?.win ?? 'win';
+  const idle = visual.animations?.idle ?? 'idle';
+
+  if (spineAnimHasKeyframes(data, win)) {
+    const entry = spine.state.setAnimation(0, win, false);
+    if (spineAnimHasKeyframes(data, idle)) {
+      entry.listener = {
+        complete: () => {
+          spine.state.setAnimation(0, idle, true);
+        },
+      };
+    }
+    return;
+  }
+
+  if (spineAnimHasKeyframes(data, idle)) {
+    spine.state.setAnimation(0, idle, true);
+  }
+}
 
 export const SYMBOL_DIM_ALPHA = 0.38;
 
@@ -409,22 +494,31 @@ export function createPlaceholderSymbol(id, cellW, cellH, span = 1) {
  * @param {number} cellW
  * @param {number} blockHeight
  * @param {{ idle?: string, land?: string, win?: string }} [animations]
+ * @returns {{ root: Container, spine: Spine }}
  */
 export function createSpineSymbol(skeletonData, cellW, blockHeight, animations = {}) {
   const spine = new Spine(skeletonData);
-  const bounds = skeletonData.width && skeletonData.height
-    ? { w: skeletonData.width, h: skeletonData.height }
-    : { w: cellW, h: blockHeight };
-  const scale = (Math.min(cellW, blockHeight) * 0.82) / Math.max(bounds.w, bounds.h);
+  spine.skeleton.setToSetupPose();
+  spine.update(0);
+
+  const bounds = spine.getLocalBounds();
+  const fit = Math.min(cellW, blockHeight) * 0.82;
+  const scale =
+    fit / Math.max(bounds.width > 0 ? bounds.width : cellW, bounds.height > 0 ? bounds.height : blockHeight, 1);
   spine.scale.set(scale);
+  spine.x = -(bounds.x + bounds.width / 2) * scale;
+  spine.y = -(bounds.y + bounds.height / 2) * scale;
   spine.eventMode = 'none';
 
   const idle = animations.idle ?? 'idle';
-  if (spine.skeleton.data.findAnimation(idle)) {
+  if (spineAnimHasKeyframes(spine.skeleton.data, idle)) {
     spine.state.setAnimation(0, idle, true);
   }
 
-  return spine;
+  const root = new Container();
+  root.eventMode = 'none';
+  root.addChild(spine);
+  return { root, spine };
 }
 
 /**
@@ -440,41 +534,50 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
   const blockHeight = cellH * span;
   const visual = symbolVisual(id);
   const useTallPlaceholder = symbolTier(id) === 'premium' && span > 1;
-  const node =
-    spineData && !useTallPlaceholder
-      ? createSpineSymbol(spineData, cellW, blockHeight, visual.animations)
-      : createPlaceholderSymbol(id, cellW, cellH, span);
+  /** @type {Container} */
+  let root;
+  /** @type {Spine | null} */
+  let spine = null;
+
+  if (spineData && !useTallPlaceholder) {
+    const built = createSpineSymbol(spineData, cellW, blockHeight, visual.animations);
+    root = built.root;
+    spine = built.spine;
+  } else {
+    root = createPlaceholderSymbol(id, cellW, cellH, span);
+  }
 
   return {
-    root: node,
+    root,
+    spine,
     symbolId: id,
     span,
     anchorRow: 0,
     setState(nextState) {
-      if (!(node instanceof Spine)) return;
-      const anim = visual.animations?.[nextState === 'static' ? 'idle' : nextState];
-      if (!anim || !node.skeleton.data.findAnimation(anim)) return;
-      const loop = nextState === 'win' || nextState === 'static';
-      node.state.setAnimation(0, anim, loop);
+      if (!spine) return;
+      playSpineSymbolState(spine, visual, nextState);
     },
     setDimmed(dimmed) {
-      node.alpha = dimmed ? SYMBOL_DIM_ALPHA : 1;
+      root.alpha = dimmed ? SYMBOL_DIM_ALPHA : 1;
     },
     async animateDimmed(dimmed, { durationMs = 280 } = {}) {
       const target = dimmed ? SYMBOL_DIM_ALPHA : 1;
-      const from = node.alpha;
+      const from = root.alpha;
       if (Math.abs(from - target) < 0.02) {
-        node.alpha = target;
+        root.alpha = target;
         return;
       }
-      await animateAlphaTargets([{ object: node, from, to: target }], { durationMs });
+      await animateAlphaTargets([{ object: root, from, to: target }], { durationMs });
+    },
+    resetScale() {
+      root.scale.set(1);
     },
     setWinHighlight(on) {
-      if (node instanceof Spine && on) {
+      if (spine && on) {
         this.setState('win');
         return;
       }
-      node.scale.set(on ? 1.08 : 1);
+      root.scale.set(on ? 1.08 : 1);
     },
   };
 }

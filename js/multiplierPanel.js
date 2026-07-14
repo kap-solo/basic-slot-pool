@@ -4,7 +4,8 @@
  */
 
 import { clusterBaseMultiplier } from './cluster.js';
-import { symbolGlyph, symbolLabel } from './pixi/symbols.js';
+import { appendLedgerClusterLabel, destroyLedgerSpineIcons } from './pixi/ledgerSpineIcon.js';
+import { symbolLabel } from './pixi/symbols.js';
 
 /**
  * @param {number} ms
@@ -42,7 +43,7 @@ export function createMultiplierPanel({ panelEl, ledgerEl }) {
 
     const clusterCell = document.createElement('td');
     clusterCell.className = 'ledger-entry-cluster';
-    clusterCell.textContent = `${size} × ${symbolGlyph(cluster.symbol)}`;
+    appendLedgerClusterLabel(clusterCell, size, cluster.symbol);
 
     const winCell = document.createElement('td');
     winCell.className = 'ledger-entry-win';
@@ -74,6 +75,7 @@ export function createMultiplierPanel({ panelEl, ledgerEl }) {
     await sleep(durationMs);
     if (token !== fadeToken) return;
 
+    destroyLedgerSpineIcons(ledgerEl);
     ledgerEl.replaceChildren();
     ledgerEl.classList.remove('multiplier-ledger--fading');
   }
@@ -81,6 +83,7 @@ export function createMultiplierPanel({ panelEl, ledgerEl }) {
   /** Clear ledger immediately (no fade). */
   function clearLedger() {
     fadeToken += 1;
+    destroyLedgerSpineIcons(ledgerEl);
     ledgerEl.replaceChildren();
     ledgerEl.classList.remove('multiplier-ledger--fading');
   }
