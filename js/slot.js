@@ -21,7 +21,7 @@ export async function createSlotBoard(hostEl) {
 /**
  * @param {Awaited<ReturnType<typeof createSlotBoard>>} boardUi
  * @param {string[][]} finalBoard
- * @param {{ speed?: number }} [options]
+ * @param {{ speed?: number, onMotionStart?: () => void, onAllLandsImpact?: () => void }} [options]
  */
 export async function animateSlotSpin(boardUi, finalBoard, options = {}) {
   await boardUi.animateSpin(finalBoard, options);

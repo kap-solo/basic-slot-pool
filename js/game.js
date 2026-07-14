@@ -696,12 +696,11 @@ function showStaticRound(round) {
 
 async function animateReveal(board) {
   if (!slotBoard) return;
-  try {
-    reelSpinAudio.start(() => gameAudio.unlock());
-    await animateSlotSpin(slotBoard, board, { speed: animationSpeed });
-  } finally {
-    reelSpinAudio.stop();
-  }
+  await animateSlotSpin(slotBoard, board, {
+    speed: animationSpeed,
+    onMotionStart: () => reelSpinAudio.start(() => gameAudio.unlock()),
+    onAllLandsImpact: () => reelSpinAudio.stop({ fadeMs: 60 }),
+  });
 }
 
 async function presentGameReveal(event, { animate = true, round = null } = {}) {
@@ -723,7 +722,6 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
 
   if (animate) {
     await animateReveal(revealBoard);
-    reelSpinAudio.stop();
     if (blobPlan) {
       slotBoard.syncBookColumnData(event.board);
       await presentBlobAfterReveal(slotBoard, event.board, blobPlan, {
@@ -1480,6 +1478,7 @@ function stopAutoplay() {
   if (!autoplaying) return;
   autoplayStopRequested = true;
   slotBoard?.cancelPresentation?.();
+  reelSpinAudio.stop({ fadeMs: 0 });
   syncControls();
 }
 
@@ -1724,6 +1723,7 @@ if (replayMode) {
     onContinue: () => {
       revealGameShell();
       gameAudio.unlock();
+      reelSpinAudio.prime();
     },
   });
   attachPreloaderCommitLabel();

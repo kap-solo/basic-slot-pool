@@ -585,11 +585,15 @@ export async function createPixiSlotBoard(hostEl) {
       await Promise.all(reels.map((reel) => reel.waitUntilIdle()));
     },
 
+    async waitUntilAllLandImpacts() {
+      await Promise.all(reels.map((reel) => reel.waitUntilLandImpact()));
+    },
+
     /**
      * @param {string[][]} finalBoard
-     * @param {{ speed?: number }} [opts]
+     * @param {{ speed?: number, onMotionStart?: () => void, onAllLandsImpact?: () => void }} [opts]
      */
-    async animateSpin(finalBoard, { speed = 1 } = {}) {
+    async animateSpin(finalBoard, { speed = 1, onMotionStart, onAllLandsImpact } = {}) {
       this.clearWinHighlight();
       cascadeLadder.reset();
 
@@ -599,6 +603,7 @@ export async function createPixiSlotBoard(hostEl) {
       });
 
       await scaledDelay(TIMING.preSpinMs, speed);
+      onMotionStart?.();
 
       try {
         const board = visualBoard(finalBoard);
@@ -617,6 +622,9 @@ export async function createPixiSlotBoard(hostEl) {
             })(),
           ),
         );
+
+        await this.waitUntilAllLandImpacts();
+        onAllLandsImpact?.();
       } finally {
         await Promise.all(reels.map((reel) => reel.waitUntilIdle()));
         reels.forEach((reel) => {

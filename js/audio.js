@@ -30,13 +30,25 @@ export function wireTemplateAudio(gameAudio) {
 }
 
 /**
- * Reel spin bed — plays once per spin; stops when reels land.
+ * Reel spin bed — starts when reveal motion begins, stops on last reel land impact.
  *
  * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
  */
 export function createReelSpinAudio(audioPrefs) {
   /** @type {HTMLAudioElement | null} */
   let reelEl = null;
+  let fadeToken = 0;
+
+  function sfxLevel() {
+    return audioPrefs.sfxVolume?.value ?? (audioPrefs.sfx?.enabled ? 1 : 0);
+  }
+
+  function applySfxVolume() {
+    if (!reelEl) return;
+    reelEl.volume = sfxLevel();
+  }
+
+  audioPrefs.sfxVolume?.onChange(applySfxVolume);
 
   function ensureElement() {
     const url = GAME_AUDIO_ASSETS.sfx?.reels;
@@ -50,23 +62,70 @@ export function createReelSpinAudio(audioPrefs) {
       reelEl = new Audio(url);
       reelEl.loop = false;
       reelEl.preload = 'auto';
+      reelEl.volume = 1;
     }
     return reelEl;
   }
 
+  function halt({ fadeMs = 0 } = {}) {
+    if (!reelEl) return;
+    const el = reelEl;
+    const token = ++fadeToken;
+
+    if (fadeMs <= 0) {
+      el.pause();
+      el.currentTime = 0;
+      applySfxVolume();
+      return;
+    }
+
+    const startVol = el.volume;
+    const start = performance.now();
+    /** @param {number} now */
+    const step = (now) => {
+      if (token !== fadeToken) return;
+      const t = Math.min(1, (now - start) / fadeMs);
+      el.volume = startVol * (1 - t);
+      if (t < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+      el.pause();
+      el.currentTime = 0;
+      applySfxVolume();
+    };
+    requestAnimationFrame(step);
+  }
+
   return {
-    start(unlock) {
-      if (!audioPrefs.sfx.enabled) return;
+    /** Warm the decoder — call after first user gesture to cut mobile start latency. */
+    prime() {
+      if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
+      applySfxVolume();
+      const playPromise = el.play();
+      if (!playPromise) return;
+      playPromise
+        .then(() => {
+          el.pause();
+          el.currentTime = 0;
+          applySfxVolume();
+        })
+        .catch(() => {});
+    },
+    start(unlock) {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement();
+      if (!el) return;
+      fadeToken += 1;
       unlock?.();
+      applySfxVolume();
       el.currentTime = 0;
       el.play().catch(() => {});
     },
-    stop() {
-      if (!reelEl) return;
-      reelEl.pause();
-      reelEl.currentTime = 0;
+    stop({ fadeMs = 60 } = {}) {
+      halt({ fadeMs });
     },
   };
 }
