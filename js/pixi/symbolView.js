@@ -5,6 +5,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import {
+  SPINE_SYMBOL_FIT_RATIO,
   symbolGlyph,
   symbolLabel,
   symbolPayBadge,
@@ -494,17 +495,21 @@ export function createPlaceholderSymbol(id, cellW, cellH, span = 1) {
  * @param {number} cellW
  * @param {number} blockHeight
  * @param {{ idle?: string, land?: string, win?: string }} [animations]
+ * @param {{ designSize?: { width: number, height: number } }} [spineMeta]
  * @returns {{ root: Container, spine: Spine }}
  */
-export function createSpineSymbol(skeletonData, cellW, blockHeight, animations = {}) {
+export function createSpineSymbol(skeletonData, cellW, blockHeight, animations = {}, spineMeta = {}) {
   const spine = new Spine(skeletonData);
   spine.skeleton.setToSetupPose();
   spine.update(0);
 
   const bounds = spine.getLocalBounds();
-  const fit = Math.min(cellW, blockHeight) * 0.82;
+  const fit = Math.min(cellW, blockHeight) * SPINE_SYMBOL_FIT_RATIO;
+  const design = spineMeta.designSize;
+  const contentW = design?.width > 0 ? design.width : bounds.width;
+  const contentH = design?.height > 0 ? design.height : bounds.height;
   const scale =
-    fit / Math.max(bounds.width > 0 ? bounds.width : cellW, bounds.height > 0 ? bounds.height : blockHeight, 1);
+    fit / Math.max(contentW > 0 ? contentW : cellW, contentH > 0 ? contentH : blockHeight, 1);
   spine.scale.set(scale);
   spine.x = -(bounds.x + bounds.width / 2) * scale;
   spine.y = -(bounds.y + bounds.height / 2) * scale;
@@ -540,7 +545,7 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
   let spine = null;
 
   if (spineData && !useTallPlaceholder) {
-    const built = createSpineSymbol(spineData, cellW, blockHeight, visual.animations);
+    const built = createSpineSymbol(spineData, cellW, blockHeight, visual.animations, visual.spine ?? {});
     root = built.root;
     spine = built.spine;
   } else {

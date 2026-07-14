@@ -70,7 +70,7 @@ export async function mountLedgerSpineIcon(hostEl, symbolId) {
 
   // Smaller fit box leaves room for idle motion inside the square host.
   const fitBox = size * 0.72;
-  const { root, spine } = createSpineSymbol(data, fitBox, fitBox, visual.animations);
+  const { root, spine } = createSpineSymbol(data, fitBox, fitBox, visual.animations, visual.spine ?? {});
   playLedgerSpineAnimation(spine, visual);
   root.x = app.screen.width / 2;
   root.y = app.screen.height / 2;

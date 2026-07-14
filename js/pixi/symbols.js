@@ -6,7 +6,7 @@
 import { SYMBOLS } from '../config.js';
 import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 
-/** @typedef {{ skeleton: string, atlas: string, scale?: number }} SpineAssetPaths */
+/** @typedef {{ skeleton: string, atlas: string, scale?: number, designSize?: { width: number, height: number } }} SpineAssetPaths */
 /** @typedef {{ idle?: string, land?: string, win?: string, cascade?: string, spin?: string }} SymbolAnimations */
 
 /** Spine track names — export matching keys from the editor. */
@@ -17,6 +17,12 @@ export const SYMBOL_ANIMATION_DEFAULTS = {
   cascade: 'cascade',
 };
 
+/** Suki Engine standard Spine export canvas — see `@kap-solo/suki-engine` `SPINE_TEXTURE_CANVAS_SIZE`. */
+export const SPINE_TEXTURE_CANVAS_SIZE = 256;
+
+/** Board fit ratio — see `@kap-solo/suki-engine` `SPINE_SYMBOL_FIT_RATIO`. */
+export const SPINE_SYMBOL_FIT_RATIO = 0.82;
+
 /** @type {Record<string, { color: number, accent?: number, spine?: SpineAssetPaths | null, ledgerIcon?: string, animations?: SymbolAnimations }>} */
 export const SYMBOL_VISUAL = {
   CH: {
@@ -26,6 +32,8 @@ export const SYMBOL_VISUAL = {
       skeleton: 'assets/spine/cherry/cherry.json',
       atlas: 'assets/spine/cherry/cherry.atlas',
       scale: 1,
+      // Legacy 512 export — re-export at SPINE_TEXTURE_CANVAS_SIZE and halve these values
+      designSize: { width: 414, height: 268 },
     },
     ledgerIcon: 'assets/spine/cherry/cherry.png',
     animations: { ...SYMBOL_ANIMATION_DEFAULTS },
@@ -38,6 +46,8 @@ export const SYMBOL_VISUAL = {
       skeleton: 'assets/spine/orange/orange.json',
       atlas: 'assets/spine/orange/orange.atlas',
       scale: 1,
+      // Legacy 512 export — re-export at SPINE_TEXTURE_CANVAS_SIZE and halve these values
+      designSize: { width: 460, height: 313 },
     },
     ledgerIcon: 'assets/spine/orange/orange.png',
     animations: { ...SYMBOL_ANIMATION_DEFAULTS },
