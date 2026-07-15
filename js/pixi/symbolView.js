@@ -13,10 +13,11 @@ import {
   symbolVisual,
 } from './symbols.js';
 import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
-import { MAX_TALL_SPAN } from '../tall-symbols.js';
 import { animateAlphaTargets } from './easing.js';
+import { TIMING } from './timing.js';
+import { MAX_TALL_SPAN } from '../tall-symbols.js';
 
-/** @typedef {'static' | 'spin' | 'land' | 'cascade' | 'win'} SymbolState */
+/** @typedef {'static' | 'spin' | 'land' | 'cascade' | 'win' | 'dissolve'} SymbolState */
 
 /**
  * @param {import('@esotericsoftware/spine-core').SkeletonData} data
@@ -58,8 +59,17 @@ function queueIdleAfterOneShot(spine, visual, entry) {
  */
 function playSpineSymbolState(spine, visual, state) {
   const data = spine.skeleton.data;
+
+  if (state === 'dissolve') {
+    const dissolve = visual.animations?.dissolve ?? 'dissolve';
+    if (spineAnimHasKeyframes(data, dissolve)) {
+      spine.state.setAnimation(0, dissolve, false);
+    }
+    return;
+  }
+
   const primary = resolveSpineAnimName(visual, state);
-  const loop = state === 'static' || state === 'win';
+  const loop = state === 'static' || state === 'win' || state === 'spin';
 
   if (spineAnimHasKeyframes(data, primary)) {
     const entry = spine.state.setAnimation(0, primary, loop);
@@ -74,6 +84,44 @@ function playSpineSymbolState(spine, visual, state) {
       queueIdleAfterOneShot(spine, visual, entry);
     }
   }
+}
+
+/**
+ * @param {Spine} spine
+ * @param {string} animName
+ */
+function playSpineAnimationOnce(spine, animName) {
+  return new Promise((resolve) => {
+    if (!spineAnimHasKeyframes(spine.skeleton.data, animName)) {
+      resolve();
+      return;
+    }
+    const entry = spine.state.setAnimation(0, animName, false);
+    entry.listener = {
+      complete: () => resolve(),
+    };
+  });
+}
+
+/**
+ * @param {import('pixi.js').Container} root
+ * @param {number} durationMs
+ */
+function animateDissolveFallback(root, durationMs) {
+  return new Promise((resolve) => {
+    const startScale = root.scale.x;
+    const startAlpha = root.alpha;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - (1 - t) ** 2;
+      root.alpha = startAlpha * (1 - eased);
+      root.scale.set(startScale * (1 - eased * 0.35));
+      if (t < 1) requestAnimationFrame(step);
+      else resolve();
+    };
+    requestAnimationFrame(step);
+  });
 }
 
 /**
@@ -548,6 +596,9 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
     const built = createSpineSymbol(spineData, cellW, blockHeight, visual.animations, visual.spine ?? {});
     root = built.root;
     spine = built.spine;
+    if (state !== 'static') {
+      playSpineSymbolState(spine, visual, state);
+    }
   } else {
     root = createPlaceholderSymbol(id, cellW, cellH, span);
   }
@@ -583,6 +634,21 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
         return;
       }
       root.scale.set(on ? 1.08 : 1);
+    },
+    /**
+     * Blob pop — Spine `dissolve` when available, else alpha/scale fallback.
+     * @param {{ durationMs?: number, speed?: number }} [opts]
+     */
+    async playDissolve({ durationMs, speed = 1 } = {}) {
+      const ms = durationMs ?? Math.max(80, TIMING.cascadePopMs / speed);
+      if (spine) {
+        const dissolve = visual.animations?.dissolve ?? 'dissolve';
+        if (spineAnimHasKeyframes(spine.skeleton.data, dissolve)) {
+          await playSpineAnimationOnce(spine, dissolve);
+          return;
+        }
+      }
+      await animateDissolveFallback(root, ms);
     },
   };
 }

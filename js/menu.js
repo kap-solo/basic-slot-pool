@@ -50,6 +50,7 @@ export function registerGameModals(ctx) {
           `${wildLabel} substitutes for any paying symbol when forming clusters. Wild does not pay on its own.`,
           'Winning symbols are removed; new symbols tumble in — cascades repeat until no cluster pays.',
           `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
+          'If several clusters win on the same cascade step, they all use that step’s multiplier at once — the ladder does not advance separately for each cluster.',
           'Premium symbols pay more than ordinary symbols. Larger clusters multiply the win further.',
         ],
         [
@@ -58,6 +59,7 @@ export function registerGameModals(ctx) {
           `${wildLabel} substitutes for qualifying symbols when forming clusters. Wild cannot form a cluster on its own.`,
           'Matched symbols are removed; new symbols tumble in — cascades repeat until no further clusters qualify.',
           `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
+          'If several clusters qualify on the same cascade step, they all use that step’s multiplier at once — the ladder does not advance separately for each cluster.',
           'Premium symbols award higher multipliers than ordinary symbols. Larger clusters apply a higher multiplier.',
         ],
       );
@@ -81,8 +83,8 @@ export function registerGameModals(ctx) {
 
       const displayNote = pickSocialCopy(
         game,
-        'When several clusters win on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
-        'When several clusters qualify on the same cascade step, the amount shown on each cluster pop-up is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
+        'When several clusters win on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
+        'When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
       );
 
       const p = document.createElement('p');
@@ -238,8 +240,8 @@ export function registerGameModals(ctx) {
       clusterRounding.style.margin = '0.25rem 0';
       clusterRounding.textContent = pickSocialCopy(
         game,
-        'Per-cluster win pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
-        'Per-cluster amount pop-ups during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
+        'Per-cluster amounts on board pop-ups and the desktop win ledger during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
+        'Per-cluster amounts on board pop-ups and the desktop win ledger during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
       );
       info.appendChild(clusterRounding);
       appendGeneralDisclaimer(info, t);

@@ -8,6 +8,7 @@ import { TIMING } from './timing.js';
 import { animateCascadeJiggle, animateReelSpin, easeCascadeFall, scaledDelay, animateAlphaTargets } from './easing.js';
 import { createSymbolNode, SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { SYMBOL_IDS } from './symbols.js';
+import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
 import {
   blockCenterY,
   blockForRow,
@@ -596,7 +597,11 @@ export class ReelColumn {
       const node = nodes[padding + row];
       if (!node?.root) continue;
       node.root.x = colCenterX(this.cellW);
-      node.setState('static');
+      if (node.symbolId === PERFORMANCE_BLOB_SYMBOL && node.spine) {
+        node.setState('land');
+      } else {
+        node.setState('static');
+      }
       visibleNodes[row] = node;
     }
 
@@ -1704,25 +1709,29 @@ export class ReelColumn {
     if (!targets.length) return;
 
     await Promise.all(
-      targets.map(
-        ({ node }) =>
-          new Promise((resolve) => {
-            const root = node.root;
-            const startScale = root.scale.x;
-            const startAlpha = root.alpha;
-            const duration = Math.max(80, TIMING.cascadePopMs / speed);
-            const start = performance.now();
-            const step = (now) => {
-              const t = Math.min(1, (now - start) / duration);
-              const eased = 1 - (1 - t) ** 2;
-              root.alpha = startAlpha * (1 - eased);
-              root.scale.set(startScale * (1 - eased * 0.35));
-              if (t < 1) requestAnimationFrame(step);
-              else resolve();
-            };
-            requestAnimationFrame(step);
-          }),
-      ),
+      targets.map(async ({ node }) => {
+        if (node.symbolId === PERFORMANCE_BLOB_SYMBOL && node.playDissolve) {
+          await node.playDissolve({ speed });
+          return;
+        }
+
+        await new Promise((resolve) => {
+          const root = node.root;
+          const startScale = root.scale.x;
+          const startAlpha = root.alpha;
+          const duration = Math.max(80, TIMING.cascadePopMs / speed);
+          const start = performance.now();
+          const step = (now) => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - (1 - t) ** 2;
+            root.alpha = startAlpha * (1 - eased);
+            root.scale.set(startScale * (1 - eased * 0.35));
+            if (t < 1) requestAnimationFrame(step);
+            else resolve();
+          };
+          requestAnimationFrame(step);
+        });
+      }),
     );
 
     for (const anchorRow of anchorRows) {

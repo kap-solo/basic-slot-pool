@@ -7,7 +7,7 @@ import { SYMBOLS } from '../config.js';
 import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 
 /** @typedef {{ skeleton: string, atlas: string, scale?: number, designSize?: { width: number, height: number } }} SpineAssetPaths */
-/** @typedef {{ idle?: string, land?: string, win?: string, cascade?: string, spin?: string }} SymbolAnimations */
+/** @typedef {{ idle?: string, land?: string, win?: string, cascade?: string, spin?: string, dissolve?: string }} SymbolAnimations */
 
 /** Spine track names — export matching keys from the editor. */
 export const SYMBOL_ANIMATION_DEFAULTS = {
@@ -15,6 +15,14 @@ export const SYMBOL_ANIMATION_DEFAULTS = {
   land: 'land',
   win: 'win',
   cascade: 'cascade',
+};
+
+/** Performance blob (green square) — spin, land, dissolve. */
+export const BLOB_ANIMATION_DEFAULTS = {
+  idle: 'idle',
+  spin: 'spin',
+  land: 'land',
+  dissolve: 'dissolve',
 };
 
 /** Suki Engine standard Spine export canvas — see `@kap-solo/suki-engine` `SPINE_TEXTURE_CANVAS_SIZE`. */
@@ -60,7 +68,17 @@ export const SYMBOL_VISUAL = {
   WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
   SC: { color: 0x4a2080, accent: 0xc080ff, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
   /** Client-only performance blob — green square on the reveal strip. */
-  BL: { color: 0x16a34a, accent: 0xbbf7d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  BL: {
+    color: 0x16a34a,
+    accent: 0xbbf7d0,
+    spine: {
+      skeleton: 'assets/spine/blob/blob.json',
+      atlas: 'assets/spine/blob/blob.atlas',
+      scale: 1,
+      designSize: { width: 256, height: 256 },
+    },
+    animations: { ...BLOB_ANIMATION_DEFAULTS },
+  },
 };
 
 export const SYMBOL_IDS = Object.keys(SYMBOLS);

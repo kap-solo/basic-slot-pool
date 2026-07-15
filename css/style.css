@@ -548,34 +548,69 @@ body {
   min-height: 0;
 }
 
+/* Footer only exists for replay — absolute overlay inside shell (see stakeLayout.css in engine) */
 .suki-footer:not(:has(#replay-banner:not([hidden]))) {
   display: none;
 }
 
+/* Replay — keep Pool shell grids (controls live inside core); overlay disclaimer only */
+.suki-stake-shell[data-suki-replay='true'] {
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'core'
+    'footer';
+}
+
+.suki-stake-shell[data-suki-replay='true'][data-suki-orientation='landscape'] {
+  grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas:
+    'flankL core';
+}
+
+.suki-stake-shell[data-suki-replay='true'] .suki-footer {
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem));
+  z-index: 30;
+  width: auto;
+  max-width: min(22rem, calc(100% - 1.5rem), var(--suki-ref-w, 425px));
+  margin-inline: auto;
+  padding: 0;
+  pointer-events: none;
+  display: block;
+}
+
+.suki-stake-shell[data-suki-replay='true'][data-suki-orientation='landscape'] .suki-footer {
+  bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
+  max-width: min(22rem, calc(100% - 1.5rem));
+}
+
+.suki-stake-shell[data-suki-replay='true'][data-suki-orientation='landscape'][data-bet-ui-variant='desktop']
+  .suki-footer {
+  bottom: max(calc(var(--bet-ui-desktop-chrome-height, 6rem) + 0.35rem), 0.55rem);
+}
+
+.suki-stake-shell[data-suki-replay='true'] .suki-replay-banner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  pointer-events: auto;
+}
+
+.suki-stake-shell[data-suki-replay='true'] .suki-replay-banner .replay-note {
+  flex: none;
+  font-size: 0.62rem;
+}
+
 .replay-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.35rem 0.55rem;
-  border-radius: 8px;
-  border: 1px solid #3d2a14;
-  background: rgba(26, 18, 8, 0.9);
-  font-size: 0.68rem;
+  width: 100%;
 }
 
-.replay-label {
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #fbbf24;
-}
-
-/* Dev-only session math overlay (?dev=true) — fixed top-left, clear of reels */
+/* Dev-only session math overlay (?dev=true) — below top-left dev toolbar */
 .dev-stats-overlay {
   position: fixed;
-  top: max(0.5rem, env(safe-area-inset-top, 0px));
+  top: max(3.25rem, calc(env(safe-area-inset-top, 0px) + 2.75rem));
   left: max(0.5rem, env(safe-area-inset-left, 0px));
   z-index: 10;
   width: min(13.5rem, calc(100vw - 1rem));
@@ -592,12 +627,18 @@ body {
   backdrop-filter: blur(4px);
 }
 
-/* Dev-only feature playback — fixed top-right, all bet UI layouts */
-.dev-feature-btn {
+/* Dev-only toolbar — fixed top-left, all bet UI layouts */
+.dev-toolbar {
   position: fixed;
   top: max(0.5rem, env(safe-area-inset-top, 0px));
-  right: max(0.5rem, env(safe-area-inset-right, 0px));
+  left: max(0.5rem, env(safe-area-inset-left, 0px));
   z-index: 11;
+  display: flex;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.dev-toolbar-btn {
   border: 1px solid #3d5a80;
   border-radius: 8px;
   padding: 0.38rem 0.62rem;
@@ -611,18 +652,47 @@ body {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
-.dev-feature-btn:hover:not(:disabled) {
+.dev-toolbar-btn:hover:not(:disabled) {
   background: rgba(18, 30, 50, 0.96);
   border-color: #5a8fd4;
   color: #e8f2ff;
 }
 
-.dev-feature-btn:disabled {
+.dev-toolbar-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'] .dev-feature-btn {
+.dev-toolbar-replay {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.dev-toolbar-spin-id {
+  max-width: min(12rem, 36vw);
+  padding: 0.28rem 0.45rem;
+  border: 1px solid #2a3a52;
+  border-radius: 6px;
+  background: rgba(8, 12, 18, 0.88);
+  color: #9aa8bc;
+  font: 600 0.62rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .dev-toolbar-spin-id {
+  max-width: min(7rem, 28vw);
+  padding: 0.22rem 0.35rem;
+  font-size: 0.54rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'] .dev-toolbar-btn {
   padding: 0.28rem 0.48rem;
   font-size: 0.58rem;
   border-radius: 6px;
@@ -743,13 +813,25 @@ body {
   font-size: 0.58rem;
 }
 
-/* Background art disabled while tuning UI — flat fill only. */
+body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
+  background: #06080c;
+}
+
+/* Background art — flat fill on mobile; desktop landscape uses authored art. */
 
 .suki-bg-mobile-l,
 .suki-bg-mobile-ms,
 .suki-bg-landscape {
   background: var(--game-surface-bg);
   background-image: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-bg-landscape {
+  background-color: #06080c;
+  background-image: url('../assets/desktop_bg.jpg');
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 /* Player-facing notices — #message is hidden in Pool. */

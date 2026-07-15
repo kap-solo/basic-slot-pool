@@ -56,7 +56,7 @@ import { TIMING } from './pixi/timing.js';
 import { ensureSession, loadSession, recordPlay, resetSession, saveSession } from './session.js';
 import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
 import { createBetPicker } from './betPicker.js';
-import { createDevFeatureButton } from './devFeatureButton.js';
+import { createDevToolbar } from './devToolbar.js';
 import { createFeatureChrome } from './featureChrome.js';
 import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
@@ -382,16 +382,20 @@ const devStatsOverlay = createDevStatsOverlay({
   enabled: isDevMode() && !replayMode,
 });
 
-const devFeatureControl = createDevFeatureButton({
+const devToolbar = createDevToolbar({
   shellEl,
-  onClick: () => {
+  onFeature: () => {
     playDevFeatureSample();
+  },
+  onReplay: () => {
+    onCopyReplayLink();
   },
 });
 
 /** @type {object | null} */
 let replayRound = null;
 let lastReplayUrl = '';
+let lastReplayEventId = '';
 /** @type {[number, number][] | null} */
 let pendingClusterRemoved = null;
 /** @type {{ round: object, result: object } | null} */
@@ -459,6 +463,17 @@ function fmtWin(amount) {
   return game.formatWin(amount);
 }
 
+/** Snap display-currency amounts to Stake API units (avoids float drift in splits). */
+function quantizeDisplayAmount(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return apiToDisplay(Math.round(displayToApi(amount)));
+}
+
+/** Per-cluster ledger / popup label — 2 dp, illustrative split (not full RGS precision). */
+function formatLedgerWin(amount) {
+  return `+${fmtBalance(quantizeDisplayAmount(amount))}`;
+}
+
 /**
  * Board win popup for one cluster — ladder line when ×2+.
  * @param {{ symbol: string, size?: number, cells?: [number, number][], baseMultiplier?: number }} cluster
@@ -470,17 +485,18 @@ function buildClusterWinPopup(cluster, cascadeMultiplier, displayAmount = null) 
   const size = cluster.size ?? cluster.cells?.length ?? 0;
   if (size < 1) return null;
   const baseMult = cluster.baseMultiplier ?? clusterBaseMultiplier(cluster.symbol, size);
-  const clusterWin = displayAmount ?? (bet * baseMult * cascadeMultiplier);
-  if (clusterWin <= 0) return null;
-  const amountFrom = Math.min(
+  const rawWin = displayAmount ?? (bet * baseMult * cascadeMultiplier);
+  const clusterWin = quantizeDisplayAmount(rawWin);
+  if (clusterWin <= 0.0005) return null;
+  const amountFrom = quantizeDisplayAmount(Math.min(
     clusterWin,
     bet * basePayForSymbol(cluster.symbol) * cascadeMultiplier,
-  );
+  ));
   return {
-    amount: `+${fmtWin(clusterWin)}`,
+    amount: formatLedgerWin(clusterWin),
     amountFrom,
     amountTo: clusterWin,
-    formatAmount: (value) => `+${fmtBalance(value)}`,
+    formatAmount: (value) => formatLedgerWin(value),
     cascadeLabel: cascadeMultiplier > 1 ? `Cascade ×${cascadeMultiplier}` : null,
   };
 }
@@ -534,18 +550,26 @@ function clusterHudWinAmounts(event) {
     amounts.push(apiToDisplay(shareApi));
     allocatedApi += shareApi;
   }
-  return amounts.filter((amount) => amount > 0.0005);
+  return amounts;
 }
 
 function copyTerm(key, vars) {
   return game.copy.t(key, vars);
 }
 
-/** HUD win stat — Win (real) / Earn (social). */
+/** HUD win stat — Win (real) / Earn (social); Total Win during free spins. */
 function winStatLabel() {
+  if (featureChrome?.inFreeSpins?.()) {
+    return game.copy.socialCasino ? 'Total Earn' : 'Total Win';
+  }
   const term = copyTerm('win');
   if (term !== 'win') return term;
   return game.copy.socialCasino ? 'Earn' : 'Win';
+}
+
+function refreshWinStatLabel() {
+  mobileBetUi?.sync();
+  desktopBetUi?.sync();
 }
 
 /** Base bet shown in the HUD — always 1× tier, not feature debit. */
@@ -672,11 +696,13 @@ function mountHudDevControls() {
   hudDevActions.appendChild(devRow);
 }
 
-function syncDevFeatureControl() {
+function syncDevToolbar() {
   const show = isDevMode() && !replayMode;
-  devFeatureControl.sync({
+  devToolbar.sync({
     visible: show,
     disabled: spinning || autoplaying || isBoardPresenting(),
+    replayReady: Boolean(lastReplayUrl),
+    spinId: lastReplayEventId,
   });
 }
 
@@ -805,10 +831,12 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
 
   if (event.type === 'enterBonus') {
     await featureChrome.onEnterBonus(event, { animate });
+    refreshWinStatLabel();
     return;
   }
   if (event.type === 'updateFreeSpin') {
     await featureChrome.onUpdateFreeSpin(event, { animate });
+    refreshWinStatLabel();
     return;
   }
   if (event.type === 'freeSpinEnd') {
@@ -816,6 +844,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
       animate,
       formatBookWin: (amountCentiMult) => fmtWin(bookCentiMultToDisplayWin(amountCentiMult, bet)),
     });
+    refreshWinStatLabel();
   }
 }
 
@@ -881,12 +910,13 @@ function syncDevControlsVisibility() {
   if (betUi.elements.testControls) {
     betUi.elements.testControls.hidden = !show;
   }
-  syncDevFeatureControl();
+  syncDevToolbar();
   if (show) syncDevButtons();
 }
 
-function setLastReplayUrl(url) {
+function setLastReplayUrl(url, eventId = '') {
   lastReplayUrl = url || '';
+  lastReplayEventId = eventId || (url ? new URL(url).searchParams.get('event') || '' : '');
   betUi.setLastReplayUrl(lastReplayUrl);
   syncDevButtons();
   syncControls();
@@ -899,7 +929,7 @@ function syncControls() {
   desktopBetUi?.sync();
   updateWinUi();
   syncPlayAffordBlocker();
-  syncDevFeatureControl();
+  syncDevToolbar();
   if (!canPickBet()) {
     betPicker.closeIfOpen();
   }
@@ -929,7 +959,7 @@ function flushRoundSettledUI() {
     mode: game.betModes.replayModeKey(),
     lang: game.copy.lang,
   });
-  setLastReplayUrl(lastReplayUrl);
+  setLastReplayUrl(lastReplayUrl, replayEvent);
 
   const summary = describeRoundResult(round);
 
@@ -970,6 +1000,7 @@ async function withSpinLock(fn) {
   animationSpeed = 1;
   prepareWinForSpin();
   featureChrome?.reset();
+  refreshWinStatLabel();
   syncControls();
   try {
     return await fn();
@@ -1616,6 +1647,7 @@ async function onNewSession() {
   devStatsOverlay.reset();
   session = resetSession();
   lastReplayUrl = '';
+  lastReplayEventId = '';
   setLastReplayUrl('');
   setMessage('New session — reconnecting…');
   game.start();

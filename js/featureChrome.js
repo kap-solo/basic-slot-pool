@@ -247,5 +247,7 @@ export function createFeatureChrome({ stageEl }) {
     onFreeSpinStart,
     onFreeSpinEnd,
     isActive: () => active,
+    /** True once the intro is dismissed — free spins are in progress. */
+    inFreeSpins: () => active && intro.hidden,
   };
 }
