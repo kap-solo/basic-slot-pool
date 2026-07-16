@@ -159,7 +159,7 @@ body {
   pointer-events: auto;
 }
 
-/* Landscape / desktop — character flank left, large board center-right. */
+/* Landscape / desktop — flank reserves board inset; character overlays shell. */
 .suki-stake-shell[data-suki-orientation='landscape'] {
   --game-core-shell-scale: 1;
   grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
@@ -168,16 +168,13 @@ body {
     'flankL core';
 }
 
-.suki-stake-shell[data-suki-orientation='landscape'] .suki-brand {
-  text-align: left;
-}
-
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-left {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: 0.5rem 0.35rem 0.5rem 0.75rem;
+  padding: 0;
   min-height: 0;
+  pointer-events: none;
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-slot {
@@ -186,6 +183,46 @@ body {
   min-height: 0;
   flex: 1 1 auto;
   height: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  color: transparent;
+  font-size: 0;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .suki-brand {
+  text-align: left;
+}
+
+.character-host {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 10;
+  align-items: flex-end;
+  justify-content: flex-start;
+  height: 100%;
+  width: auto;
+  min-height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.suki-stake-shell[data-suki-orientation='landscape'] .character-host:not(:empty) {
+  display: flex;
+}
+
+.character-host__placeholder {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  object-position: left bottom;
+  pointer-events: none;
+  user-select: none;
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-game-core {
@@ -264,7 +301,7 @@ body {
   display: none !important;
 }
 
-/* Popout S — compact character flank; cluster ledger still hidden */
+/* Popout S — compact flank inset; cluster ledger still hidden */
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-suki-orientation='landscape'] {
   grid-template-columns: minmax(2.25rem, 2.75rem) minmax(0, 1fr) minmax(2.25rem, 2.75rem);
   grid-template-areas: 'flankL core .';
@@ -274,20 +311,21 @@ body {
   display: flex !important;
   align-items: stretch;
   justify-content: center;
-  padding: 0.2rem 0.08rem 0.2rem 0.15rem;
+  padding: 0;
   min-height: 0;
+  pointer-events: none;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-flank-slot {
   min-height: 0;
   height: 100%;
   max-width: none;
-  border-radius: 6px;
-  font-size: 0.46rem;
-  letter-spacing: 0.03em;
-  line-height: 1.2;
-  text-align: center;
-  padding: 0.2rem;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  color: transparent;
+  font-size: 0;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-suki-orientation='landscape'] .suki-game-core {
@@ -329,8 +367,9 @@ body {
     display: flex !important;
     align-items: stretch;
     justify-content: center;
-    padding: 0.2rem 0.08rem 0.2rem 0.15rem;
+    padding: 0;
     min-height: 0;
+    pointer-events: none;
   }
 
   .suki-stake-shell[data-suki-orientation='landscape'] .suki-game-core {
