@@ -90,9 +90,9 @@ export function createCascadeLadder({ maxSteps = 8 } = {}) {
     root,
 
     /**
-     * @param {{ boardW: number, boardH: number, cellW: number, ladderBand?: number }} layout
+     * @param {{ boardW: number, boardH: number, cellW: number, ladderBand?: number, y?: number }} layout
      */
-    layout({ boardW, boardH, cellW, ladderBand = 28 }) {
+    layout({ boardW, boardH, cellW, ladderBand = 28, y }) {
       const inset = Math.max(2, Math.round(cellW * 0.06));
       const maxTotalW = Math.max(1, boardW - inset * 2);
 
@@ -130,7 +130,7 @@ export function createCascadeLadder({ maxSteps = 8 } = {}) {
         x += slotW + gap;
       }
 
-      root.y = -boardH / 2 - ladderBand / 2 - 6;
+      root.y = y ?? (-boardH / 2 - ladderBand / 2 - 6);
       syncSlotStyles();
     },
 

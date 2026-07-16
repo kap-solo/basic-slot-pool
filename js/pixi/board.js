@@ -2,7 +2,7 @@
  * Pixi slot stage — cabinet frame, reel columns, cluster highlight overlay.
  */
 
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Assets, Container, Graphics, Sprite } from 'pixi.js';
 import { GAME, defaultBoardColumn } from '../config.js';
 import {
   blockForRow,
@@ -13,11 +13,21 @@ import { ReelColumn } from './reel.js';
 import { createCascadeLadder } from './cascadeLadder.js';
 import { MAX_CASCADE_LADDER } from '../cluster.js';
 import { loadSpineSymbolRegistry } from './spineAssets.js';
-import { scaledDelay, animateAlphaTargets } from './easing.js';
+import { scaledDelay, animateAlphaTargets, animateCabinetPulse } from './easing.js';
 import { TIMING } from './timing.js';
 import { playWinPopups } from './winPopup.js';
 import { SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { blobCascadeColumnState } from './performanceBlob.js';
+import { isPopoutSViewport } from '../stakeScreenInfer.js';
+
+const CABINET_BG_SRC = 'assets/ui/cabinet-bg.webp';
+/** How much larger the visible cabinet art is vs the reel frame (mask only). */
+const CABINET_BG_VISUAL_SCALE = 1.16;
+/** Target ~×1.3 vs legacy 0.92 canvas margin (clamped to full host size). */
+const BOARD_LAYOUT_SCALE = 1.3;
+const LEGACY_BOARD_MARGIN = 0.92;
+/** Visible reel grid area as a fraction of the logical board (mask inset). */
+const SYMBOL_CONTAINER_SCALE = 0.9;
 
 /** @param {number} value */
 function snapPx(value) {
@@ -44,17 +54,24 @@ export async function createPixiSlotBoard(hostEl) {
   app.canvas.style.height = '100%';
 
   const stage = new Container();
+  const cabinetRoot = new Container();
   app.stage.addChild(stage);
 
+  const cabinetBgMask = new Graphics();
   const frame = new Graphics();
   const clusterOverlay = new Graphics();
   const winPopupLayer = new Container();
   const reelsRoot = new Container();
   const cascadeLadder = createCascadeLadder({ maxSteps: MAX_CASCADE_LADDER });
 
-  stage.addChild(frame);
-  stage.addChild(reelsRoot);
-  stage.addChild(cascadeLadder.root);
+  /** @type {Sprite | null} */
+  let cabinetBgSprite = null;
+
+  stage.addChild(cabinetRoot);
+  cabinetRoot.addChild(cabinetBgMask);
+  cabinetRoot.addChild(frame);
+  cabinetRoot.addChild(cascadeLadder.root);
+  cabinetRoot.addChild(reelsRoot);
   stage.addChild(clusterOverlay);
   stage.addChild(winPopupLayer);
 
@@ -80,23 +97,83 @@ export async function createPixiSlotBoard(hostEl) {
   let layoutH = 0;
 
   function isPopoutS() {
-    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'popout-s';
+    return isPopoutSViewport(hostEl.closest('.suki-stake-shell'));
   }
 
-  function viewMargin() {
-    return isPopoutS() ? 1 : 0.92;
+  function isPopoutL() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'popout-l';
   }
 
-  function framePadTop() {
-    return isPopoutS() ? 4 : 10;
+  function isLaptop() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'laptop';
   }
 
-  function framePadBottom() {
-    return isPopoutS() ? 4 : 10;
+  function isMobileBetUi() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.betUiVariant === 'mobile';
+  }
+
+  function layoutMaxScale() {
+    return Math.min(1, LEGACY_BOARD_MARGIN * BOARD_LAYOUT_SCALE);
+  }
+
+  function cabinetOuterWidthForBoard(boardW, boardH) {
+    const pad = cabinetInnerPadForBoardH(boardH);
+    return boardW + pad * 2 + layoutCabinetBgSlackPx(boardH / GAME.rows);
+  }
+
+  /** Small layout reserve on tighter desktop breakpoints so frame art is not canvas-clipped. */
+  function layoutCabinetBgSlackPx(cellH) {
+    if (isMobileBetUi()) return 0;
+    if (!isLaptop() && !isPopoutL()) return 0;
+    const pad = cabinetInnerPad(cellH);
+    const outerW = cellH * GAME.reels + pad * 2;
+    return Math.round(outerW * 0.05);
+  }
+
+  function layoutStackHeightForBoardH(boardH) {
+    return stackHeightForBoardH(boardH) + layoutCabinetBgSlackPx(boardH / GAME.rows);
+  }
+
+  /** Preferred cabinet art scale — clamped to canvas slack in layoutCabinetBackground(). */
+  function cabinetBgVisualScale() {
+    if (isMobileBetUi()) return 1;
+    if (isPopoutS()) return 1.08;
+    if (isPopoutL() || isLaptop()) return 1.1;
+    return CABINET_BG_VISUAL_SCALE;
+  }
+
+  /** Never draw cabinet art past the canvas — keeps board size unchanged. */
+  function cabinetBgFitScale(canvasW, canvasH) {
+    const { outerW, outerH, outerTop } = cabinetOuterMetrics();
+    const preferred = cabinetBgVisualScale();
+    if (outerW <= 0 || outerH <= 0) return preferred;
+
+    const maxByWidth = canvasW / outerW;
+    const topSlack = stage.y + outerTop;
+    const bottomSlack = canvasH - (stage.y + outerTop + outerH);
+    const verticalSlack = Math.min(Math.max(0, topSlack), Math.max(0, bottomSlack));
+    const maxByHeight = 1 + (2 * verticalSlack) / outerH;
+
+    return Math.max(1, Math.min(preferred, maxByWidth, maxByHeight));
+  }
+
+  function cabinetInnerPad(cellH) {
+    if (isPopoutS()) return Math.max(4, Math.round(cellH * 0.1));
+    return Math.max(12, Math.round(cellH * 0.17));
+  }
+
+  function cabinetInnerPadForBoardH(boardH) {
+    return cabinetInnerPad(boardH / GAME.rows);
   }
 
   function ladderHeightFactor() {
-    return isPopoutS() ? 0.34 : 0.42;
+    return isPopoutS() ? 0.28 : 0.42;
+  }
+
+  /** Gap between the ladder row and the cabinet top edge. */
+  function ladderGapFor(ladderBand) {
+    if (isPopoutS()) return Math.max(4, Math.round(ladderBand * 0.16));
+    return Math.max(8, Math.round(ladderBand * 0.28));
   }
 
   /** Ladder row height scales with cell size — must be reserved before fitting the grid. */
@@ -104,9 +181,11 @@ export async function createPixiSlotBoard(hostEl) {
     return Math.max(24, Math.round((boardH / GAME.rows) * ladderHeightFactor()));
   }
 
-  /** Total painted cabinet height: ladder band + frame padding + reel grid. */
-  function totalVisualHeight(boardH) {
-    return boardH + framePadTop() + framePadBottom() + ladderBandForBoardH(boardH);
+  /** Total stack: ladder + gap + cabinet (padding + reel grid). */
+  function stackHeightForBoardH(boardH) {
+    const ladderBand = ladderBandForBoardH(boardH);
+    const pad = cabinetInnerPadForBoardH(boardH);
+    return boardH + pad * 2 + ladderBand + ladderGapFor(ladderBand);
   }
 
   function snapBoardDimensions(boardW, boardH) {
@@ -126,22 +205,86 @@ export async function createPixiSlotBoard(hostEl) {
     return reels.map((reel) => [...reel.currentColumn]);
   }
 
+  function cabinetOuterMetrics() {
+    const { boardW, boardH, cellH } = layout;
+    const pad = cabinetInnerPad(cellH);
+    const outerW = boardW + pad * 2;
+    const outerH = boardH + pad * 2;
+    const outerTop = -boardH / 2 - pad;
+    return {
+      outerW,
+      outerH,
+      outerTop,
+      outerX: -outerW / 2,
+      pad,
+      boardW,
+      boardH,
+    };
+  }
+
+  function layoutStackPosition(canvasH) {
+    const ladderGap = ladderGapFor(layout.ladderBand);
+    const { outerTop, outerH } = cabinetOuterMetrics();
+    const stackTop = outerTop - ladderGap - layout.ladderBand;
+    const stackBottom = outerTop + outerH;
+    const stackCenter = (stackTop + stackBottom) / 2;
+    stage.y = canvasH / 2 - stackCenter;
+  }
+
+  /** Keep HTML cluster ledger aligned with the Pixi cabinet frame. */
+  function syncLedgerCabinetAlignment() {
+    const gameCore = hostEl.closest('.suki-game-core');
+    if (!gameCore) return;
+    const { outerTop, outerH } = cabinetOuterMetrics();
+    const topPx = Math.max(0, Math.round(stage.y + outerTop));
+    const heightPx = Math.max(0, Math.round(outerH));
+    gameCore.style.setProperty('--cabinet-top-offset', `${topPx}px`);
+    gameCore.style.setProperty('--cabinet-height', `${heightPx}px`);
+  }
+
+  function layoutCabinetBackground() {
+    if (!cabinetBgSprite?.texture) return;
+
+    const { outerW, outerH, outerTop, outerX } = cabinetOuterMetrics();
+    const visualScale = cabinetBgFitScale(layoutW, layoutH);
+    const bgW = outerW * visualScale;
+    const bgH = outerH * visualScale;
+    const bleedX = (bgW - outerW) / 2;
+    const bleedY = (bgH - outerH) / 2;
+    const bgX = outerX - bleedX;
+    const bgTop = outerTop - bleedY;
+    const centerX = outerX + outerW / 2;
+    const centerY = outerTop + outerH / 2;
+    const texW = cabinetBgSprite.texture.width;
+    const texH = cabinetBgSprite.texture.height;
+    if (!texW || !texH) return;
+
+    const scale = Math.max(bgW / texW, bgH / texH);
+    cabinetBgSprite.scale.set(scale);
+    cabinetBgSprite.anchor.set(0.5);
+    cabinetBgSprite.position.set(centerX, centerY);
+
+    cabinetBgMask.clear();
+    cabinetBgMask.rect(bgX, bgTop, bgW, bgH);
+    cabinetBgMask.fill({ color: 0xffffff });
+  }
+
+  async function ensureCabinetBackground() {
+    if (cabinetBgSprite) return;
+    try {
+      const texture = await Assets.load(CABINET_BG_SRC);
+      cabinetBgSprite = new Sprite(texture);
+      cabinetBgSprite.label = 'cabinet-bg';
+      cabinetBgSprite.mask = cabinetBgMask;
+      cabinetRoot.addChildAt(cabinetBgSprite, 0);
+      console.info('[Basic Slot] Cabinet background loaded.');
+    } catch (err) {
+      console.warn('[Basic Slot] Cabinet background unavailable — using frame only.', err);
+    }
+  }
+
   function drawFrame() {
-    const { boardW, boardH, ladderBand } = layout;
-    const padX = framePadTop();
-    const padBottom = framePadBottom();
-    const outerW = boardW + padX * 2;
-    const outerH = boardH + padBottom + padX + ladderBand;
-    const outerTop = -boardH / 2 - padX - ladderBand;
-
     frame.clear();
-    frame.roundRect(-outerW / 2, outerTop, outerW, outerH, 16);
-    frame.fill({ color: 0x0a0e16, alpha: 0.95 });
-    frame.stroke({ color: 0x3d4f6f, width: 3, alpha: 0.9 });
-
-    frame.roundRect(-boardW / 2, -boardH / 2, boardW, boardH, 10);
-    frame.fill({ color: 0x083797, alpha: 1 });
-    frame.stroke({ color: 0x1a2438, width: 2, alpha: 0.85 });
   }
 
   /** @param {Set<string> | null | undefined} winCells */
@@ -373,16 +516,17 @@ export async function createPixiSlotBoard(hostEl) {
     app.renderer.resize(w, h);
 
     const boardAspect = GAME.reels / GAME.rows;
-    const maxW = w * viewMargin();
-    const maxH = h * viewMargin();
-    const framePad = framePadTop() + framePadBottom();
+    const maxW = w * layoutMaxScale();
+    const maxH = h * layoutMaxScale();
     const ladderFactor = ladderHeightFactor();
 
     let boardW = maxW;
     let boardH = boardW / boardAspect;
 
-    if (totalVisualHeight(boardH) > maxH) {
-      boardH = (maxH - framePad - 24) / (1 + ladderFactor / GAME.rows);
+    if (layoutStackHeightForBoardH(boardH) > maxH) {
+      const pad = cabinetInnerPadForBoardH(boardH);
+      const bgSlack = layoutCabinetBgSlackPx(boardH / GAME.rows);
+      boardH = (maxH - bgSlack - pad * 2 - 16) / (1 + ladderFactor / GAME.rows + ladderFactor / GAME.rows * 0.28);
       boardW = boardH * boardAspect;
     }
 
@@ -392,12 +536,14 @@ export async function createPixiSlotBoard(hostEl) {
     }
 
     let snapped = snapBoardDimensions(boardW, boardH);
-    let totalH = snapped.boardH + framePad + snapped.ladderBand;
+    let totalH = layoutStackHeightForBoardH(snapped.boardH);
+    let outerW = cabinetOuterWidthForBoard(snapped.boardW, snapped.boardH);
 
-    if (totalH > maxH || snapped.boardW > maxW) {
-      const scale = Math.min(maxW / snapped.boardW, maxH / totalH);
+    if (totalH > maxH || outerW > maxW) {
+      const scale = Math.min(maxW / outerW, maxH / totalH);
       snapped = snapBoardDimensions(snapped.boardW * scale, snapped.boardH * scale);
-      totalH = snapped.boardH + framePad + snapped.ladderBand;
+      totalH = layoutStackHeightForBoardH(snapped.boardH);
+      outerW = cabinetOuterWidthForBoard(snapped.boardW, snapped.boardH);
       if (totalH > maxH) {
         const hScale = maxH / totalH;
         snapped = snapBoardDimensions(snapped.boardW * hScale, snapped.boardH * hScale);
@@ -407,7 +553,7 @@ export async function createPixiSlotBoard(hostEl) {
     layout = snapped;
 
     stage.x = w / 2;
-    stage.y = h / 2 + (snapped.ladderBand + framePadTop() - framePadBottom()) / 2;
+    layoutStackPosition(h);
 
     reels.forEach((reel, index) => {
       reel.root.x = Math.round((-layout.boardW / 2 + index * layout.cellW) * 100) / 100;
@@ -424,17 +570,35 @@ export async function createPixiSlotBoard(hostEl) {
       flushDeferredLayouts();
     }
 
+    reelsRoot.scale.set(SYMBOL_CONTAINER_SCALE);
+
+    const { outerTop } = cabinetOuterMetrics();
+    const ladderGap = ladderGapFor(layout.ladderBand);
     cascadeLadder.layout({
       boardW: layout.boardW,
       boardH: layout.boardH,
       cellW: layout.cellW,
       ladderBand: layout.ladderBand,
+      y: outerTop - ladderGap - layout.ladderBand / 2,
     });
+    layoutCabinetBackground();
     drawFrame();
     if (clusterOverlayCells) drawClusterOverlay(clusterOverlayCells);
+    syncLedgerCabinetAlignment();
   }
 
-  const resizeObserver = new ResizeObserver(() => applyLayout());
+  await ensureCabinetBackground();
+
+  let layoutRaf = 0;
+  function scheduleLayout() {
+    if (layoutRaf) return;
+    layoutRaf = requestAnimationFrame(() => {
+      layoutRaf = 0;
+      applyLayout();
+    });
+  }
+
+  const resizeObserver = new ResizeObserver(() => scheduleLayout());
   resizeObserver.observe(hostEl);
   applyLayout();
 
@@ -602,7 +766,13 @@ export async function createPixiSlotBoard(hostEl) {
         reel.boardSealed = false;
       });
 
-      await scaledDelay(TIMING.preSpinMs, speed);
+      await Promise.all([
+        animateCabinetPulse(cabinetRoot, {
+          durationMs: TIMING.cabinetPulseMs / speed,
+          peakScale: 1.01,
+        }),
+        scaledDelay(TIMING.preSpinMs, speed),
+      ]);
       onMotionStart?.();
 
       try {
@@ -785,6 +955,10 @@ export async function createPixiSlotBoard(hostEl) {
     },
 
     destroy() {
+      if (layoutRaf) {
+        cancelAnimationFrame(layoutRaf);
+        layoutRaf = 0;
+      }
       resizeObserver.disconnect();
       app.destroy(true, { children: true });
     },

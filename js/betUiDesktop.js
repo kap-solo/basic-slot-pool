@@ -23,6 +23,7 @@
  * @param {() => boolean} [options.handlers.getCanPickBet]
  * @param {() => void} [options.handlers.onBetPick]
  * @param {() => boolean} options.handlers.getAutoEnabled
+ * @param {() => boolean} [options.handlers.getAutoVisible]
  * @param {() => void} [options.handlers.onBuy]
  * @param {() => boolean} [options.handlers.getBuyEnabled]
  * @param {() => string} [options.handlers.getBuyLabel]
@@ -76,7 +77,7 @@ export function mountDesktopBetUi({
 
   const autoCluster = document.createElement('div');
   autoCluster.className = 'bet-ui-desktop__auto-cluster';
-  const autoBtn = createIconButton('auto', 'Autoplay', '⟳');
+  const autoBtn = createIconButton('auto', 'Autoplay', '');
   const autoProgress = document.createElement('span');
   autoProgress.className = 'bet-ui-desktop__auto-progress';
   autoProgress.hidden = true;
@@ -96,8 +97,17 @@ export function mountDesktopBetUi({
   stakeShell.appendChild(chrome);
 
   const statValueEls = [balanceStat.valueEl, winStat.valueEl, betPickBtn.valueEl];
+  let fitRaf = 0;
+  function scheduleFitAllStatValues() {
+    if (fitRaf) return;
+    fitRaf = requestAnimationFrame(() => {
+      fitRaf = 0;
+      fitAllStatValues();
+    });
+  }
+
   const resizeObserver = typeof ResizeObserver !== 'undefined'
-    ? new ResizeObserver(() => fitAllStatValues())
+    ? new ResizeObserver(() => scheduleFitAllStatValues())
     : null;
 
   for (const stat of [balanceStat, winStat, betPickBtn]) {
@@ -181,12 +191,15 @@ export function mountDesktopBetUi({
     betPickBtn.button.disabled = !canPickBet;
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
+    const autoVisible = handlers.getAutoVisible?.() ?? true;
+    autoPanel.hidden = !autoVisible;
+
     const progress = handlers.getAutoplayProgress?.() ?? { current: 0, total: 0 };
     const iconEl = autoBtn.querySelector('.bet-ui-desktop__icon');
 
     autoBtn.classList.toggle('bet-ui-desktop__icon-btn--stop', autoplayActive);
     if (iconEl) {
-      iconEl.textContent = autoplayActive ? '■' : '⟳';
+      iconEl.textContent = autoplayActive ? '■' : '';
     }
     autoBtn.setAttribute('aria-label', autoplayActive ? 'Stop autoplay' : 'Autoplay');
 
@@ -227,6 +240,10 @@ export function mountDesktopBetUi({
     sync,
     updateWin,
     destroy() {
+      if (fitRaf) {
+        cancelAnimationFrame(fitRaf);
+        fitRaf = 0;
+      }
       resizeObserver?.disconnect();
       restorePlayButton();
       chrome.remove();

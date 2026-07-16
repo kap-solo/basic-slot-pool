@@ -75,7 +75,7 @@
 }
 
 /* Popout S — aggressive downscale (400×225). */
-.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] {
   --bet-ui-desktop-bar-height: 1.49rem;
   --bet-ui-desktop-spin-size: 2.03rem;
   --bet-ui-desktop-spin-tuck: calc(var(--bet-ui-desktop-spin-size) * 0.42);
@@ -102,6 +102,14 @@
   --bet-ui-desktop-auto-icon-size: 0.72rem;
   --bet-ui-desktop-bottom-inset: 0.25rem;
   --bet-ui-desktop-auto-progress-drop: 0px;
+  /* spin-size + dock padding/margins — bar-height under-reserves on this breakpoint. */
+  --bet-ui-desktop-chrome-height: calc(
+    var(--bet-ui-desktop-spin-size)
+    + var(--bet-ui-desktop-spin-overlap)
+    + max(0px, calc(var(--bet-ui-desktop-bottom-inset) - var(--bet-ui-desktop-dock-shift-y)))
+    + var(--bet-ui-desktop-box-lift)
+    + 0.52rem
+  );
 }
 
 .suki-stake-shell[data-bet-ui-variant='desktop'] .suki-game-core {
@@ -244,16 +252,21 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   box-sizing: border-box;
+  min-width: calc(var(--bet-ui-desktop-auto-size) + 0.35rem);
   height: var(--bet-ui-desktop-bar-height);
   min-height: var(--bet-ui-desktop-bar-height);
   max-height: var(--bet-ui-desktop-bar-height);
   margin-inline-start: calc(-1 * var(--bet-ui-desktop-spin-tuck));
   margin-bottom: var(--bet-ui-desktop-box-lift);
-  padding: 0.22rem 0.5rem 0.28rem calc(var(--bet-ui-desktop-spin-tuck) + 0.12rem);
-  border-radius: 0.25rem 0.65rem 0.65rem 0.25rem;
+  padding: 0.22rem 0.38rem 0.28rem calc(var(--bet-ui-desktop-spin-tuck) + 0.12rem);
+  border-radius: 0.25rem 0.65rem 0.65rem 0.65rem;
   background: rgba(14, 16, 24, 0.95);
+}
+
+.bet-ui-desktop__auto-panel[hidden] {
+  display: none !important;
 }
 
 .bet-ui-desktop__group--play .bet-ui-desktop__spin {
@@ -485,6 +498,7 @@
 
 .bet-ui-desktop__auto-cluster {
   position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -497,11 +511,33 @@
   height: var(--bet-ui-desktop-auto-size);
   max-width: var(--bet-ui-desktop-auto-size);
   max-height: var(--bet-ui-desktop-auto-size);
-  background: transparent;
+  background: #0a0a0a;
 }
 
-.bet-ui-desktop__icon-btn--auto .bet-ui-desktop__icon {
+.bet-ui-desktop__icon-btn--auto:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.bet-ui-desktop__icon-btn--auto:not(.bet-ui-desktop__icon-btn--stop) .bet-ui-desktop__icon {
+  font-size: 0;
+  line-height: 0;
+}
+
+.bet-ui-desktop__icon-btn--auto:not(.bet-ui-desktop__icon-btn--stop)::before {
+  content: '↻';
   font-size: var(--bet-ui-desktop-auto-icon-size);
+  font-weight: 700;
+  line-height: 1;
+  color: #f5f5f5;
+}
+
+.bet-ui-desktop__icon-btn--auto:disabled:not(.bet-ui-desktop__icon-btn--stop)::before {
+  color: #5a5a5a;
+}
+
+.bet-ui-desktop__icon-btn--auto.bet-ui-desktop__icon-btn--stop .bet-ui-desktop__icon {
+  font-size: calc(var(--bet-ui-desktop-auto-icon-size) * 0.82);
 }
 
 .bet-ui-desktop__icon-btn--stop .bet-ui-desktop__icon {
@@ -527,21 +563,59 @@
   border-radius: 999px;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu {
+@media (orientation: landscape) and (max-height: 320px) and (max-width: 640px) {
+  .suki-stake-shell[data-bet-ui-variant='desktop'] {
+    --bet-ui-desktop-bar-height: 1.49rem;
+    --bet-ui-desktop-spin-size: 2.03rem;
+    --bet-ui-desktop-spin-tuck: calc(var(--bet-ui-desktop-spin-size) * 0.42);
+    --bet-ui-desktop-auto-size: 1.16rem;
+    --bet-ui-desktop-menu-size: 0.93rem;
+    --bet-ui-desktop-step-size: 1.07rem;
+    --bet-ui-desktop-inset-inline-start: 8%;
+    --bet-ui-desktop-inset-inline-end: 3%;
+    --bet-ui-desktop-controls-gap: 0.15rem;
+    --bet-ui-desktop-play-cluster-gap: 0.08rem;
+    --bet-ui-desktop-group-gap: 0.3rem;
+    --bet-ui-desktop-menu-stats-gap: 0.9rem;
+    --bet-ui-desktop-stats-gap: 0.25rem;
+    --bet-ui-desktop-stat-label-size: 0.46rem;
+    --bet-ui-desktop-stat-value-size: 0.62rem;
+    --bet-ui-desktop-cluster-label-size: 0.44rem;
+    --bet-ui-desktop-cluster-value-size: 0.58rem;
+    --bet-ui-desktop-bet-pick-min-width: 2.1rem;
+    --bet-ui-desktop-bet-pick-max-width: 3.25rem;
+    --bet-ui-desktop-stat-max-width: 4.25rem;
+    --bet-ui-desktop-win-max-width: 3.75rem;
+    --bet-ui-desktop-menu-icon-size: 0.6rem;
+    --bet-ui-desktop-step-font-size: 0.75rem;
+    --bet-ui-desktop-auto-icon-size: 0.72rem;
+    --bet-ui-desktop-bottom-inset: 0.25rem;
+    --bet-ui-desktop-auto-progress-drop: 0px;
+    --bet-ui-desktop-chrome-height: calc(
+      var(--bet-ui-desktop-spin-size)
+      + var(--bet-ui-desktop-spin-overlap)
+      + max(0px, calc(var(--bet-ui-desktop-bottom-inset) - var(--bet-ui-desktop-dock-shift-y)))
+      + var(--bet-ui-desktop-box-lift)
+      + 0.52rem
+    );
+  }
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu {
   width: var(--bet-ui-desktop-menu-size);
   height: var(--bet-ui-desktop-menu-size);
   max-width: var(--bet-ui-desktop-menu-size);
   max-height: var(--bet-ui-desktop-menu-size);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu .bet-ui-desktop__icon {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__icon-btn--menu .bet-ui-desktop__icon {
   font-size: var(--bet-ui-desktop-menu-icon-size);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__group {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__group {
   padding: 0.2rem 0.35rem;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'][data-bet-ui-variant='desktop'] .bet-ui-desktop__stat {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__stat {
   padding: 0.1rem 0.2rem;
 }

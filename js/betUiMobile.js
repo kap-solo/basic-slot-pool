@@ -23,6 +23,7 @@
  * @param {() => boolean} [options.handlers.getCanPickBet]
  * @param {() => void} [options.handlers.onBetPick]
  * @param {() => boolean} options.handlers.getAutoEnabled
+ * @param {() => boolean} [options.handlers.getAutoVisible]
  * @param {() => void} [options.handlers.onBuy]
  * @param {() => boolean} [options.handlers.getBuyEnabled]
  * @param {() => string} [options.handlers.getBuyLabel]
@@ -48,7 +49,7 @@ export function mountMobileBetUi({
   const menuBtn = createIconButton('menu', 'Menu', '☰');
   const autoCluster = document.createElement('div');
   autoCluster.className = 'bet-ui-mobile__auto-cluster';
-  const autoBtn = createIconButton('auto', 'Autoplay', '⟳');
+  const autoBtn = createIconButton('auto', 'Autoplay', '');
   const autoProgress = document.createElement('span');
   autoProgress.className = 'bet-ui-mobile__auto-progress';
   autoProgress.hidden = true;
@@ -96,8 +97,17 @@ export function mountMobileBetUi({
   stakeShell.appendChild(chrome);
 
   const statValueEls = [balanceStat.valueEl, betPickBtn.valueEl, winStat.valueEl];
+  let fitRaf = 0;
+  function scheduleFitAllStatValues() {
+    if (fitRaf) return;
+    fitRaf = requestAnimationFrame(() => {
+      fitRaf = 0;
+      fitAllStatValues();
+    });
+  }
+
   const resizeObserver = typeof ResizeObserver !== 'undefined'
-    ? new ResizeObserver(() => fitAllStatValues())
+    ? new ResizeObserver(() => scheduleFitAllStatValues())
     : null;
 
   for (const el of [infoBar, balanceStat.root, betPickBtn.root, betPickBtn.valueEl, winStat.root, playCluster]) {
@@ -187,12 +197,15 @@ export function mountMobileBetUi({
     betPickBtn.button.disabled = !canPickBet;
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
+    const autoVisible = handlers.getAutoVisible?.() ?? true;
+    autoCluster.hidden = !autoVisible;
+
     const progress = handlers.getAutoplayProgress?.() ?? { current: 0, total: 0 };
     const iconEl = autoBtn.querySelector('.bet-ui-mobile__icon');
 
     autoBtn.classList.toggle('bet-ui-mobile__icon-btn--stop', autoplayActive);
     if (iconEl) {
-      iconEl.textContent = autoplayActive ? '■' : '⟳';
+      iconEl.textContent = autoplayActive ? '■' : '';
     }
     autoBtn.setAttribute('aria-label', autoplayActive ? 'Stop autoplay' : 'Autoplay');
 
@@ -233,6 +246,10 @@ export function mountMobileBetUi({
     sync,
     updateWin,
     destroy() {
+      if (fitRaf) {
+        cancelAnimationFrame(fitRaf);
+        fitRaf = 0;
+      }
       resizeObserver?.disconnect();
       restorePlayButton();
       chrome.remove();

@@ -642,6 +642,32 @@ export function animateAlphaTargets(targets, { durationMs = 300, ease = easeOutC
 export { sleep };
 
 /**
+ * Subtle scale bump on a container — cabinet pulse at spin start.
+ * @param {import('pixi.js').Container} root
+ * @param {{ durationMs?: number, peakScale?: number }} [opts]
+ */
+export function animateCabinetPulse(root, { durationMs = 160, peakScale = 1.01 } = {}) {
+  if (!root || peakScale <= 1) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      if (t >= 1) {
+        root.scale.set(1);
+        resolve();
+        return;
+      }
+      const bump = Math.sin(t * Math.PI);
+      const scale = 1 + (peakScale - 1) * bump * bump;
+      root.scale.set(scale);
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/**
  * Soft spring each symbol y toward grid — only used when residual offset remains.
  * @param {{ node: { root: { y: number } }, y: number }[]} entries
  * @param {number} [maxMs=180]

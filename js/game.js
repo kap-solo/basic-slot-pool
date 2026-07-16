@@ -32,6 +32,7 @@ import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
+import { applyInferredStakeScreen, patchStakeLayoutForProduction } from './stakeScreenInfer.js';
 import { mountMobileBetUi } from './betUiMobile.js';
 import { mountDesktopBetUi } from './betUiDesktop.js';
 import { registerGameModals } from './menu.js';
@@ -1138,6 +1139,13 @@ const game = createGameBootstrap({
 
 const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
 
+function onStakeScreenInferred() {
+  betUiVariant?.refresh();
+  slotBoard?.resize?.();
+}
+
+patchStakeLayoutForProduction(shellEl, game.stakeLayout, onStakeScreenInferred);
+
 disableTurboForGame(game.jurisdiction);
 
 modalHost.bind({ game });
@@ -1356,6 +1364,7 @@ const betChromeHandlers = {
     total: autoplayTotalRounds,
   }),
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
+  getAutoVisible: () => controls.canAutoplay,
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
   getBuyLabel: () => buyButtonLabel(),
@@ -1700,6 +1709,7 @@ async function playDevFeatureSample() {
 }
 
 async function initSlotStage() {
+  applyInferredStakeScreen(shellEl, onStakeScreenInferred);
   slotBoard = await createSlotBoard(slotRoot);
   setLedgerSpineRegistry(await loadSpineSymbolRegistry());
   if (slotStageEl && !featureChrome) {

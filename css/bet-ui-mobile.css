@@ -192,10 +192,13 @@
 
 .bet-ui-mobile__auto-cluster {
   position: absolute;
-  left: calc(
-    50% - (var(--bet-ui-mobile-spin-size) / 2) - var(--bet-ui-mobile-spin-step-gap) -
-      var(--bet-ui-mobile-action-step-size) - var(--bet-ui-mobile-auto-spin-gap) -
-      var(--bet-ui-mobile-auto-size)
+  left: max(
+    var(--bet-ui-mobile-edge-inset, 0.65rem),
+    calc(
+      50% - (var(--bet-ui-mobile-spin-size) / 2) - var(--bet-ui-mobile-spin-step-gap) -
+        var(--bet-ui-mobile-action-step-size) - var(--bet-ui-mobile-auto-spin-gap) -
+        var(--bet-ui-mobile-auto-size)
+    )
   );
   top: 50%;
   transform: translateY(-50%);
@@ -203,7 +206,12 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  z-index: 2;
   pointer-events: auto;
+}
+
+.bet-ui-mobile__auto-cluster[hidden] {
+  display: none !important;
 }
 
 .bet-ui-mobile__auto-progress {
@@ -300,6 +308,28 @@
   flex-shrink: 0;
 }
 
+.bet-ui-mobile__icon-btn--auto:not(.bet-ui-mobile__icon-btn--stop) .bet-ui-mobile__icon {
+  font-size: 0;
+  line-height: 0;
+}
+
+.bet-ui-mobile__icon-btn--auto:not(.bet-ui-mobile__icon-btn--stop)::before {
+  content: '↻';
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #f5f5f5;
+}
+
+.bet-ui-mobile__icon-btn--auto:disabled:not(.bet-ui-mobile__icon-btn--stop)::before {
+  color: #5a5a5a;
+}
+
+.bet-ui-mobile__icon-btn--auto:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
 .bet-ui-mobile__icon-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -308,10 +338,6 @@
 .bet-ui-mobile__icon {
   font-size: 1.15rem;
   line-height: 1;
-}
-
-.bet-ui-mobile__icon-btn--auto .bet-ui-mobile__icon {
-  font-size: 1rem;
 }
 
 .bet-ui-mobile__play.suki-bet-play {
