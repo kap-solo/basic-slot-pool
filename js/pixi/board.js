@@ -66,6 +66,8 @@ export async function createPixiSlotBoard(hostEl) {
 
   /** @type {Sprite | null} */
   let cabinetBgSprite = null;
+  /** Bumps when a new cabinet pulse starts so the prior rAF loop can exit. */
+  let cabinetPulseGen = 0;
 
   stage.addChild(cabinetRoot);
   cabinetRoot.addChild(cabinetBgMask);
@@ -633,6 +635,16 @@ export async function createPixiSlotBoard(hostEl) {
     drawClusterOverlay(hasWin ? winCells : null);
   }
 
+  /** Immediate cabinet scale bump — synced with spin button click. */
+  function pulseCabinet({ speed = 1 } = {}) {
+    const gen = ++cabinetPulseGen;
+    void animateCabinetPulse(cabinetRoot, {
+      durationMs: TIMING.cabinetPulseMs / speed,
+      peakScale: 1.01,
+      shouldCancel: () => gen !== cabinetPulseGen,
+    });
+  }
+
   return {
     getBoard,
 
@@ -665,6 +677,8 @@ export async function createPixiSlotBoard(hostEl) {
       winPopupLayer.removeChildren();
       reels.forEach((reel) => reel.clearWinState());
     },
+
+    pulseCabinet,
 
     /**
      * @param {Set<string>} cellKeys — "col,row"
@@ -766,13 +780,7 @@ export async function createPixiSlotBoard(hostEl) {
         reel.boardSealed = false;
       });
 
-      await Promise.all([
-        animateCabinetPulse(cabinetRoot, {
-          durationMs: TIMING.cabinetPulseMs / speed,
-          peakScale: 1.01,
-        }),
-        scaledDelay(TIMING.preSpinMs, speed),
-      ]);
+      await scaledDelay(TIMING.preSpinMs, speed);
       onMotionStart?.();
 
       try {

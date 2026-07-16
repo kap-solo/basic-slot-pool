@@ -1002,6 +1002,7 @@ async function withSpinLock(fn) {
   prepareWinForSpin();
   featureChrome?.reset();
   refreshWinStatLabel();
+  slotBoard?.pulseCabinet();
   syncControls();
   try {
     return await fn();

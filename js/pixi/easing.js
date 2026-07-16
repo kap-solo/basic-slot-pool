@@ -646,12 +646,20 @@ export { sleep };
  * @param {import('pixi.js').Container} root
  * @param {{ durationMs?: number, peakScale?: number }} [opts]
  */
-export function animateCabinetPulse(root, { durationMs = 160, peakScale = 1.01 } = {}) {
+export function animateCabinetPulse(
+  root,
+  { durationMs = 160, peakScale = 1.01, shouldCancel = () => false } = {},
+) {
   if (!root || peakScale <= 1) return Promise.resolve();
 
   return new Promise((resolve) => {
     const start = performance.now();
     const step = (now) => {
+      if (shouldCancel()) {
+        root.scale.set(1);
+        resolve();
+        return;
+      }
       const t = Math.min(1, (now - start) / durationMs);
       if (t >= 1) {
         root.scale.set(1);

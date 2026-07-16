@@ -57,7 +57,7 @@ export const TIMING = {
   blobHoldMs: 250,
   /** gameReveal — blank beat between fall-off and result drop-in (ms). */
   revealBlankMs: 120,
-  /** Brief cabinet scale pulse when a spin begins (ms). */
+  /** Brief cabinet scale pulse when spin is requested (ms). */
   cabinetPulseMs: 160,
   /** Free-spin counter — tick when refill drop-in begins (see assignment below). */
   freeSpinCounterDelayMs: 0,
