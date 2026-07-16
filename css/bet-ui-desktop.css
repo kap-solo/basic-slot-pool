@@ -236,6 +236,11 @@
   align-self: center;
 }
 
+/* Transparent on larger breakpoints — children stay direct flex items in the dock. */
+.bet-ui-desktop__stats-bet-cluster {
+  display: contents;
+}
+
 .bet-ui-desktop__group--play {
   align-items: flex-end;
   gap: 0;
@@ -618,4 +623,53 @@
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__stat {
   padding: 0.1rem 0.2rem;
+}
+
+/* Popout S — balance, win, and bet in one chrome panel. */
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__stats-bet-cluster {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: stretch;
+  box-sizing: border-box;
+  height: var(--bet-ui-desktop-bar-height);
+  min-height: var(--bet-ui-desktop-bar-height);
+  max-height: var(--bet-ui-desktop-bar-height);
+  margin-bottom: var(--bet-ui-desktop-box-lift);
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.55rem;
+  background: rgba(42, 42, 42, 0.92);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__stats-bet-cluster .bet-ui-desktop__group--menu-stats,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__stats-bet-cluster .bet-ui-desktop__group--bet {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  min-width: 0;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__stats-bet-cluster .bet-ui-desktop__group--menu-stats {
+  flex: 1 1 0;
+  justify-content: flex-start;
+  gap: var(--bet-ui-desktop-stats-gap);
+  padding-inline-end: 0.25rem;
+  border-inline-end: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__stats-bet-cluster .bet-ui-desktop__group--bet {
+  flex: 0 0 auto;
+  gap: var(--bet-ui-desktop-controls-gap);
+  padding-inline-start: 0.25rem;
+  align-items: center;
 }

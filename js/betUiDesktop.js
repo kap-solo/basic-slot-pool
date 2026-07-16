@@ -49,6 +49,11 @@ export function mountDesktopBetUi({
   const betGroup = document.createElement('div');
   betGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--bet';
 
+  const statsBetCluster = document.createElement('div');
+  statsBetCluster.className = 'bet-ui-desktop__stats-bet-cluster';
+
+  statsBetCluster.append(menuStatsGroup, betGroup);
+
   const playGroup = document.createElement('div');
   playGroup.className = 'bet-ui-desktop__group bet-ui-desktop__group--play';
 
@@ -92,7 +97,7 @@ export function mountDesktopBetUi({
   const buyBtn = createBuyButton();
   buyGroup.append(buyBtn);
 
-  dock.append(menuStatsGroup, betGroup, playGroup, buyGroup);
+  dock.append(statsBetCluster, playGroup, buyGroup);
   chrome.append(dock);
   stakeShell.appendChild(chrome);
 
@@ -110,10 +115,12 @@ export function mountDesktopBetUi({
     ? new ResizeObserver(() => scheduleFitAllStatValues())
     : null;
 
+  resizeObserver?.observe(menuStatsGroup);
+  resizeObserver?.observe(statsBetCluster);
+
   for (const stat of [balanceStat, winStat, betPickBtn]) {
     resizeObserver?.observe(stat.root);
   }
-  resizeObserver?.observe(menuStatsGroup);
 
   let active = false;
 
