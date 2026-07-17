@@ -26,7 +26,7 @@ import {
   registerBuyBonusConfirm,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
-import { buildPreloadAssets, createReelSpinAudio, wireTemplateAudio } from './audio.js';
+import { buildPreloadAssets, createReelSpinAudio, createSpinClickAudio, wireTemplateAudio } from './audio.js';
 import { mountCharacterPlaceholder } from './character.js';
 import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST, BB_MODE } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
@@ -74,6 +74,7 @@ const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
 const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
 wireTemplateAudio(gameAudio);
 const reelSpinAudio = createReelSpinAudio(audioPrefs);
+const spinClickAudio = createSpinClickAudio(audioPrefs);
 const recentResults = createRecentResultsStore({ max: 25 });
 const gameMenu = createGameMenu({
   brand: brandEl,
@@ -1005,6 +1006,7 @@ async function withSpinLock(fn) {
   featureChrome?.reset();
   refreshWinStatLabel();
   slotBoard?.pulseCabinet();
+  spinClickAudio.play(() => gameAudio.unlock());
   syncControls();
   try {
     return await fn();
@@ -1036,7 +1038,11 @@ const game = createGameBootstrap({
     },
     screenPreview: {
       root: shellEl,
-      onScreenChange: () => betUiVariant?.refresh(),
+      onScreenChange: () => {
+        requestAnimationFrame(() => {
+          betUiVariant?.refresh();
+        });
+      },
     },
   },
   lifecycle: {
@@ -1367,7 +1373,7 @@ const betChromeHandlers = {
     total: autoplayTotalRounds,
   }),
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
-  getAutoVisible: () => controls.canAutoplay,
+  getAutoVisible: () => controls.canAutoplay || (isDevMode() && !replayMode),
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
   getBuyLabel: () => buyButtonLabel(),
@@ -1406,6 +1412,10 @@ betUiVariant = initBetUiVariant({
     }
     syncControls();
   },
+  onLayoutRefresh: () => {
+    syncControls();
+    queueGameMenuPosition();
+  },
 });
 
 async function onBuyBonus() {
@@ -1427,7 +1437,6 @@ async function onBuyBonus() {
 async function executeBuyBonus() {
   await withSpinLock(async () => {
     try {
-      gameAudio.playSfx('play');
       const baseBetApi = displayToApi(bet);
       // Stake RGS debits base bet × mode cost — send base only (cost 20 comes from math index).
       const playRes = await play({ amountApi: baseBetApi, mode: 'BB' });
@@ -1461,7 +1470,6 @@ async function onSpin() {
 
   await withSpinLock(async () => {
     try {
-      gameAudio.playSfx('play');
       await lifecycle.executeDrop({ animate: true });
     } catch (err) {
       console.error(err);
@@ -1559,7 +1567,6 @@ async function runAutoplay(roundCount) {
       syncControls();
 
       await withSpinLock(async () => {
-        gameAudio.playSfx('play');
         await lifecycle.executeDrop({ animate: true });
       });
 
@@ -1768,6 +1775,7 @@ if (replayMode) {
     onContinue: () => {
       revealGameShell();
       gameAudio.unlock();
+      spinClickAudio.prime();
       reelSpinAudio.prime();
     },
   });

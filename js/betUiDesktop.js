@@ -144,6 +144,7 @@ export function mountDesktopBetUi({
       spinSlot.appendChild(playButton);
       playButton.classList.add('bet-ui-desktop__play');
       playButton.setAttribute('aria-label', 'Spin');
+      sync();
       requestAnimationFrame(() => fitAllStatValues());
     } else {
       restorePlayButton();

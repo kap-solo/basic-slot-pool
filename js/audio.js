@@ -6,6 +6,7 @@
 export const GAME_AUDIO_ASSETS = {
   music: null,
   sfx: {
+    play: 'assets/audio/play.mp3',
     reels: 'assets/audio/reels3.wav',
   },
 };
@@ -27,6 +28,72 @@ export function buildPreloadAssets() {
  */
 export function wireTemplateAudio(gameAudio) {
   gameAudio.setAssets(GAME_AUDIO_ASSETS);
+}
+
+/**
+ * Spin start click — one-shot, synced with cabinet pulse at the start of every spin.
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ */
+export function createSpinClickAudio(audioPrefs) {
+  /** @type {HTMLAudioElement | null} */
+  let clickEl = null;
+
+  function sfxLevel() {
+    return audioPrefs.sfxVolume?.value ?? (audioPrefs.sfx?.enabled ? 1 : 0);
+  }
+
+  function applySfxVolume() {
+    if (!clickEl) return;
+    clickEl.volume = sfxLevel();
+  }
+
+  audioPrefs.sfxVolume?.onChange(applySfxVolume);
+
+  function ensureElement() {
+    const url = GAME_AUDIO_ASSETS.sfx?.play;
+    if (!url) return null;
+    const resolved = new URL(url, window.location.href).href;
+    if (clickEl && clickEl.src !== resolved) {
+      clickEl.pause();
+      clickEl = null;
+    }
+    if (!clickEl) {
+      clickEl = new Audio(url);
+      clickEl.loop = false;
+      clickEl.preload = 'auto';
+      clickEl.volume = 1;
+    }
+    return clickEl;
+  }
+
+  return {
+    /** Warm the decoder — call after first user gesture to cut mobile start latency. */
+    prime() {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement();
+      if (!el) return;
+      applySfxVolume();
+      const playPromise = el.play();
+      if (!playPromise) return;
+      playPromise
+        .then(() => {
+          el.pause();
+          el.currentTime = 0;
+          applySfxVolume();
+        })
+        .catch(() => {});
+    },
+    play(unlock) {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement();
+      if (!el) return;
+      unlock?.();
+      applySfxVolume();
+      el.currentTime = 0;
+      el.play().catch(() => {});
+    },
+  };
 }
 
 /**

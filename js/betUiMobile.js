@@ -136,6 +136,7 @@ export function mountMobileBetUi({
       spinSlot.appendChild(playButton);
       playButton.classList.add('bet-ui-mobile__play');
       playButton.setAttribute('aria-label', 'Spin');
+      sync();
       requestAnimationFrame(() => fitAllStatValues());
     } else {
       restorePlayButton();

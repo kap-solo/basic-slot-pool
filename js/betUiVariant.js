@@ -63,14 +63,18 @@ export function applyBetUiVariant(shell, betUiRoot, variant) {
  * @param {HTMLElement} options.shell
  * @param {HTMLElement | null} [options.betUiRoot]
  * @param {(variant: BetUiVariant) => void} [options.onChange]
+ * @param {(variant: BetUiVariant) => void} [options.onLayoutRefresh]
  */
-export function initBetUiVariant({ shell, betUiRoot = null, onChange }) {
+export function initBetUiVariant({ shell, betUiRoot = null, onChange, onLayoutRefresh }) {
   /** @type {BetUiVariant | null} */
   let current = null;
 
   function refresh() {
     const variant = resolveBetUiVariant(shell);
-    if (variant === current) return;
+    if (variant === current) {
+      onLayoutRefresh?.(variant);
+      return;
+    }
     current = variant;
     applyBetUiVariant(shell, betUiRoot, variant);
     onChange?.(variant);
