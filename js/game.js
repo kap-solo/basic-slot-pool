@@ -26,7 +26,14 @@ import {
   registerBuyBonusConfirm,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
-import { buildPreloadAssets, createReelSpinAudio, createSpinClickAudio, wireTemplateAudio } from './audio.js';
+import {
+  buildPreloadAssets,
+  createCascadeAudio,
+  createGreenSquareAudio,
+  createReelSpinAudio,
+  createSpinClickAudio,
+  wireTemplateAudio,
+} from './audio.js';
 import { mountCharacterPlaceholder } from './character.js';
 import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST, BB_MODE } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
@@ -75,6 +82,12 @@ const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
 wireTemplateAudio(gameAudio);
 const reelSpinAudio = createReelSpinAudio(audioPrefs);
 const spinClickAudio = createSpinClickAudio(audioPrefs);
+const greenSquareAudio = createGreenSquareAudio(audioPrefs);
+const cascadeAudio = createCascadeAudio(audioPrefs);
+
+function startCascadeMotionAudio() {
+  cascadeAudio.start(() => gameAudio.unlock());
+}
 const recentResults = createRecentResultsStore({ max: 25 });
 const gameMenu = createGameMenu({
   brand: brandEl,
@@ -729,7 +742,6 @@ async function animateReveal(board) {
   await animateSlotSpin(slotBoard, board, {
     speed: animationSpeed,
     onMotionStart: () => reelSpinAudio.start(() => gameAudio.unlock()),
-    onAllLandsImpact: () => reelSpinAudio.stop({ fadeMs: 60 }),
   });
 }
 
@@ -756,6 +768,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
       slotBoard.syncBookColumnData(event.board);
       await presentBlobAfterReveal(slotBoard, event.board, blobPlan, {
         speed: animationSpeed,
+        blobDissolve: greenSquareAudio,
       });
     }
   } else {
@@ -817,9 +830,12 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
 
   if (event.type === 'tumble') {
     if (animate) {
+      const removed = pendingClusterRemoved?.length
+        ? pendingClusterRemoved
+        : (event.removed ?? []);
       await slotBoard.animateTumble(event.board, {
         fills: event.fills ?? [],
-        removed: pendingClusterRemoved ?? [],
+        removed,
         speed: animationSpeed,
       });
     } else {
@@ -1530,6 +1546,7 @@ function stopAutoplay() {
   autoplayStopRequested = true;
   slotBoard?.cancelPresentation?.();
   reelSpinAudio.stop({ fadeMs: 0 });
+  cascadeAudio.stop({ fadeMs: 0 });
   syncControls();
 }
 
@@ -1721,6 +1738,7 @@ async function playDevFeatureSample() {
 async function initSlotStage() {
   applyInferredStakeScreen(shellEl, onStakeScreenInferred);
   slotBoard = await createSlotBoard(slotRoot);
+  slotBoard.setPostSpinMotionAudio(startCascadeMotionAudio);
   setLedgerSpineRegistry(await loadSpineSymbolRegistry());
   if (slotStageEl && !featureChrome) {
     featureChrome = createFeatureChrome({
@@ -1777,6 +1795,8 @@ if (replayMode) {
       gameAudio.unlock();
       spinClickAudio.prime();
       reelSpinAudio.prime();
+      greenSquareAudio.prime();
+      cascadeAudio.prime();
     },
   });
   attachPreloaderCommitLabel();

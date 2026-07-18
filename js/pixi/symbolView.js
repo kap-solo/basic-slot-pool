@@ -87,16 +87,33 @@ function playSpineSymbolState(spine, visual, state) {
 }
 
 /**
- * @param {Spine} spine
+ * @param {import('@esotericsoftware/spine-core').SkeletonData} data
  * @param {string} animName
  */
-function playSpineAnimationOnce(spine, animName) {
+function spineAnimDurationMs(data, animName) {
+  const anim = data.findAnimation?.(animName);
+  if (!anim) return 0;
+  return (anim.duration ?? 0) * 1000;
+}
+
+/**
+ * @param {Spine} spine
+ * @param {string} animName
+ * @param {number} [durationMs] Stretch/compress to match audio when set.
+ */
+function playSpineAnimationOnce(spine, animName, durationMs) {
   return new Promise((resolve) => {
     if (!spineAnimHasKeyframes(spine.skeleton.data, animName)) {
       resolve();
       return;
     }
     const entry = spine.state.setAnimation(0, animName, false);
+    if (durationMs != null && durationMs > 0) {
+      const nativeMs = spineAnimDurationMs(spine.skeleton.data, animName);
+      if (nativeMs > 0) {
+        entry.timeScale = nativeMs / durationMs;
+      }
+    }
     entry.listener = {
       complete: () => resolve(),
     };
@@ -644,7 +661,7 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
       if (spine) {
         const dissolve = visual.animations?.dissolve ?? 'dissolve';
         if (spineAnimHasKeyframes(spine.skeleton.data, dissolve)) {
-          await playSpineAnimationOnce(spine, dissolve);
+          await playSpineAnimationOnce(spine, dissolve, ms);
           return;
         }
       }

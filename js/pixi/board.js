@@ -645,8 +645,20 @@ export async function createPixiSlotBoard(hostEl) {
     });
   }
 
+  /** @type {(() => void) | null} */
+  let postSpinMotionStart = null;
+
+  function triggerPostSpinMotionStart() {
+    postSpinMotionStart?.();
+  }
+
   return {
     getBoard,
+
+    /** Post-spin tumble/refill bed — blob cascade, cluster gravity, strip fill. */
+    setPostSpinMotionAudio(fn) {
+      postSpinMotionStart = typeof fn === 'function' ? fn : null;
+    },
 
     isPresenting() {
       return reels.some((reel) => reel.isPresenting());
@@ -684,7 +696,7 @@ export async function createPixiSlotBoard(hostEl) {
      * @param {Set<string>} cellKeys — "col,row"
      * @param {{ speed?: number }} [opts]
      */
-    async popCells(cellKeys, { speed = 1 } = {}) {
+    async popCells(cellKeys, { speed = 1, dissolveDurationMs } = {}) {
       /** @type {Map<number, number[]>} */
       const rowsByCol = new Map();
       for (const key of cellKeys) {
@@ -700,7 +712,7 @@ export async function createPixiSlotBoard(hostEl) {
         reels.map((reel, index) => {
           const rows = rowsByCol.get(index) ?? [];
           if (!rows.length) return Promise.resolve();
-          return reel.popWinRows(rows, { speed });
+          return reel.popWinRows(rows, { speed, dissolveDurationMs });
         }),
       );
     },
@@ -736,11 +748,13 @@ export async function createPixiSlotBoard(hostEl) {
      * Bottom blob pop — survivors fall, top strip fills (same physics as win tumble).
      * @param {string[][]} revealBoard
      * @param {Map<number, number[]>} removedByCol
-     * @param {{ speed?: number }} [opts]
+     * @param {{ speed?: number, onMotionStart?: () => void }} [opts]
      */
-    async animateBlobBottomCascade(revealBoard, removedByCol, { speed = 1 } = {}) {
+    async animateBlobBottomCascade(revealBoard, removedByCol, { speed = 1, onMotionStart } = {}) {
       if (!removedByCol?.size) return;
 
+      triggerPostSpinMotionStart();
+      onMotionStart?.();
       const display = visualBoard(revealBoard);
       await Promise.all(
         [...removedByCol.entries()].map(([col, removedRows]) => {
@@ -757,6 +771,7 @@ export async function createPixiSlotBoard(hostEl) {
             fills,
             speed,
             forceRowTumble: true,
+            onRefillMotionStart: triggerPostSpinMotionStart,
           });
         }),
       );
@@ -912,9 +927,9 @@ export async function createPixiSlotBoard(hostEl) {
 
     /**
      * @param {string[][]} nextBoard
-     * @param {{ fills?: { col: number, row: number, symbol: string }[], removed?: [number, number][], speed?: number }} [opts]
+     * @param {{ fills?: { col: number, row: number, symbol: string }[], removed?: [number, number][], speed?: number, onMotionStart?: () => void }} [opts]
      */
-    async animateTumble(nextBoard, { fills = [], removed = [], speed = 1 } = {}) {
+    async animateTumble(nextBoard, { fills = [], removed = [], speed = 1, onMotionStart } = {}) {
       drawClusterOverlay(null);
       reels.forEach((reel) => reel.clearWinState());
 
@@ -932,12 +947,16 @@ export async function createPixiSlotBoard(hostEl) {
         fillsByCol.get(fill.col).push({ row: fill.row, symbol: fill.symbol });
       }
 
+      onMotionStart?.();
+      triggerPostSpinMotionStart();
+
       await Promise.all(
         reels.map((reel, index) =>
           reel.tumbleTo(visualBoard(nextBoard)[index] ?? reel.currentColumn, {
             removedRows: removedByCol.get(index) ?? [],
             fills: fillsByCol.get(index) ?? [],
             speed,
+            onRefillMotionStart: triggerPostSpinMotionStart,
           }),
         ),
       );

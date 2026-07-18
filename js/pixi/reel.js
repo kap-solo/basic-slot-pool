@@ -1681,7 +1681,7 @@ export class ReelColumn {
    * @param {number[]} rows
    * @param {{ speed?: number, silent?: boolean }} [opts]
    */
-  async popWinRows(rows, { speed = 1, silent = false } = {}) {
+  async popWinRows(rows, { speed = 1, silent = false, dissolveDurationMs } = {}) {
     if (silent) {
       this.removeWinRowsSilent(rows);
       return;
@@ -1711,7 +1711,7 @@ export class ReelColumn {
     await Promise.all(
       targets.map(async ({ node }) => {
         if (node.symbolId === PERFORMANCE_BLOB_SYMBOL && node.playDissolve) {
-          await node.playDissolve({ speed });
+          await node.playDissolve({ speed, durationMs: dissolveDurationMs });
           return;
         }
 
@@ -1865,9 +1865,9 @@ export class ReelColumn {
   /**
    * Block-based tumble — survivors slide, only new blocks drop in.
    * @param {string[]} nextColumn
-   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number }} [opts]
+   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number, onRefillMotionStart?: () => void }} [opts]
    */
-  async tumbleBlocksTo(nextColumn, { removedRows = [], fills = [], speed = 1 } = {}) {
+  async tumbleBlocksTo(nextColumn, { removedRows = [], fills = [], speed = 1, onRefillMotionStart } = {}) {
     this.cancelLandJelly();
     this.spinning = true;
     const visualNext = [...nextColumn];
@@ -1985,6 +1985,7 @@ export class ReelColumn {
 
       if (colFills.length) {
         this.symbolNodes = nextNodes;
+        onRefillMotionStart?.();
         await this.tumbleFillStripLand(colFills, strip, nextNodes, speed, {
           visualColumn: visualNext,
         });
@@ -2195,11 +2196,17 @@ export class ReelColumn {
    * Gravity tumble — survivors fall, new symbols drop into empty top cells.
    * Reuses live symbol nodes; no full-column rebuild.
    * @param {string[]} nextColumn
-   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number, staggerMs?: number, forceRowTumble?: boolean }} [opts]
+   * @param {{ removedRows?: number[], fills?: { row: number, symbol: string }[], speed?: number, staggerMs?: number, forceRowTumble?: boolean, onRefillMotionStart?: () => void }} [opts]
    */
-  async tumbleTo(nextColumn, { removedRows = [], fills = [], speed = 1, forceRowTumble = false } = {}) {
+  async tumbleTo(nextColumn, {
+    removedRows = [],
+    fills = [],
+    speed = 1,
+    forceRowTumble = false,
+    onRefillMotionStart,
+  } = {}) {
     if (this.tallEnabled && !forceRowTumble) {
-      return this.tumbleBlocksTo(nextColumn, { removedRows, fills, speed });
+      return this.tumbleBlocksTo(nextColumn, { removedRows, fills, speed, onRefillMotionStart });
     }
 
     this.cancelLandJelly();
@@ -2313,6 +2320,7 @@ export class ReelColumn {
 
       if (colFills.length) {
         this.symbolNodes = nextNodes;
+        onRefillMotionStart?.();
         await this.tumbleFillStripLand(colFills, strip, nextNodes, speed, {
           visualColumn: nextColumn,
         });

@@ -256,14 +256,19 @@ export function planRoundBlobPresentation(revealBoard, round, revealEvent = null
  * @param {Awaited<ReturnType<import('../slot.js').createSlotBoard>>} boardUi
  * @param {string[][]} revealBoard
  * @param {NonNullable<ReturnType<typeof planRoundBlobPresentation>>} plan
- * @param {{ speed?: number }} [opts]
+ * @param {{ speed?: number, blobDissolve?: { play?: (unlock?: () => void) => void, durationMs?: () => number } }} [opts]
  */
-export async function presentBlobAfterReveal(boardUi, revealBoard, plan, { speed = 1 } = {}) {
+export async function presentBlobAfterReveal(boardUi, revealBoard, plan, {
+  speed = 1,
+  blobDissolve,
+} = {}) {
   if (!boardUi || !plan) return;
 
   boardUi.syncBookColumnData(revealBoard);
   await scaledDelay(TIMING.blobHoldMs, speed);
-  await boardUi.popCells(plan.cellKeys, { speed });
+  const dissolveDurationMs = blobDissolve?.durationMs?.() ?? TIMING.blobDissolveMs;
+  blobDissolve?.play?.();
+  await boardUi.popCells(plan.cellKeys, { speed, dissolveDurationMs });
   boardUi.syncBlobCascadeColumnData(revealBoard, plan.blobDepthByCol);
   await boardUi.animateBlobBottomCascade(revealBoard, plan.removedByCol, { speed });
 }

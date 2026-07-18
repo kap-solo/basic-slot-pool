@@ -55,6 +55,8 @@ export const TIMING = {
   tumbleFillStaggerMs: 38,
   /** Performance blob — hold after strip land before gap + mini-tumble (ms). */
   blobHoldMs: 250,
+  /** Blob dissolve fallback when green_square.wav metadata is not loaded yet (ms). */
+  blobDissolveMs: 320,
   /** gameReveal — blank beat between fall-off and result drop-in (ms). */
   revealBlankMs: 120,
   /** Brief cabinet scale pulse when spin is requested (ms). */
