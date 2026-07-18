@@ -1169,6 +1169,20 @@ function onStakeScreenInferred() {
   slotBoard?.resize?.();
 }
 
+function resyncBetChromeLayout() {
+  game.stakeLayout?.refresh();
+  onStakeScreenInferred();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  resyncBetChromeLayout();
+});
+
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) resyncBetChromeLayout();
+});
+
 patchStakeLayoutForProduction(shellEl, game.stakeLayout, onStakeScreenInferred);
 
 disableTurboForGame(game.jurisdiction);
@@ -1389,7 +1403,11 @@ const betChromeHandlers = {
     total: autoplayTotalRounds,
   }),
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
-  getAutoVisible: () => controls.canAutoplay || (isDevMode() && !replayMode),
+  getAutoVisible: () => {
+    if (replayMode) return false;
+    if (isDevMode()) return true;
+    return controls.canAutoplay && game.rgsReady;
+  },
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
   getBuyLabel: () => buyButtonLabel(),

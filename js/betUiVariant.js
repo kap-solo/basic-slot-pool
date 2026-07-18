@@ -86,6 +86,10 @@ export function initBetUiVariant({ shell, betUiRoot = null, onChange, onLayoutRe
     attributeFilter: ['data-suki-orientation', 'data-suki-screen', 'data-suki-portrait-family'],
   });
   window.addEventListener('resize', refresh);
+  const viewport = window.visualViewport;
+  if (viewport) {
+    viewport.addEventListener('resize', refresh);
+  }
   refresh();
 
   return {
@@ -94,6 +98,7 @@ export function initBetUiVariant({ shell, betUiRoot = null, onChange, onLayoutRe
     destroy() {
       observer.disconnect();
       window.removeEventListener('resize', refresh);
+      viewport?.removeEventListener('resize', refresh);
     },
   };
 }

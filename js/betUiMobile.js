@@ -181,7 +181,13 @@ export function mountMobileBetUi({
     requestAnimationFrame(() => fitStatValue(winStat.valueEl));
   }
 
+  function syncAutoVisibility() {
+    const autoVisible = handlers.getAutoVisible?.() ?? true;
+    autoCluster.hidden = !autoVisible;
+  }
+
   function sync() {
+    syncAutoVisibility();
     if (!active) return;
 
     balanceStat.valueEl.textContent = handlers.getBalance();
@@ -198,8 +204,6 @@ export function mountMobileBetUi({
     betPickBtn.button.disabled = !canPickBet;
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
-    const autoVisible = handlers.getAutoVisible?.() ?? true;
-    autoCluster.hidden = !autoVisible;
 
     const progress = handlers.getAutoplayProgress?.() ?? { current: 0, total: 0 };
     const iconEl = autoBtn.querySelector('.bet-ui-mobile__icon');
