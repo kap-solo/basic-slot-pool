@@ -68,13 +68,47 @@ export function createSeededRng(seed) {
 }
 
 /**
- * @param {object} round
+ * FNV-1a — Stake round IDs are often non-numeric strings; Number() would NaN → 0.
+ * @param {string} value
  * @returns {number}
  */
-export function blobSeedFromRound(round) {
-  const roundId = Number(round?.roundID ?? round?.id ?? round?.bookId ?? 0);
+export function hashStringToSeed(value) {
+  let hash = 2166136261;
+  const text = String(value ?? '');
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * Stable per-round seed for client-only blob placement (replay-safe).
+ * Uses round id string + bet amount + gameReveal board so Stake UUID round IDs
+ * and missing roundID both vary per spin.
+ *
+ * @param {object} round
+ * @param {string[][] | null | undefined} [revealBoard]
+ * @returns {number}
+ */
+export function blobSeedFromRound(round, revealBoard = null) {
+  const roundKey = String(round?.roundID ?? round?.id ?? round?.bookId ?? '');
   const amount = Number(round?.amount ?? 0);
-  return (Math.imul(roundId, 2654435761) ^ Math.imul(amount, 1597334677)) >>> 0;
+  const board =
+    revealBoard ??
+    (round?.state ?? []).find((event) => event?.type === 'gameReveal')?.board ??
+    null;
+  const boardKey = board?.length
+    ? board.map((column) => column.join('')).join('|')
+    : '';
+
+  const idHash = hashStringToSeed(roundKey);
+  const boardHash = hashStringToSeed(boardKey);
+  return (
+    Math.imul(idHash, 2654435761)
+    ^ Math.imul(amount, 1597334677)
+    ^ Math.imul(boardHash, 2246822519)
+  ) >>> 0;
 }
 
 /**
@@ -235,7 +269,7 @@ export function planRoundBlobPresentation(revealBoard, round, revealEvent = null
   if (!revealBoard?.length || !round) return null;
   if (revealEvent && !shouldPlanBlobPresentation(revealEvent, round)) return null;
 
-  const rng = createSeededRng(blobSeedFromRound(round));
+  const rng = createSeededRng(blobSeedFromRound(round, revealBoard));
   if (!shouldShowBlobs(rng)) return null;
 
   const blobCells = pickBlobCells(revealBoard, rng);
