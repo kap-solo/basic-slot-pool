@@ -17,12 +17,12 @@ export const SYMBOL_ANIMATION_DEFAULTS = {
   cascade: 'cascade',
 };
 
-/** Performance blob (green square) — spin, land, dissolve. */
+/** Performance blob (green square) — maps runtime states to Spine tracks in `assets/spine/blob`. */
 export const BLOB_ANIMATION_DEFAULTS = {
   idle: 'idle',
-  spin: 'spin',
-  land: 'land',
-  dissolve: 'dissolve',
+  spin: 'fall',
+  land: 'idle',
+  dissolve: 'melt',
 };
 
 /** Suki Engine standard Spine export canvas — see `@kap-solo/suki-engine` `SPINE_TEXTURE_CANVAS_SIZE`. */
@@ -46,7 +46,18 @@ export const SYMBOL_VISUAL = {
     ledgerIcon: 'assets/spine/cherry/cherry.png',
     animations: { ...SYMBOL_ANIMATION_DEFAULTS },
   },
-  LM: { color: 0x7a7a2e, accent: 0xb8b84a, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  LM: {
+    color: 0x7a7a2e,
+    accent: 0xb8b84a,
+    spine: {
+      skeleton: 'assets/spine/lemon/lemon.json',
+      atlas: 'assets/spine/lemon/lemon.atlas',
+      scale: 1,
+      designSize: { width: 460, height: 313 },
+    },
+    ledgerIcon: 'assets/spine/lemon/lemon.png',
+    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
+  },
   OR: {
     color: 0x9a5520,
     accent: 0xd47a32,
@@ -60,7 +71,18 @@ export const SYMBOL_VISUAL = {
     ledgerIcon: 'assets/spine/orange/orange.png',
     animations: { ...SYMBOL_ANIMATION_DEFAULTS },
   },
-  GR: { color: 0x5c3d7a, accent: 0x8a5cad, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  GR: {
+    color: 0x5c3d7a,
+    accent: 0x8a5cad,
+    spine: {
+      skeleton: 'assets/spine/grape/grape.json',
+      atlas: 'assets/spine/grape/grape.atlas',
+      scale: 1,
+      designSize: { width: 460, height: 313 },
+    },
+    ledgerIcon: 'assets/spine/grape/grape.png',
+    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
+  },
   ST: { color: 0x1a4a8c, accent: 0x3d8fd9, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
   S7: { color: 0x6a1a8c, accent: 0xa040d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
   DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },

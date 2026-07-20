@@ -12,6 +12,16 @@ import { roundPayoutMultiplier } from '@kap-solo/suki-engine/client/rgs.js';
 export { symbolLabel };
 
 /**
+ * Green cluster highlight — one event per cascade step when the overlay appears.
+ * @typedef {{
+ *   cascadeStep: number,
+ *   cascadeMultiplier: number,
+ *   firstCascade: boolean,
+ *   clusterCount: number,
+ * }} ClusterHighlightEvent
+ */
+
+/**
  * @param {HTMLElement} hostEl
  */
 export async function createSlotBoard(hostEl) {

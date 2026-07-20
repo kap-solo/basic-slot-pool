@@ -87,33 +87,16 @@ function playSpineSymbolState(spine, visual, state) {
 }
 
 /**
- * @param {import('@esotericsoftware/spine-core').SkeletonData} data
- * @param {string} animName
- */
-function spineAnimDurationMs(data, animName) {
-  const anim = data.findAnimation?.(animName);
-  if (!anim) return 0;
-  return (anim.duration ?? 0) * 1000;
-}
-
-/**
  * @param {Spine} spine
  * @param {string} animName
- * @param {number} [durationMs] Stretch/compress to match audio when set.
  */
-function playSpineAnimationOnce(spine, animName, durationMs) {
+function playSpineAnimationOnce(spine, animName) {
   return new Promise((resolve) => {
     if (!spineAnimHasKeyframes(spine.skeleton.data, animName)) {
       resolve();
       return;
     }
     const entry = spine.state.setAnimation(0, animName, false);
-    if (durationMs != null && durationMs > 0) {
-      const nativeMs = spineAnimDurationMs(spine.skeleton.data, animName);
-      if (nativeMs > 0) {
-        entry.timeScale = nativeMs / durationMs;
-      }
-    }
     entry.listener = {
       complete: () => resolve(),
     };
@@ -134,6 +117,22 @@ function animateDissolveFallback(root, durationMs) {
       const eased = 1 - (1 - t) ** 2;
       root.alpha = startAlpha * (1 - eased);
       root.scale.set(startScale * (1 - eased * 0.35));
+      if (t < 1) requestAnimationFrame(step);
+      else resolve();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/** Blob pop — alpha fade only; melt Spine track handles the visual. */
+function animateBlobDissolveFallback(root, durationMs) {
+  return new Promise((resolve) => {
+    const startAlpha = root.alpha;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - (1 - t) ** 2;
+      root.alpha = startAlpha * (1 - eased);
       if (t < 1) requestAnimationFrame(step);
       else resolve();
     };
@@ -653,7 +652,7 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
       root.scale.set(on ? 1.08 : 1);
     },
     /**
-     * Blob pop — Spine `dissolve` when available, else alpha/scale fallback.
+     * Blob pop — Spine `melt` when available, else alpha-only fallback (no scale shrink).
      * @param {{ durationMs?: number, speed?: number }} [opts]
      */
     async playDissolve({ durationMs, speed = 1 } = {}) {
@@ -661,11 +660,13 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
       if (spine) {
         const dissolve = visual.animations?.dissolve ?? 'dissolve';
         if (spineAnimHasKeyframes(spine.skeleton.data, dissolve)) {
-          await playSpineAnimationOnce(spine, dissolve, ms);
+          await playSpineAnimationOnce(spine, dissolve);
           return;
         }
       }
-      await animateDissolveFallback(root, ms);
+      const fallback =
+        id === PERFORMANCE_BLOB_SYMBOL ? animateBlobDissolveFallback : animateDissolveFallback;
+      await fallback(root, ms);
     },
   };
 }

@@ -1,7 +1,46 @@
 blob.png
-size:256,256
+size:1024,529
 filter:Linear,Linear
 pma:true
-blob
-bounds:2,2,252,252
-offsets:2,2,256,256
+SquareBlob 0
+bounds:0,278,238,251
+offsets:8,3,256,256
+SquareBlob 1
+bounds:0,38,238,240
+offsets:8,3,256,256
+SquareBlob 11
+bounds:0,0,233,38
+offsets:10,3,256,256
+SquareBlob 2
+bounds:238,38,237,240
+offsets:9,3,256,256
+SquareBlob 3
+bounds:238,292,237,226
+offsets:9,3,256,256
+rotate:90
+SquareBlob 4
+bounds:464,293,236,221
+offsets:9,3,256,256
+rotate:90
+SquareBlob 5
+bounds:685,294,235,201
+offsets:9,3,256,256
+rotate:90
+SquareBlob 6
+bounds:751,105,235,189
+offsets:9,3,256,256
+SquareBlob 7
+bounds:475,57,236,157
+offsets:9,3,256,256
+rotate:90
+SquareBlob 8
+bounds:886,294,235,138
+offsets:9,3,256,256
+rotate:90
+SquareBlob 9
+bounds:632,57,236,119
+offsets:9,3,256,256
+rotate:90
+SquareBlob10
+bounds:751,26,235,79
+offsets:10,3,256,256

@@ -1,87 +1,100 @@
 {
-  "skeleton": {
-    "hash": "blob-placeholder",
-    "spine": "4.2.74",
-    "x": -128,
-    "y": -128,
-    "width": 256,
-    "height": 256
-  },
-  "bones": [
-    { "name": "root" },
-    { "name": "blob", "parent": "root" }
-  ],
-  "slots": [
-    { "name": "blob", "bone": "blob", "attachment": "blob" }
-  ],
-  "skins": [
-    {
-      "name": "default",
-      "attachments": {
-        "blob": {
-          "blob": { "width": 256, "height": 256 }
-        }
-      }
-    }
-  ],
-  "animations": {
-    "idle": {
-      "bones": {
-        "blob": {
-          "scale": [
-            {},
-            { "time": 0.6, "x": 1.04, "y": 1.04 },
-            { "time": 1.2 }
-          ]
-        }
-      }
-    },
-    "spin": {
-      "bones": {
-        "blob": {
-          "rotate": [
-            {},
-            { "time": 0.15, "value": 4 },
-            { "time": 0.3, "value": -4 },
-            { "time": 0.45 }
-          ],
-          "scale": [
-            {},
-            { "time": 0.225, "x": 0.96, "y": 1.06 },
-            { "time": 0.45 }
-          ]
-        }
-      }
-    },
-    "land": {
-      "bones": {
-        "blob": {
-          "scale": [
-            { "x": 1.12, "y": 0.88 },
-            { "time": 0.08, "x": 0.94, "y": 1.08 },
-            { "time": 0.2 }
-          ]
-        }
-      }
-    },
-    "dissolve": {
-      "bones": {
-        "blob": {
-          "scale": [
-            {},
-            { "time": 0.12, "x": 1.06, "y": 1.06 },
-            { "time": 0.32, "x": 0, "y": 0 }
-          ]
-        }
-      },
-      "slots": {
-        "blob": {
-          "rgba": [
-            { "color": "ffffffff" },
-            { "time": 0.32, "color": "ffffff00" }
-          ]
-        }
-      }
-    }
-  }
+"skeleton": { "hash": "cU2pw9oWt6M", "spine": "4.3.23", "x": -128, "y": -256.1298, "width": 256, "height": 256 },
+"bones": [
+	{ "name": "root", "y": -119.483 }
+],
+"slots": [
+	{ "name": "SquareBlob 0", "bone": "root", "attachment": "SquareBlob 0" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"SquareBlob 0": {
+				"SquareBlob 0": { "y": -8.64679, "width": 256, "height": 256 },
+				"SquareBlob 1": { "width": 256, "height": 256 },
+				"SquareBlob 2": { "width": 256, "height": 256 },
+				"SquareBlob 3": { "width": 256, "height": 256 },
+				"SquareBlob 4": { "width": 256, "height": 256 },
+				"SquareBlob 5": { "width": 256, "height": 256 },
+				"SquareBlob 6": { "width": 256, "height": 256 },
+				"SquareBlob 7": { "width": 256, "height": 256 },
+				"SquareBlob 8": { "width": 256, "height": 256 },
+				"SquareBlob 9": { "width": 256, "height": 256 },
+				"SquareBlob10": { "width": 256, "height": 256 },
+				"SquareBlob 11": { "width": 256, "height": 256 }
+			}
+		}
+	}
+],
+"animations": {
+	"fall": {
+		"bones": {
+			"root": {
+				"translate": [
+					{},
+					{ "time": 0.4666667, "x": -2, "y": -5.5 },
+					{ "time": 0.9333333, "y": -0.5 },
+					{ "time": 1.4, "x": 2, "y": -5.5 },
+					{ "time": 1.8666667 }
+				],
+				"scale": [
+					{ "y": 0.9 }
+				],
+				"shear": [
+					{},
+					{ "time": 0.4666667, "y": 1 },
+					{ "time": 1.4, "y": -1 },
+					{ "time": 1.8666667 }
+				]
+			}
+		}
+	},
+	"idle": {
+		"bones": {
+			"root": {
+				"translate": [
+					{},
+					{ "time": 0.4, "x": -1, "y": -3.499985 },
+					{ "time": 0.9333333, "y": -0.5 },
+					{ "time": 1.4666667, "x": 2, "y": -3.499985 },
+					{ "time": 2 }
+				],
+				"scale": [
+					{},
+					{ "time": 0.4, "y": 0.98 },
+					{ "time": 0.9333333 },
+					{ "time": 1.4666667, "y": 0.98 },
+					{ "time": 2 }
+				],
+				"shear": [
+					{},
+					{ "time": 0.4, "y": 0.3 },
+					{ "time": 1.4666667, "y": -0.3 },
+					{ "time": 2 }
+				]
+			}
+		}
+	},
+	"melt": {
+		"slots": {
+			"SquareBlob 0": {
+				"attachment": [
+					{ "time": 0.03333333, "name": "SquareBlob 1" },
+					{ "time": 0.06666667, "name": "SquareBlob 2" },
+					{ "time": 0.1, "name": "SquareBlob 3" },
+					{ "time": 0.13333334, "name": "SquareBlob 4" },
+					{ "time": 0.16666667, "name": "SquareBlob 5" },
+					{ "time": 0.2, "name": "SquareBlob 6" },
+					{ "time": 0.23333333, "name": "SquareBlob 7" },
+					{ "time": 0.2666667, "name": "SquareBlob 8" },
+					{ "time": 0.3, "name": "SquareBlob 9" },
+					{ "time": 0.3333333, "name": "SquareBlob10" },
+					{ "time": 0.3666667, "name": "SquareBlob 11" },
+					{ "time": 0.4, "name": "SquareBlob 11" }
+				]
+			}
+		}
+	}
+}
 }

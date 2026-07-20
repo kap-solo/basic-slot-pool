@@ -1,0 +1,39 @@
+{
+"skeleton": { "hash": "4e/WEpe8I90", "spine": "4.3.23", "x": -257.228, "y": -255.16, "width": 512, "height": 512 },
+"bones": [
+	{ "name": "red hat" }
+],
+"slots": [
+	{ "name": "red hat", "bone": "red hat", "attachment": "red hat" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"red hat": {
+				"red hat": { "x": -1.227997, "y": 0.839981, "width": 512, "height": 512 }
+			}
+		}
+	}
+],
+"animations": {
+	"idle": {
+		"bones": {
+			"red hat": {
+				"translate": [
+					{},
+					{ "time": 1, "y": 1 },
+					{ "time": 2 }
+				],
+				"scale": [
+					{},
+					{ "time": 1, "x": 1.1, "y": 1.1 },
+					{ "time": 2 }
+				]
+			}
+		}
+	},
+	"land": {},
+	"win": {}
+}
+}

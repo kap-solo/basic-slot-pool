@@ -4,12 +4,13 @@
 
 /** @type {{ music: string | null, sfx: Record<string, string> }} */
 export const GAME_AUDIO_ASSETS = {
-  music: null,
+  music: 'assets/audio/background_music.wav',
   sfx: {
     pulse: 'assets/audio/pulse.wav',
     reels: 'assets/audio/reels3.wav',
     greenSquare: 'assets/audio/green_square.wav',
     cascade: 'assets/audio/cascade.wav',
+    whoosh: 'assets/audio/whoosh.wav',
   },
 };
 
@@ -201,8 +202,8 @@ export function createReelSpinAudio(audioPrefs) {
   };
 }
 
-/** Until `green_square.wav` metadata loads — matches placeholder Spine `dissolve`. */
-export const GREEN_SQUARE_DISSOLVE_FALLBACK_MS = 320;
+/** Until `green_square.wav` metadata loads — matches Spine `melt` duration (~0.467s). */
+export const GREEN_SQUARE_DISSOLVE_FALLBACK_MS = 467;
 
 /**
  * Green square pop — one-shot, synced to dissolve visuals via {@link GREEN_SQUARE_DISSOLVE_FALLBACK_MS}.
@@ -390,6 +391,74 @@ export function createCascadeAudio(audioPrefs) {
     },
     stop({ fadeMs = 0 } = {}) {
       halt({ fadeMs });
+    },
+  };
+}
+
+/**
+ * Cluster highlight — one-shot when the green win box appears over matched symbols.
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ */
+export function createWhooshAudio(audioPrefs) {
+  /** @type {HTMLAudioElement | null} */
+  let whooshEl = null;
+
+  function sfxLevel() {
+    return audioPrefs.sfxVolume?.value ?? (audioPrefs.sfx?.enabled ? 1 : 0);
+  }
+
+  function applySfxVolume() {
+    if (!whooshEl) return;
+    whooshEl.volume = sfxLevel();
+  }
+
+  audioPrefs.sfxVolume?.onChange(applySfxVolume);
+
+  function ensureElement() {
+    const url = GAME_AUDIO_ASSETS.sfx?.whoosh;
+    if (!url) return null;
+    const resolved = new URL(url, window.location.href).href;
+    if (whooshEl && whooshEl.src !== resolved) {
+      whooshEl.pause();
+      whooshEl = null;
+    }
+    if (!whooshEl) {
+      whooshEl = new Audio(url);
+      whooshEl.loop = false;
+      whooshEl.preload = 'auto';
+      whooshEl.volume = 1;
+      whooshEl.playbackRate = 1;
+    }
+    return whooshEl;
+  }
+
+  return {
+    prime() {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement();
+      if (!el) return;
+      applySfxVolume();
+      const playPromise = el.play();
+      if (!playPromise) return;
+      playPromise
+        .then(() => {
+          el.pause();
+          el.currentTime = 0;
+          applySfxVolume();
+        })
+        .catch(() => {});
+    },
+    play(unlock) {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement();
+      if (!el) return;
+      unlock?.();
+      applySfxVolume();
+      el.pause();
+      el.playbackRate = 1;
+      el.currentTime = 0;
+      el.play().catch(() => {});
     },
   };
 }

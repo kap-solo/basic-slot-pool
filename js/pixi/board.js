@@ -29,6 +29,16 @@ const LEGACY_BOARD_MARGIN = 0.92;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
 const SYMBOL_CONTAINER_SCALE = 0.9;
 
+/**
+ * Fired when the green cluster highlight box appears — one event per cascade step.
+ * @typedef {{
+ *   cascadeStep: number,
+ *   cascadeMultiplier: number,
+ *   firstCascade: boolean,
+ *   clusterCount: number,
+ * }} ClusterHighlightEvent
+ */
+
 /** @param {number} value */
 function snapPx(value) {
   return Math.round(value * 100) / 100;
@@ -652,12 +662,25 @@ export async function createPixiSlotBoard(hostEl) {
     postSpinMotionStart?.();
   }
 
+  /** @type {((detail: ClusterHighlightEvent) => void) | null} */
+  let clusterHighlightStart = null;
+
+  /** @param {ClusterHighlightEvent} detail */
+  function triggerClusterHighlightStart(detail) {
+    clusterHighlightStart?.(detail);
+  }
+
   return {
     getBoard,
 
     /** Post-spin tumble/refill bed — blob cascade, cluster gravity, strip fill. */
     setPostSpinMotionAudio(fn) {
       postSpinMotionStart = typeof fn === 'function' ? fn : null;
+    },
+
+    /** Green cluster highlight box — one callback per cascade step (×1, ×2, …). */
+    setClusterHighlightAudio(fn) {
+      clusterHighlightStart = typeof fn === 'function' ? fn : null;
     },
 
     isPresenting() {
@@ -831,7 +854,7 @@ export async function createPixiSlotBoard(hostEl) {
 
     /**
      * @param {Set<string>} winCells — all cells removed after this cascade step
-     * @param {{ speed?: number, winPopup?: import('./winPopup.js').WinPopupContent | null, clusterPresentations?: { winCells: Set<string>, winPopup: import('./winPopup.js').WinPopupContent | null }[], firstCascade?: boolean, cascadeMultiplier?: number }} [opts]
+     * @param {{ speed?: number, winPopup?: import('./winPopup.js').WinPopupContent | null, clusterPresentations?: { winCells: Set<string>, winPopup: import('./winPopup.js').WinPopupContent | null }[], firstCascade?: boolean, cascadeStep?: number, cascadeMultiplier?: number }} [opts]
      */
     async animateClusterWin(
       winCells,
@@ -840,6 +863,7 @@ export async function createPixiSlotBoard(hostEl) {
         winPopup = null,
         clusterPresentations = null,
         firstCascade = false,
+        cascadeStep = 1,
         cascadeMultiplier = 1,
       } = {},
     ) {
@@ -869,6 +893,12 @@ export async function createPixiSlotBoard(hostEl) {
         const simultaneous = presentations.length > 1;
 
         drawClusterOverlay(winCells);
+        triggerClusterHighlightStart({
+          cascadeStep,
+          cascadeMultiplier,
+          firstCascade,
+          clusterCount: presentations.length,
+        });
         await fadeClusterSymbolDim(winCells, 'in', dimInMs);
 
         cascadeLadder.setActiveStep(cascadeMultiplier);

@@ -32,6 +32,7 @@ import {
   createGreenSquareAudio,
   createReelSpinAudio,
   createSpinClickAudio,
+  createWhooshAudio,
   wireTemplateAudio,
 } from './audio.js';
 import { mountCharacterPlaceholder } from './character.js';
@@ -84,10 +85,25 @@ const reelSpinAudio = createReelSpinAudio(audioPrefs);
 const spinClickAudio = createSpinClickAudio(audioPrefs);
 const greenSquareAudio = createGreenSquareAudio(audioPrefs);
 const cascadeAudio = createCascadeAudio(audioPrefs);
+const whooshAudio = createWhooshAudio(audioPrefs);
+
+function primeGameSfx() {
+  spinClickAudio.prime();
+  reelSpinAudio.prime();
+  greenSquareAudio.prime();
+  cascadeAudio.prime();
+  whooshAudio.prime();
+}
+
+function unlockGameAudio() {
+  gameAudio.unlock();
+  primeGameSfx();
+}
 
 function startCascadeMotionAudio() {
   cascadeAudio.start(() => gameAudio.unlock());
 }
+
 const recentResults = createRecentResultsStore({ max: 25 });
 const gameMenu = createGameMenu({
   brand: brandEl,
@@ -809,6 +825,7 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
         speed: animationSpeed,
         clusterPresentations,
         firstCascade: event.cascade === 1,
+        cascadeStep: event.cascade ?? cascadeMultiplier,
         cascadeMultiplier,
       });
       await hudPromise;
@@ -1753,10 +1770,16 @@ async function playDevFeatureSample() {
   });
 }
 
+/** @param {import('./slot.js').ClusterHighlightEvent} event */
+function onClusterHighlight(event) {
+  whooshAudio.play(() => gameAudio.unlock());
+}
+
 async function initSlotStage() {
   applyInferredStakeScreen(shellEl, onStakeScreenInferred);
   slotBoard = await createSlotBoard(slotRoot);
   slotBoard.setPostSpinMotionAudio(startCascadeMotionAudio);
+  slotBoard.setClusterHighlightAudio(onClusterHighlight);
   setLedgerSpineRegistry(await loadSpineSymbolRegistry());
   if (slotStageEl && !featureChrome) {
     featureChrome = createFeatureChrome({
@@ -1798,6 +1821,7 @@ if (replayMode) {
   revealGameShell();
   setReplayModeUi();
   startGame();
+  document.addEventListener('pointerdown', () => unlockGameAudio(), { once: true });
 } else {
   setPlayModeUi();
   createGamePreloader({
@@ -1810,11 +1834,7 @@ if (replayMode) {
     bootstrap: () => startGame(),
     onContinue: () => {
       revealGameShell();
-      gameAudio.unlock();
-      spinClickAudio.prime();
-      reelSpinAudio.prime();
-      greenSquareAudio.prime();
-      cascadeAudio.prime();
+      unlockGameAudio();
     },
   });
   attachPreloaderCommitLabel();

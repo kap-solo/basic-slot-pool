@@ -1,0 +1,63 @@
+---
+description: Reflecting Pool — scoped context, file map, and token-efficient workflow
+alwaysApply: true
+---
+
+# Reflecting Pool (Basic-Slot-Pool)
+
+Stake cluster-cascade slot on Suki Engine. Minimize scope and tokens on every task.
+
+## Agent discipline (token savings)
+
+- Do **not** explore the repo broadly unless the task requires it. Open only files named below or `@`-mentioned by the user.
+- Prefer **one-file or few-file diffs**. No drive-by refactors, docs, or tests unless asked.
+- Do **not** relaunch the dev server or run publish unless the user asks.
+- Read **small slices** of large files (`board.js`, `game.js`) via offset/limit — not whole files.
+- Answer review questions **without editing**. Implement only when the user wants changes.
+- If context is missing, ask **one** narrow question — do not re-derive the whole architecture.
+
+## Dev
+
+- Start: `npm start` → `http://127.0.0.1:5176`
+- Desktop dev: `?dev=true&screen=desktop&sessionID=local-demo&rgs_url=http://127.0.0.1:5176`
+- Publish: `npm run frontend:publish` → upload `dist/` to Stake ACP
+
+## File map (open these first)
+
+| Area | Path |
+|------|------|
+| Cabinet, bg, board layout, ledger sync | `js/pixi/board.js` |
+| Reel columns, per-column symbol mask | `js/pixi/reel.js` |
+| Symbols / Spine | `js/pixi/symbols.js`, `symbolView.js` |
+| Cascade ladder (above cabinet) | `js/pixi/cascadeLadder.js` |
+| Game loop, ledger entries | `js/game.js` |
+| Desktop bet chrome | `js/betUiDesktop.js`, `css/bet-ui-desktop.css` |
+| Mobile bet chrome | `css/bet-ui-mobile.css` |
+| Shell / ledger panel / landscape | `css/style.css` |
+| Screen → desktop/mobile variant | `js/betUiVariant.js` |
+
+## Layout constants (`board.js`)
+
+- `SYMBOL_CONTAINER_SCALE = 0.9` — reels scaled (not mask-clipped)
+- `CABINET_BG_VISUAL_SCALE = 1.16` — clamped per breakpoint in `cabinetBgFitScale()`
+- `BOARD_LAYOUT_SCALE = 1.3` — full canvas fit vs legacy 0.92 margin
+- Inner pad ~17% cell height (desktop), ~15% popout-s
+- HTML ledger: `--cabinet-top-offset` / `--cabinet-height` on `.suki-game-core`
+
+## Breakpoints (Stake `data-suki-screen`)
+
+- Desktop UI: `desktop`, `laptop`, `popout-l`, `popout-s`
+- Mobile UI: `mobile-l`, `mobile-m`, `mobile-s`
+- Popout-s: no side ledger; compact layout
+
+## Recent layout decisions (do not revert without asking)
+
+- Cabinet bg bleed is **mask-only** on mobile; **fit-clamped** so art stays on canvas
+- Laptop / popout-l: ~5% layout slack for bg (`layoutCabinetBgSlackPx`)
+- Board inner stroke removed (`drawFrame` clears only)
+- Do **not** re-reserve full bg bleed in layout fit (shrinks reel grid)
+
+## Commits / PRs
+
+- Commit only when the user asks
+- Use `gh` for GitHub; do not push unless asked
