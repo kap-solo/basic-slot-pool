@@ -481,3 +481,18 @@
 .bet-ui-mobile__stat-value--win.is-visible.is-settled.is-hiding {
   opacity: 0;
 }
+
+/* Replay — info row with win stat only */
+.bet-ui-mobile-chrome--replay {
+  --bet-ui-mobile-actions-height: 0px;
+  --bet-ui-mobile-chrome-gap: 0px;
+}
+
+.bet-ui-mobile-chrome--replay .bet-ui-mobile__info-bar {
+  justify-content: center;
+}
+
+.bet-ui-mobile-chrome--replay .bet-ui-mobile__stat--win {
+  flex: 0 1 auto;
+  max-width: min(100%, 12rem);
+}

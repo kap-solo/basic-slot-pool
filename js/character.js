@@ -1,6 +1,6 @@
 /**
  * Flank character — Spine on desktop breakpoints, hidden on mobile.
- * During free-spin bonus, crossfades to a static PNG.
+ * During free spins, crossfades to a static PNG from the first spin onward.
  */
 
 import './pixi/bootstrap.js';
@@ -156,9 +156,14 @@ async function ensureSkeletonData() {
  * @param {HTMLElement} shell
  */
 async function readCanvasHeight(host, shell) {
-  await new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve));
-  });
+  for (let frame = 0; frame < 30; frame += 1) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const hostHeight = host.clientHeight;
+    if (hostHeight > 0) {
+      return Math.max(320, Math.round(hostHeight));
+    }
+  }
+
   return Math.max(320, Math.round(host.clientHeight || shell.clientHeight || 0));
 }
 
@@ -188,11 +193,24 @@ function resumeSpineTicker() {
 
 function relayoutActiveMount() {
   if (!activeMount || !hostContext) return;
-  const { app, spine, host, shell } = activeMount;
-  const canvasHeight = Math.max(320, Math.round(host.clientHeight || shell.clientHeight || 0));
+  const { app, spine, host } = activeMount;
+  const hostHeight = host.clientHeight;
+  if (hostHeight <= 0) return;
+
+  const canvasHeight = Math.max(320, Math.round(hostHeight));
   const contentWidth = layoutCharacterSpine(spine, canvasHeight);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
   activeMount.canvasHeight = canvasHeight;
+}
+
+/** Re-measure the flank host and resize the active Spine mount. */
+export function relayoutCharacter() {
+  if (!hostContext) return;
+  if (activeMount) {
+    relayoutActiveMount();
+    return;
+  }
+  refreshCharacter(hostContext.host, hostContext.shell);
 }
 
 function destroySpineMount() {
@@ -409,6 +427,7 @@ export function initCharacter({ host, shell }) {
       destroy() {},
       playWin: playCharacterWin,
       setBonusMode: setCharacterBonusMode,
+      relayout: relayoutCharacter,
     };
   }
 
@@ -417,8 +436,21 @@ export function initCharacter({ host, shell }) {
   const observer = new MutationObserver(() => refreshCharacter(host, shell));
   observer.observe(shell, {
     attributes: true,
-    attributeFilter: ['data-bet-ui-variant', 'data-suki-orientation', 'data-suki-screen'],
+    attributeFilter: ['data-bet-ui-variant', 'data-suki-orientation', 'data-suki-screen', 'data-suki-replay'],
   });
+
+  const hostResizeObserver = typeof ResizeObserver !== 'undefined'
+    ? new ResizeObserver(() => {
+      if (activeMount && host.clientHeight > 0) {
+        relayoutActiveMount();
+        return;
+      }
+      if (resolveBetUiVariant(shell) === BET_UI_VARIANT.DESKTOP && host.clientHeight > 0) {
+        refreshCharacter(host, shell);
+      }
+    })
+    : null;
+  hostResizeObserver?.observe(host);
 
   const onResize = () => {
     if (activeMount) relayoutActiveMount();
@@ -432,11 +464,13 @@ export function initCharacter({ host, shell }) {
   return {
     destroy() {
       observer.disconnect();
+      hostResizeObserver?.disconnect();
       window.removeEventListener('resize', onResize);
       window.visualViewport?.removeEventListener('resize', onResize);
       destroyCharacterHost();
     },
     playWin: playCharacterWin,
     setBonusMode: setCharacterBonusMode,
+    relayout: relayoutCharacter,
   };
 }

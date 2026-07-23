@@ -62,12 +62,17 @@ export function mountDesktopBetUi({
 
   const menuBtn = createIconButton('menu', 'Menu', '☰');
 
+  const replayDisclaimer = document.createElement('p');
+  replayDisclaimer.className = 'bet-ui-desktop__replay-disclaimer';
+  replayDisclaimer.hidden = true;
+  replayDisclaimer.textContent = '';
+
   const balanceStat = createStatBlock('balance', 'Balance');
   const winStat = createStatBlock('win', 'Win');
   winStat.valueEl.classList.add('bet-ui-desktop__stat-value--win');
   winStat.valueEl.textContent = '';
 
-  menuStatsGroup.append(menuBtn, balanceStat.root, winStat.root);
+  menuStatsGroup.append(menuBtn, replayDisclaimer, balanceStat.root, winStat.root);
 
   const betPickBtn = createBetPickButton();
   const stepper = document.createElement('div');
@@ -123,6 +128,24 @@ export function mountDesktopBetUi({
   }
 
   let active = false;
+  let replayChrome = false;
+
+  function setReplayChrome(isReplay, { disclaimer } = {}) {
+    replayChrome = isReplay;
+    chrome.classList.toggle('bet-ui-desktop-chrome--replay', isReplay);
+    menuBtn.hidden = isReplay;
+    balanceStat.root.hidden = isReplay;
+    betGroup.hidden = isReplay;
+    playGroup.hidden = isReplay;
+    buyGroup.hidden = isReplay;
+    replayDisclaimer.hidden = !isReplay;
+    if (disclaimer) {
+      replayDisclaimer.textContent = disclaimer;
+    }
+    if (active) {
+      sync();
+    }
+  }
 
   function restorePlayButton() {
     if (!playRow || playButton.parentNode === playRow) return;
@@ -144,10 +167,12 @@ export function mountDesktopBetUi({
       spinSlot.appendChild(playButton);
       playButton.classList.add('bet-ui-desktop__play');
       playButton.setAttribute('aria-label', 'Spin');
-      sync();
-      requestAnimationFrame(() => fitAllStatValues());
     } else {
       restorePlayButton();
+    }
+    sync();
+    if (desktop) {
+      requestAnimationFrame(() => fitAllStatValues());
     }
   }
 
@@ -183,7 +208,12 @@ export function mountDesktopBetUi({
   }
 
   function syncAutoVisibility() {
-    const autoVisible = handlers.getAutoVisible?.() ?? true;
+    if (replayChrome) {
+      autoPanel.hidden = true;
+      return;
+    }
+    const autoplayActive = handlers.getAutoplayActive?.() ?? false;
+    const autoVisible = autoplayActive || (handlers.getAutoVisible?.() ?? true);
     autoPanel.hidden = !autoVisible;
   }
 
@@ -249,6 +279,7 @@ export function mountDesktopBetUi({
 
   return {
     setActive,
+    setReplayChrome,
     sync,
     updateWin,
     destroy() {

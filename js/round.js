@@ -65,6 +65,36 @@ export function isFeatureRoundOpen(completed) {
 }
 
 /**
+ * Active feature book — uses full round state, not just completed events.
+ * @param {object | null | undefined} round
+ * @param {object[]} [completed]
+ */
+export function isFeatureRoundActive(round, completed = []) {
+  const events = sortedBookEvents(round);
+  if (!events.some((event) => event.type === 'enterBonus')) return false;
+  if (completed.some((event) => event.type === 'freeSpinEnd')) return false;
+  return Boolean(round?.active);
+}
+
+/**
+ * Board snapshot for resume — checkpoint first, else trigger reveal on fresh feature.
+ * @param {object | null | undefined} round
+ * @param {object[]} completed
+ */
+export function boardForResumeSnapshot(round, completed) {
+  const checkpoint = boardFromCompletedEvents(completed);
+  if (checkpoint) return checkpoint;
+  if (isFeatureRoundActive(round, completed)) {
+    try {
+      return parseGameReveal(round).board;
+    } catch {
+      return null;
+    }
+  }
+  return finalBoardFromRound(round);
+}
+
+/**
  * Events to play on resume — avoids replaying scatter trigger when cursor is missing.
  * @param {object} round
  * @param {number} lastEventIndex

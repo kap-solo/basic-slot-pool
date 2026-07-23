@@ -730,6 +730,11 @@ body {
   font-size: 0.62rem;
 }
 
+/* Desktop replay — disclaimer lives in bet chrome, not footer banner */
+.suki-stake-shell[data-suki-replay='true'][data-bet-ui-variant='desktop'] .suki-footer {
+  display: none;
+}
+
 .replay-banner {
   width: 100%;
 }
@@ -959,6 +964,43 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-bg-landscape[data-bg-mount='stack'] {
+  background-image: none;
+}
+
+.suki-bg__stack {
+  position: absolute;
+  inset: 0;
+}
+
+.suki-bg__layer {
+  position: absolute;
+  inset: 0;
+  background-color: #06080c;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 1;
+  transition: opacity var(--bg-crossfade-ms, 900ms) ease;
+  pointer-events: none;
+}
+
+.suki-bg__layer--base {
+  background-image: url('../assets/desktop_bg.jpg');
+}
+
+.suki-bg__layer--bonus {
+  background-image: url('../assets/desktop_bg_bonus.jpg');
+}
+
+.suki-bg__layer.is-hidden {
+  opacity: 0;
+}
+
+.suki-bg__layer.is-visible {
+  opacity: 1;
 }
 
 /* Player-facing notices — #message is hidden in Pool. */

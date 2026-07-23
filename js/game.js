@@ -21,8 +21,11 @@ import {
   isReplayMode,
   isDevMode,
   messageForRgsCode,
+  modeButtonLabel,
   play,
+  endRound,
   requestReplay,
+  roundPayoutMultiplier,
   registerBuyBonusConfirm,
   startNewRgsSession,
 } from '@kap-solo/suki-engine/client/rgs.js';
@@ -36,7 +39,16 @@ import {
   wireTemplateAudio,
 } from './audio.js';
 import { initCharacter } from './character.js';
-import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST, BB_MODE } from './config.js';
+import { initGameBackground } from './gameBackground.js';
+import {
+  BET_OPTIONS,
+  DEFAULT_BET,
+  randomIdleBoard,
+  GAME,
+  GAME_MODES,
+  BUY_MODE_COST,
+  BB_MODE,
+} from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
@@ -49,15 +61,16 @@ import {
   buildGameSettledResult,
   bookCentiMultToDisplayWin,
   bookCentiMultToPayoutApi,
+  boardForResumeSnapshot,
   finalBoardFromRound,
-  boardFromCompletedEvents,
-  isFeatureRoundOpen,
+  isFeatureRoundActive,
   sortedBookEvents,
 } from './round.js';
 import {
   animateSlotSpin,
   createSlotBoard,
   describeRoundResult,
+  formatMult,
 } from './slot.js';
 import { createDevStatsOverlay } from './devStatsOverlay.js';
 import { createMultiplierPanel } from './multiplierPanel.js';
@@ -70,6 +83,7 @@ import { mountPlayerNotice, showPlayerNotice } from './playerNotice.js';
 import { createBetPicker } from './betPicker.js';
 import { createDevToolbar } from './devToolbar.js';
 import { createFeatureChrome } from './featureChrome.js';
+import { createReplayStartModal } from './replayStartModal.js';
 import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
@@ -79,6 +93,7 @@ mountPlayerNotice(shellEl);
 let playAffordBlocker = null;
 const brandEl = document.querySelector('.suki-brand');
 const modalHost = createModalHost({ root: shellEl });
+const replayStartModal = createReplayStartModal(shellEl);
 const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
 const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
 wireTemplateAudio(gameAudio);
@@ -138,10 +153,15 @@ let slotBoard = null;
 let featureChrome = null;
 /** @type {ReturnType<typeof initCharacter> | null} */
 let characterUi = null;
+let gameBackground = null;
 /** Skip random idle board after auth resume. */
 let skipNextSeedBoard = false;
 /** Active round still settling on the RGS. */
 let activeRoundPending = false;
+/** Auth bootstrap resumed an active round this load. */
+let resumedActiveRound = false;
+/** Active-round auth resume waiting for preloader dismiss. */
+let pendingAuthResume = null;
 /** @type {string[][] | null} */
 let idleBoardSeed = null;
 
@@ -240,7 +260,6 @@ function cancelWinUiAnimations() {
 }
 
 function winDisplayText() {
-  if (replayMode) return '—';
   if (winFadingOut) return fmtWin(winForDisplay);
   if ((winUiVisible || winAnimRaf != null) && winForDisplay > 0.0005) {
     return winAnimRaf != null ? fmtBalance(winForDisplay) : fmtWin(winForDisplay);
@@ -251,7 +270,7 @@ function winDisplayText() {
 function updateWinUi() {
   const payload = {
     text: winDisplayText(),
-    visible: replayMode || winUiVisible || winFadingOut,
+    visible: winUiVisible || winFadingOut,
     settled: winUiSettled && (winUiVisible || winFadingOut),
     hiding: winFadingOut,
   };
@@ -382,10 +401,12 @@ function finalizeWinDisplay(payout) {
   updateWinUi();
 }
 
-function prepareWinForSpin() {
+function prepareWinForSpin({ preserveDisplay = false } = {}) {
   winSpinGeneration += 1;
   winIncrementChain = Promise.resolve();
-  hideWinDisplay();
+  if (!preserveDisplay) {
+    hideWinDisplay();
+  }
 }
 
 let bet = DEFAULT_BET;
@@ -755,24 +776,71 @@ function seedInitialBoard() {
 function resetFeaturePresentation() {
   featureChrome?.reset();
   void characterUi?.setBonusMode(false, { animate: false });
+  void gameBackground?.setBonusMode(false, { animate: false });
 }
 
-async function restoreFeatureFromCompleted(completed) {
-  if (!featureChrome || !completed?.length) return;
-  for (const event of [...completed].sort((a, b) => a.index - b.index)) {
+/** True once any free-spin gameReveal has been reached (intro finished). */
+function freeSpinsHaveStarted(events) {
+  return events.some((event) => event.type === 'gameReveal' && event.freeSpin != null);
+}
+
+/** Sum feature cluster-win HUD amounts already reported in completed events. */
+function featureWinTotalFromCompleted(completed, round) {
+  if (!round || !completed?.length) return 0;
+  const enterBonusIndex =
+    sortedBookEvents(round).find((event) => event.type === 'enterBonus')?.index ?? Infinity;
+  let total = 0;
+  for (const event of completed) {
+    if (event.index <= enterBonusIndex || event.type !== 'clusterWin') continue;
+    for (const amount of clusterHudWinAmounts(event)) {
+      total += amount;
+    }
+  }
+  return total;
+}
+
+function restoreFeatureWinDisplay(completed, round) {
+  const total = featureWinTotalFromCompleted(completed, round);
+  if (total > 0.0005) {
+    finalizeWinDisplay(total);
+  } else {
+    hideWinDisplay({ immediate: true });
+  }
+  refreshWinStatLabel();
+}
+
+async function restoreFeatureFromCompleted(completed, round = null) {
+  if (!featureChrome) return;
+  const bookEvents = round ? sortedBookEvents(round) : [];
+  const enterBonus = bookEvents.find((event) => event.type === 'enterBonus');
+  const completedEvents = [...(completed ?? [])].sort((a, b) => a.index - b.index);
+  if (
+    enterBonus &&
+    isFeatureRoundActive(round, completedEvents) &&
+    !completedEvents.some((event) => event.type === 'enterBonus')
+  ) {
+    await presentFeatureEvent(enterBonus, { animate: false });
+  }
+  for (const event of completedEvents) {
     if (event.type === 'enterBonus' || event.type === 'updateFreeSpin' || event.type === 'freeSpinEnd') {
       await presentFeatureEvent(event, { animate: false });
     }
   }
 }
 
-function showStaticRound(round, completed = null) {
+async function showStaticRound(round, completed = null) {
   if (!slotBoard) return;
   const events = completed ?? sortedBookEvents(round);
-  const board = boardFromCompletedEvents(events) ?? finalBoardFromRound(round);
-  if (isFeatureRoundOpen(events)) {
-    void restoreFeatureFromCompleted(events);
-    void characterUi?.setBonusMode(true, { animate: false });
+  const board = boardForResumeSnapshot(round, events);
+  if (isFeatureRoundActive(round, events)) {
+    await restoreFeatureFromCompleted(events, round);
+    restoreFeatureWinDisplay(events, round);
+    if (freeSpinsHaveStarted(events)) {
+      await Promise.all([
+        characterUi?.setBonusMode(true, { animate: false }),
+        gameBackground?.setBonusMode(true, { animate: false }),
+      ]);
+    }
   } else {
     resetFeaturePresentation();
   }
@@ -804,6 +872,12 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
       current: event.freeSpin,
       animate,
     });
+    if (event.freeSpin === 1) {
+      await Promise.all([
+        characterUi?.setBonusMode(true, { animate }),
+        gameBackground?.setBonusMode(true, { animate }),
+      ]);
+    }
   }
 
   if (animate) {
@@ -895,7 +969,6 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
   if (!featureChrome) return;
 
   if (event.type === 'enterBonus') {
-    await characterUi?.setBonusMode(true, { animate });
     await featureChrome.onEnterBonus(event, { animate });
     refreshWinStatLabel();
     return;
@@ -910,7 +983,10 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
       animate,
       formatBookWin: (amountCentiMult) => fmtWin(bookCentiMultToDisplayWin(amountCentiMult, bet)),
     });
-    await characterUi?.setBonusMode(false, { animate });
+    await Promise.all([
+      characterUi?.setBonusMode(false, { animate }),
+      gameBackground?.setBonusMode(false, { animate }),
+    ]);
     refreshWinStatLabel();
   }
 }
@@ -1062,10 +1138,10 @@ async function finishPresentation() {
   syncControls();
 }
 
-async function withSpinLock(fn, { resetFeature = false } = {}) {
+async function withSpinLock(fn, { resetFeature = false, preserveWinDisplay = false } = {}) {
   spinning = true;
   animationSpeed = 1;
-  prepareWinForSpin();
+  prepareWinForSpin({ preserveDisplay: preserveWinDisplay });
   if (resetFeature) resetFeaturePresentation();
   refreshWinStatLabel();
   slotBoard?.pulseCabinet();
@@ -1133,13 +1209,14 @@ const game = createGameBootstrap({
       },
       finalWin: async () => {},
     },
-    onResumeStatic: (round, completed) => {
+    onResumeStatic: async (round, completed) => {
       skipNextSeedBoard = true;
+      resumedActiveRound = true;
       activeRoundPending = Boolean(round?.active);
-      showStaticRound(round, completed);
+      await showStaticRound(round, completed);
     },
-    onStaticRound: (round) => {
-      showStaticRound(round);
+    onStaticRound: async (round) => {
+      await showStaticRound(round);
     },
     applyBalance: (balanceObj) => {
       balance = apiToDisplay(balanceObj.amount);
@@ -1194,10 +1271,14 @@ const game = createGameBootstrap({
     onRgsReady: () => syncControls(),
     onReady: () => {
       if (!skipNextSeedBoard) seedInitialBoard();
+      const wasResumed = resumedActiveRound;
       skipNextSeedBoard = false;
+      resumedActiveRound = false;
       balanceForDisplay = balance;
       syncHud({ immediate: true });
-      setMessage(copyTerm('setBetPrompt'));
+      if (!wasResumed) {
+        setMessage(copyTerm('setBetPrompt'));
+      }
     },
     onAuthRound: handleAuthRoundOutcome,
     onSyncDevTools: () => {
@@ -1215,6 +1296,66 @@ const game = createGameBootstrap({
 
 const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
 
+async function syncActiveRoundFromAuth() {
+  const data = await authenticate();
+  applyAuthConfig(data);
+  return data;
+}
+
+async function forceEndActiveRound() {
+  const endRes = await endRound();
+  if (endRes.balance?.amount != null) {
+    balance = apiToDisplay(endRes.balance.amount);
+    syncHud();
+  }
+  activeRoundPending = false;
+  resetFeaturePresentation();
+}
+
+/** Close any still-open RGS round after presentation-only resume gaps. */
+async function ensureActiveRoundClosed() {
+  const data = await syncActiveRoundFromAuth();
+  if (!data.round?.active || !data.round.state?.length) {
+    activeRoundPending = false;
+    return data;
+  }
+  await forceEndActiveRound();
+  return syncActiveRoundFromAuth();
+}
+
+async function resumeOpenRoundFromAuth(data) {
+  skipNextSeedBoard = true;
+  await lifecycle.resumeRound(data.round, {
+    meta: { lastEvent: data.meta?.lastEvent },
+    lastEvent: data.meta?.lastEvent ?? null,
+  });
+  await ensureActiveRoundClosed();
+}
+
+async function resumeActiveRoundFromAuth(authOutcome) {
+  if (!authOutcome?.deferred || !activeRoundPending) return;
+  await withSpinLock(async () => {
+    if (!activeRoundPending) return;
+    try {
+      const data = await syncActiveRoundFromAuth();
+      if (!data.round?.active || !data.round.state?.length) {
+        activeRoundPending = false;
+        return;
+      }
+      await resumeOpenRoundFromAuth(data);
+    } catch (err) {
+      console.error(err);
+      const policy = classifyRgsError(String(err.message));
+      setMessage(policy.message);
+      try {
+        await ensureActiveRoundClosed();
+      } catch (settleErr) {
+        console.error(settleErr);
+      }
+    }
+  }, { resetFeature: false, preserveWinDisplay: true });
+}
+
 function onStakeScreenInferred() {
   betUiVariant?.refresh();
   slotBoard?.resize?.();
@@ -1223,9 +1364,15 @@ function onStakeScreenInferred() {
 function resyncBetChromeLayout() {
   game.stakeLayout?.refresh();
   onStakeScreenInferred();
+  syncControls();
 }
 
 document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  resyncBetChromeLayout();
+});
+
+window.addEventListener('focus', () => {
   if (document.visibilityState !== 'visible') return;
   resyncBetChromeLayout();
 });
@@ -1457,7 +1604,8 @@ const betChromeHandlers = {
   getAutoVisible: () => {
     if (replayMode) return false;
     if (isDevMode()) return true;
-    return controls.canAutoplay && game.rgsReady;
+    if (autoplaying) return true;
+    return controls.canAutoplay;
   },
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
@@ -1495,6 +1643,9 @@ betUiVariant = initBetUiVariant({
       mobileBetUi?.setActive(false);
       desktopBetUi?.setActive(true);
     }
+    if (replayMode) {
+      syncReplayBetChrome(true);
+    }
     syncControls();
   },
   onLayoutRefresh: () => {
@@ -1505,6 +1656,11 @@ betUiVariant = initBetUiVariant({
 
 characterUi = initCharacter({
   host: document.getElementById('character-host'),
+  shell: shellEl,
+});
+
+gameBackground = initGameBackground({
+  host: document.querySelector('.suki-bg-landscape'),
   shell: shellEl,
 });
 
@@ -1563,29 +1719,21 @@ async function onSpin() {
 
   await withSpinLock(async () => {
     try {
-      if (activeRoundPending) {
-        const data = await authenticate();
-        applyAuthConfig(data);
-        if (data.round?.active && data.round.state?.length) {
-          skipNextSeedBoard = true;
-          await lifecycle.resumeRound(data.round, { meta: data.meta });
-          return;
-        }
-        activeRoundPending = false;
+      const data = await syncActiveRoundFromAuth();
+      if (data.round?.active && data.round.state?.length) {
+        await resumeOpenRoundFromAuth(data);
+        return;
       }
-      activeRoundPending = true;
+      activeRoundPending = false;
       await lifecycle.executeDrop({ animate: true });
     } catch (err) {
       console.error(err);
       const policy = classifyRgsError(String(err.message));
       if (policy.shouldResumeRound) {
         try {
-          const data = await authenticate();
-          applyAuthConfig(data);
+          const data = await syncActiveRoundFromAuth();
           if (data.round?.active && data.round.state?.length) {
-            skipNextSeedBoard = true;
-            activeRoundPending = true;
-            await lifecycle.resumeRound(data.round, { meta: data.meta });
+            await resumeOpenRoundFromAuth(data);
             return;
           }
         } catch (resumeErr) {
@@ -1597,7 +1745,7 @@ async function onSpin() {
         showPlayerNotice(policy.message);
       }
     }
-  }, { resetFeature: !resumeActiveRound });
+  }, { resetFeature: !resumeActiveRound, preserveWinDisplay: resumeActiveRound });
 }
 
 function isTypingTarget(target) {
@@ -1702,16 +1850,92 @@ function setPlayModeUi() {
   replayBanner.hidden = true;
   betUi.setView('play');
   balanceHud.hidden = false;
+  syncReplayBetChrome(false);
+}
+
+function syncReplayBetChrome(active = replayMode) {
+  desktopBetUi?.setReplayChrome?.(active, { disclaimer: copyTerm('replayDisclaimer') });
+  mobileBetUi?.setReplayChrome?.(active);
+}
+
+function applyReplayRoundBet(round) {
+  const baseBetApi = game.betModes.baseBetApiFromPlayAmount(round.amount, round.mode);
+  bet = snapBetToLevel(apiToDisplay(baseBetApi));
+}
+
+function replayModeLabelForRound(round) {
+  const norm = String(round?.mode ?? '').trim().toUpperCase();
+  const mode = game.betModes.modes.find((entry) => entry.rgsMode === norm)
+    ?? game.betModes.getActiveMode();
+  return modeButtonLabel(mode, copyTerm).toUpperCase();
+}
+
+function replayTotalWinLabel() {
+  return game.copy.socialCasino ? 'Total Earn' : 'Total Win';
+}
+
+function replayStartButtonLabel(again) {
+  if (again) {
+    const label = copyTerm('replayAgain');
+    return `▶ ${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+  }
+  return '▶ Start Replay';
+}
+
+function buildReplayStartDetails(round, { again = false } = {}) {
+  const baseBetApi = game.betModes.baseBetApiFromPlayAmount(round.amount, round.mode);
+  const costMultiplier = Math.max(1, round.amount / Math.max(1, baseBetApi));
+  const payoutMultiplier = roundPayoutMultiplier(round);
+  return {
+    badgeLabel: copyTerm('replayModeTitle'),
+    modeLabel: replayModeLabelForRound(round),
+    rowLabels: {
+      mode: copyTerm('playModeLabel'),
+      baseBet: copyTerm('baseBetLabel'),
+      costMultiplier: copyTerm('costMultiplierLabel'),
+      totalPlayCost: copyTerm('buyConfirmTotalLabel'),
+      payoutMultiplier: copyTerm('payoutMultiplierLabel'),
+      totalWin: replayTotalWinLabel(),
+    },
+    baseBet: fmtBalance(apiToDisplay(baseBetApi)),
+    costMultiplier: replayStartModal.formatCostMultiplier(costMultiplier),
+    totalBetCost: fmtBalance(apiToDisplay(round.amount)),
+    payoutMultiplier: formatMult(payoutMultiplier),
+    totalWin: fmtWin(apiToDisplay(round.payout ?? 0)),
+    footnote: copyTerm('replayDisclaimer'),
+    startLabel: replayStartButtonLabel(again),
+  };
+}
+
+async function promptReplaySummary(round, { again = false } = {}) {
+  hideWinDisplay({ immediate: true });
+  await replayStartModal.open(buildReplayStartDetails(round, { again }));
+}
+
+async function runReplayLoop(round) {
+  await promptReplaySummary(round, { again: false });
+  for (;;) {
+    setMessage(copyTerm('replayingRound'));
+    await playReplayAnimation(round);
+    setMessage('Replay complete.');
+    await promptReplaySummary(round, { again: true });
+  }
 }
 
 function setReplayModeUi() {
   replayBanner.hidden = false;
+  if (replayNoteEl) {
+    replayNoteEl.textContent = copyTerm('replayDisclaimer');
+  }
   betUi.setView('replay');
   balanceHud.hidden = true;
   setLastReplayUrl('');
+  syncReplayBetChrome(true);
 }
 
 async function playReplayAnimation(round) {
+  resetFeaturePresentation();
+  characterUi?.relayout?.();
   spinning = true;
   prepareWinForSpin();
   syncControls();
@@ -1729,7 +1953,6 @@ async function playReplayAnimation(round) {
     await finishPresentation();
     spinning = false;
     syncControls();
-    setMessage('Replay complete.');
   }
 }
 
@@ -1750,10 +1973,11 @@ async function bootstrapReplay() {
       amountApi: params.amountApi,
     });
     replayRound = data.round;
+    applyReplayRoundBet(replayRound);
     game.setRgsReady(true);
     syncControls();
     syncHud();
-    await playReplayAnimation(replayRound);
+    await runReplayLoop(replayRound);
   } catch (err) {
     console.error(err);
     setMessage(messageForRgsCode(String(err.message)));
@@ -1763,11 +1987,23 @@ async function bootstrapReplay() {
 function handleAuthRoundOutcome(authOutcome) {
   if (authOutcome.status === 'resumed') {
     skipNextSeedBoard = true;
-    activeRoundPending = true;
+    resumedActiveRound = true;
     setMessage('Round resumed.');
+    if (authOutcome.deferred) {
+      pendingAuthResume = authOutcome;
+    }
   } else if (authOutcome.status === 'completed' && authOutcome.result) {
     setMessage('Last completed round restored.');
   }
+}
+
+function onPreloaderContinue() {
+  revealGameShell();
+  unlockGameAudio();
+  if (!pendingAuthResume) return;
+  const authOutcome = pendingAuthResume;
+  pendingAuthResume = null;
+  void resumeActiveRoundFromAuth(authOutcome);
 }
 
 async function onNewSession() {
@@ -1845,16 +2081,19 @@ async function initSlotStage() {
       stageEl: slotStageEl,
     });
   }
-  seedInitialBoard();
 }
 
 async function startGame() {
   await initSlotStage();
+  characterUi?.relayout?.();
   await game.start();
 }
 
 function revealGameShell() {
   shellEl?.classList.remove('suki-shell-booting');
+  requestAnimationFrame(() => {
+    characterUi?.relayout?.();
+  });
 }
 
 function attachPreloaderCommitLabel() {
@@ -1891,10 +2130,7 @@ if (replayMode) {
     assets: buildPreloadAssets(),
     gate: () => game.checkRgsGate(),
     bootstrap: () => startGame(),
-    onContinue: () => {
-      revealGameShell();
-      unlockGameAudio();
-    },
+    onContinue: onPreloaderContinue,
   });
   attachPreloaderCommitLabel();
 }

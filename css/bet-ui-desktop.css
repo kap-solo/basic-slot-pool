@@ -673,3 +673,29 @@
   padding-inline-start: 0.25rem;
   align-items: center;
 }
+
+/* Replay — win stat + inline disclaimer only */
+.bet-ui-desktop-chrome--replay .bet-ui-desktop__dock {
+  justify-content: flex-start;
+}
+
+.bet-ui-desktop-chrome--replay .bet-ui-desktop__group--menu-stats {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: var(--bet-ui-desktop-stats-gap);
+}
+
+.bet-ui-desktop__replay-disclaimer {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: rgba(232, 237, 244, 0.78);
+  font-size: clamp(0.48rem, 2vw, 0.62rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.bet-ui-desktop-chrome--replay .bet-ui-desktop__stat--win {
+  flex: 0 0 auto;
+  max-width: var(--bet-ui-desktop-win-max-width);
+}

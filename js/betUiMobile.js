@@ -115,6 +115,18 @@ export function mountMobileBetUi({
   }
 
   let active = false;
+  let replayChrome = false;
+
+  function setReplayChrome(isReplay) {
+    replayChrome = isReplay;
+    chrome.classList.toggle('bet-ui-mobile-chrome--replay', isReplay);
+    actions.hidden = isReplay;
+    balanceStat.root.hidden = isReplay;
+    betPickBtn.root.hidden = isReplay;
+    if (active) {
+      sync();
+    }
+  }
 
   function restorePlayButton() {
     if (!playRow || playButton.parentNode === playRow) return;
@@ -136,10 +148,12 @@ export function mountMobileBetUi({
       spinSlot.appendChild(playButton);
       playButton.classList.add('bet-ui-mobile__play');
       playButton.setAttribute('aria-label', 'Spin');
-      sync();
-      requestAnimationFrame(() => fitAllStatValues());
     } else {
       restorePlayButton();
+    }
+    sync();
+    if (mobile) {
+      requestAnimationFrame(() => fitAllStatValues());
     }
   }
 
@@ -182,7 +196,12 @@ export function mountMobileBetUi({
   }
 
   function syncAutoVisibility() {
-    const autoVisible = handlers.getAutoVisible?.() ?? true;
+    if (replayChrome) {
+      autoCluster.hidden = true;
+      return;
+    }
+    const autoplayActive = handlers.getAutoplayActive?.() ?? false;
+    const autoVisible = autoplayActive || (handlers.getAutoVisible?.() ?? true);
     autoCluster.hidden = !autoVisible;
   }
 
@@ -248,6 +267,7 @@ export function mountMobileBetUi({
 
   return {
     setActive,
+    setReplayChrome,
     sync,
     updateWin,
     destroy() {
