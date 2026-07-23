@@ -214,13 +214,11 @@ body {
   display: flex;
 }
 
-.character-host__placeholder {
+.character-host__canvas {
   display: block;
   height: 100%;
   width: auto;
   max-width: none;
-  object-fit: contain;
-  object-position: left bottom;
   pointer-events: none;
   user-select: none;
 }
@@ -292,7 +290,7 @@ body {
   padding: 0.3rem 0.35rem;
   border-radius: 10px;
   border: 1px solid #2a3548;
-  background: rgba(10, 14, 20, 0.92);
+  background: rgba(10, 14, 20, 0.3);
   overflow: hidden;
 }
 

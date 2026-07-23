@@ -35,7 +35,7 @@ import {
   createWhooshAudio,
   wireTemplateAudio,
 } from './audio.js';
-import { mountCharacterPlaceholder } from './character.js';
+import { initCharacter } from './character.js';
 import { BET_OPTIONS, DEFAULT_BET, randomIdleBoard, GAME, GAME_MODES, BUY_MODE_COST, BB_MODE } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
@@ -72,7 +72,6 @@ import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');
 mountPlayerNotice(shellEl);
-mountCharacterPlaceholder(document.getElementById('character-host'));
 
 /** @type {HTMLButtonElement | null} */
 let playAffordBlocker = null;
@@ -1467,6 +1466,11 @@ betUiVariant = initBetUiVariant({
     syncControls();
     queueGameMenuPosition();
   },
+});
+
+initCharacter({
+  host: document.getElementById('character-host'),
+  shell: shellEl,
 });
 
 async function onBuyBonus() {

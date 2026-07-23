@@ -64,3 +64,12 @@ export async function loadSpineSymbolRegistry() {
 export function getSpineData(id, registry) {
   return registry.get(id) ?? null;
 }
+
+/**
+ * Load a standalone Spine asset (e.g. flank character) outside the symbol registry.
+ * @param {{ skeleton: string, atlas: string, scale?: number }} paths
+ * @returns {Promise<import('@esotericsoftware/spine-core').SkeletonData>}
+ */
+export async function loadSpineAsset(paths) {
+  return loadSpinePair(paths);
+}
