@@ -406,27 +406,6 @@ export async function createPixiSlotBoard(hostEl) {
   function drawClusterOverlay(winCells) {
     clusterOverlayCells = winCells?.size ? winCells : null;
     clusterOverlay.clear();
-    if (!winCells?.size) return;
-
-    const pad = Math.max(3, layout.cellW * 0.1);
-    const radius = Math.max(4, layout.cellW * 0.1);
-    const strokeWidth = Math.max(2, layout.cellW * 0.05);
-
-    for (const { reel, node, anchorRow, span } of collectOverlayTargets(winCells)) {
-      const stagePos = reel.getSymbolStagePosition(anchorRow, stage);
-      const cx = stagePos.x;
-      const cy = stagePos.y;
-      const boxSpan = node.span ?? span;
-
-      const w = reel.cellW - pad * 2;
-      const h = reel.cellH * boxSpan - pad * 2;
-      const x = cx - w / 2;
-      const y = cy - h / 2;
-
-      clusterOverlay.roundRect(x, y, w, h, radius);
-      clusterOverlay.stroke({ color: 0x4ade80, width: strokeWidth, alpha: 0.95 });
-      clusterOverlay.fill({ color: 0x4ade80, alpha: 0.12 });
-    }
   }
 
   /**

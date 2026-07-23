@@ -27,8 +27,8 @@ const CHARACTER_DISPLAY_SCALE = 0.86;
 /** Horizontal offset from the left flank anchor (px). */
 const CHARACTER_OFFSET_X = 25;
 
-/** Spine playback as a fraction of authored speed (1 = default, 0.3 = 30% of default). */
-const CHARACTER_ANIMATION_SPEED = 0.3;
+/** Spine playback as a fraction of authored speed (1 = default, 0.2 = 20% of default). */
+const CHARACTER_ANIMATION_SPEED = 0.2;
 
 /** Bonus/base crossfade duration (ms). */
 const CHARACTER_CROSSFADE_MS = 900;
