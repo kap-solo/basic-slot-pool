@@ -214,11 +214,55 @@ body {
   display: flex;
 }
 
+.character-host__stack {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.character-host__layer {
+  height: 100%;
+  opacity: 1;
+  transition: opacity var(--character-crossfade-ms, 900ms) ease;
+  pointer-events: none;
+}
+
+.character-host__layer--spine {
+  position: relative;
+}
+
+.character-host__layer--png {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.character-host__layer.is-hidden {
+  opacity: 0;
+}
+
+.character-host__layer.is-visible {
+  opacity: 1;
+}
+
 .character-host__canvas {
   display: block;
   height: 100%;
   width: auto;
   max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.character-host__img {
+  display: block;
+  height: calc(100% * 0.86);
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  object-position: left bottom;
   pointer-events: none;
   user-select: none;
 }

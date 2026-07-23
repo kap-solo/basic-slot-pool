@@ -20,6 +20,67 @@ export function sortedBookEvents(round) {
   return [...(round.state ?? [])].sort((a, b) => a.index - b.index);
 }
 
+/**
+ * @param {{ lastEvent?: string | null }} [meta]
+ * @param {{ event?: string | null }} [round]
+ * @param {string | number | null | undefined} [lastEvent]
+ * @returns {number}
+ */
+export function resolveLastEventIndex(meta, round, lastEvent) {
+  const raw = lastEvent ?? meta?.lastEvent ?? round?.event ?? null;
+  if (raw === null || raw === undefined || raw === '') return -1;
+  const index = Number(raw);
+  return Number.isFinite(index) ? index : -1;
+}
+
+/**
+ * @param {object} round
+ * @param {number} lastEventIndex
+ */
+export function sliceEventsForResume(round, lastEventIndex) {
+  const events = sortedBookEvents(round);
+  const completed = events.filter((event) => event.index <= lastEventIndex);
+  const remaining = events.filter((event) => event.index > lastEventIndex);
+  return { events, completed, remaining };
+}
+
+/**
+ * Board at the resume checkpoint — last tumble or last gameReveal in completed events.
+ * @param {object[]} completed
+ */
+export function boardFromCompletedEvents(completed) {
+  const events = [...completed].sort((a, b) => a.index - b.index);
+  const tumbles = events.filter((event) => event.type === 'tumble');
+  if (tumbles.length) return tumbles[tumbles.length - 1].board;
+  const reveals = events.filter((event) => event.type === 'gameReveal');
+  if (reveals.length) return reveals[reveals.length - 1].board;
+  return null;
+}
+
+/** @param {object[]} completed */
+export function isFeatureRoundOpen(completed) {
+  const hasEnterBonus = completed.some((event) => event.type === 'enterBonus');
+  const hasFreeSpinEnd = completed.some((event) => event.type === 'freeSpinEnd');
+  return hasEnterBonus && !hasFreeSpinEnd;
+}
+
+/**
+ * Events to play on resume — avoids replaying scatter trigger when cursor is missing.
+ * @param {object} round
+ * @param {number} lastEventIndex
+ */
+export function resumeEventsFromCheckpoint(round, lastEventIndex) {
+  const { events, remaining } = sliceEventsForResume(round, lastEventIndex);
+  if (remaining.length) return remaining;
+  if (lastEventIndex >= 0) return [];
+
+  const enterBonus = events.find((event) => event.type === 'enterBonus');
+  if (enterBonus && round?.active) {
+    return events.filter((event) => event.index >= enterBonus.index);
+  }
+  return events;
+}
+
 export function parseGameReveal(round) {
   const reveal = (round.state ?? []).find((e) => e.type === 'gameReveal');
   if (!reveal) throw new Error('Missing gameReveal in round.state');

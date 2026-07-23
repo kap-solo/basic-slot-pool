@@ -50,6 +50,8 @@ import {
   bookCentiMultToDisplayWin,
   bookCentiMultToPayoutApi,
   finalBoardFromRound,
+  boardFromCompletedEvents,
+  isFeatureRoundOpen,
   sortedBookEvents,
 } from './round.js';
 import {
@@ -134,6 +136,12 @@ document.getElementById('game-subtitle').hidden = true;
 let slotBoard = null;
 /** @type {ReturnType<typeof createFeatureChrome> | null} */
 let featureChrome = null;
+/** @type {ReturnType<typeof initCharacter> | null} */
+let characterUi = null;
+/** Skip random idle board after auth resume. */
+let skipNextSeedBoard = false;
+/** Active round still settling on the RGS. */
+let activeRoundPending = false;
 /** @type {string[][] | null} */
 let idleBoardSeed = null;
 
@@ -744,12 +752,33 @@ function seedInitialBoard() {
   slotBoard.setBoard(idleBoardSeed);
 }
 
-function showStaticRound(round) {
-  if (!slotBoard) return;
+function resetFeaturePresentation() {
   featureChrome?.reset();
+  void characterUi?.setBonusMode(false, { animate: false });
+}
+
+async function restoreFeatureFromCompleted(completed) {
+  if (!featureChrome || !completed?.length) return;
+  for (const event of [...completed].sort((a, b) => a.index - b.index)) {
+    if (event.type === 'enterBonus' || event.type === 'updateFreeSpin' || event.type === 'freeSpinEnd') {
+      await presentFeatureEvent(event, { animate: false });
+    }
+  }
+}
+
+function showStaticRound(round, completed = null) {
+  if (!slotBoard) return;
+  const events = completed ?? sortedBookEvents(round);
+  const board = boardFromCompletedEvents(events) ?? finalBoardFromRound(round);
+  if (isFeatureRoundOpen(events)) {
+    void restoreFeatureFromCompleted(events);
+    void characterUi?.setBonusMode(true, { animate: false });
+  } else {
+    resetFeaturePresentation();
+  }
   multiplierPanel.clearLedger();
   slotBoard.resetCascadeLadder();
-  slotBoard.setBoard(finalBoardFromRound(round));
+  slotBoard.setBoard(board);
 }
 
 async function animateReveal(board) {
@@ -866,6 +895,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
   if (!featureChrome) return;
 
   if (event.type === 'enterBonus') {
+    await characterUi?.setBonusMode(true, { animate });
     await featureChrome.onEnterBonus(event, { animate });
     refreshWinStatLabel();
     return;
@@ -880,6 +910,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
       animate,
       formatBookWin: (amountCentiMult) => fmtWin(bookCentiMultToDisplayWin(amountCentiMult, bet)),
     });
+    await characterUi?.setBonusMode(false, { animate });
     refreshWinStatLabel();
   }
 }
@@ -1031,11 +1062,11 @@ async function finishPresentation() {
   syncControls();
 }
 
-async function withSpinLock(fn) {
+async function withSpinLock(fn, { resetFeature = false } = {}) {
   spinning = true;
   animationSpeed = 1;
   prepareWinForSpin();
-  featureChrome?.reset();
+  if (resetFeature) resetFeaturePresentation();
   refreshWinStatLabel();
   slotBoard?.pulseCabinet();
   spinClickAudio.play(() => gameAudio.unlock());
@@ -1102,8 +1133,10 @@ const game = createGameBootstrap({
       },
       finalWin: async () => {},
     },
-    onResumeStatic: (round) => {
-      showStaticRound(round);
+    onResumeStatic: (round, completed) => {
+      skipNextSeedBoard = true;
+      activeRoundPending = Boolean(round?.active);
+      showStaticRound(round, completed);
     },
     onStaticRound: (round) => {
       showStaticRound(round);
@@ -1115,6 +1148,7 @@ const game = createGameBootstrap({
     buildSettledResult: buildGameSettledResult,
     playingMessage: 'Spinning…',
     onRoundSettled: (round, result) => {
+      activeRoundPending = false;
       pendingRoundSettled = { round, result };
     },
     setMessage,
@@ -1159,7 +1193,8 @@ const game = createGameBootstrap({
     isBusy: () => spinning || autoplaying || isBoardPresenting(),
     onRgsReady: () => syncControls(),
     onReady: () => {
-      seedInitialBoard();
+      if (!skipNextSeedBoard) seedInitialBoard();
+      skipNextSeedBoard = false;
       balanceForDisplay = balance;
       syncHud({ immediate: true });
       setMessage(copyTerm('setBetPrompt'));
@@ -1468,7 +1503,7 @@ betUiVariant = initBetUiVariant({
   },
 });
 
-initCharacter({
+characterUi = initCharacter({
   host: document.getElementById('character-host'),
   shell: shellEl,
 });
@@ -1499,6 +1534,7 @@ async function executeBuyBonus() {
         balance = apiToDisplay(playRes.balance.amount);
         syncHud();
       }
+      activeRoundPending = true;
       await lifecycle.completeRound(playRes.round, { animate: true });
     } catch (err) {
       console.error(err);
@@ -1508,7 +1544,7 @@ async function executeBuyBonus() {
         showPlayerNotice(policy.message);
       }
     }
-  });
+  }, { resetFeature: true });
 }
 
 async function onSpin() {
@@ -1523,8 +1559,21 @@ async function onSpin() {
     return;
   }
 
+  const resumeActiveRound = activeRoundPending;
+
   await withSpinLock(async () => {
     try {
+      if (activeRoundPending) {
+        const data = await authenticate();
+        applyAuthConfig(data);
+        if (data.round?.active && data.round.state?.length) {
+          skipNextSeedBoard = true;
+          await lifecycle.resumeRound(data.round, { meta: data.meta });
+          return;
+        }
+        activeRoundPending = false;
+      }
+      activeRoundPending = true;
       await lifecycle.executeDrop({ animate: true });
     } catch (err) {
       console.error(err);
@@ -1534,6 +1583,8 @@ async function onSpin() {
           const data = await authenticate();
           applyAuthConfig(data);
           if (data.round?.active && data.round.state?.length) {
+            skipNextSeedBoard = true;
+            activeRoundPending = true;
             await lifecycle.resumeRound(data.round, { meta: data.meta });
             return;
           }
@@ -1546,7 +1597,7 @@ async function onSpin() {
         showPlayerNotice(policy.message);
       }
     }
-  });
+  }, { resetFeature: !resumeActiveRound });
 }
 
 function isTypingTarget(target) {
@@ -1623,8 +1674,9 @@ async function runAutoplay(roundCount) {
       syncControls();
 
       await withSpinLock(async () => {
+        activeRoundPending = true;
         await lifecycle.executeDrop({ animate: true });
-      });
+      }, { resetFeature: true });
 
       if (autoplayStopRequested) {
         setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
@@ -1710,6 +1762,8 @@ async function bootstrapReplay() {
 
 function handleAuthRoundOutcome(authOutcome) {
   if (authOutcome.status === 'resumed') {
+    skipNextSeedBoard = true;
+    activeRoundPending = true;
     setMessage('Round resumed.');
   } else if (authOutcome.status === 'completed' && authOutcome.result) {
     setMessage('Last completed round restored.');
@@ -1747,6 +1801,7 @@ async function playDevFeatureSample() {
   if (spinning || autoplaying || replayMode || !slotBoard) return;
 
   await withSpinLock(async () => {
+    activeRoundPending = true;
     const book = SAMPLE_FEATURE_BOOK;
     const amountApi = displayToApi(bet);
     const payoutMultiplier = book.payoutMultiplier / 100;
@@ -1771,7 +1826,7 @@ async function playDevFeatureSample() {
         round,
       },
     };
-  });
+  }, { resetFeature: true });
 }
 
 /** @param {import('./slot.js').ClusterHighlightEvent} event */

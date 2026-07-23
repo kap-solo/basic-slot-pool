@@ -1,5 +1,6 @@
 /**
  * Flank character — Spine on desktop breakpoints, hidden on mobile.
+ * During free-spin bonus, crossfades to a static PNG.
  */
 
 import './pixi/bootstrap.js';
@@ -13,6 +14,8 @@ const CHARACTER_SPINE = {
   atlas: 'assets/spine/character/character.atlas',
 };
 
+const CHARACTER_PNG_SRC = 'assets/character.png';
+
 const CHARACTER_ANIMATIONS = {
   idle: 'idle',
   win: 'win',
@@ -24,14 +27,41 @@ const CHARACTER_DISPLAY_SCALE = 0.86;
 /** Horizontal offset from the left flank anchor (px). */
 const CHARACTER_OFFSET_X = 25;
 
-/** Spine playback rate (1 = authored speed). */
-const CHARACTER_ANIMATION_SPEED = 0.6;
+/** Spine playback as a fraction of authored speed (1 = default, 0.3 = 30% of default). */
+const CHARACTER_ANIMATION_SPEED = 0.3;
+
+/** Bonus/base crossfade duration (ms). */
+const CHARACTER_CROSSFADE_MS = 900;
 
 /** @type {import('@esotericsoftware/spine-core').SkeletonData | null} */
 let skeletonData = null;
 
 /** @type {Promise<import('@esotericsoftware/spine-core').SkeletonData | null> | null} */
 let skeletonLoad = null;
+
+/** @type {Promise<void>} */
+let modeTransition = Promise.resolve();
+
+/** @type {{
+ *   host: HTMLElement,
+ *   shell: HTMLElement,
+ *   stack: HTMLElement,
+ *   spineLayer: HTMLElement,
+ *   pngLayer: HTMLElement,
+ *   pngImg: HTMLImageElement,
+ *   inBonusMode: boolean,
+ * } | null} */
+let hostContext = null;
+
+/** @type {{
+ *   app: Application,
+ *   spine: Spine,
+ *   onTick: (ticker: import('pixi.js').Ticker) => void,
+ *   host: HTMLElement,
+ *   shell: HTMLElement,
+ *   canvasHeight: number,
+ * } | null} */
+let activeMount = null;
 
 /**
  * @param {import('@esotericsoftware/spine-core').SkeletonData} data
@@ -58,9 +88,49 @@ function layoutCharacterSpine(spine, canvasHeight) {
   return bounds.width * scale;
 }
 
-/** @param {HTMLCanvasElement} canvas */
-function applyCharacterOffset(canvas) {
-  canvas.style.marginLeft = `${CHARACTER_OFFSET_X}px`;
+/** @param {HTMLElement} stack */
+function applyCharacterOffset(stack) {
+  stack.style.marginLeft = `${CHARACTER_OFFSET_X}px`;
+}
+
+/**
+ * @param {HTMLElement} host
+ */
+function ensureHostStack(host) {
+  if (hostContext?.host === host) return hostContext;
+
+  const stack = document.createElement('div');
+  stack.className = 'character-host__stack';
+
+  const spineLayer = document.createElement('div');
+  spineLayer.className = 'character-host__layer character-host__layer--spine is-visible';
+
+  const pngLayer = document.createElement('div');
+  pngLayer.className = 'character-host__layer character-host__layer--png is-hidden';
+
+  const pngImg = document.createElement('img');
+  pngImg.className = 'character-host__img';
+  pngImg.src = CHARACTER_PNG_SRC;
+  pngImg.alt = '';
+  pngImg.decoding = 'async';
+
+  pngLayer.appendChild(pngImg);
+  stack.append(spineLayer, pngLayer);
+  applyCharacterOffset(stack);
+  stack.style.setProperty('--character-crossfade-ms', `${CHARACTER_CROSSFADE_MS}ms`);
+  host.replaceChildren(stack);
+  host.dataset.characterMount = 'stack';
+
+  hostContext = {
+    host,
+    shell: hostContext?.shell ?? host,
+    stack,
+    spineLayer,
+    pngLayer,
+    pngImg,
+    inBonusMode: false,
+  };
+  return hostContext;
 }
 
 async function ensureSkeletonData() {
@@ -92,16 +162,6 @@ async function readCanvasHeight(host, shell) {
   return Math.max(320, Math.round(host.clientHeight || shell.clientHeight || 0));
 }
 
-/** @type {{
- *   app: Application,
- *   spine: Spine,
- *   onTick: (ticker: import('pixi.js').Ticker) => void,
- *   host: HTMLElement,
- *   shell: HTMLElement,
- *   canvasHeight: number,
- * } | null} */
-let activeMount = null;
-
 /** @param {Spine} spine */
 function applyCharacterAnimationSpeed(spine) {
   spine.state.timeScale = CHARACTER_ANIMATION_SPEED;
@@ -116,24 +176,41 @@ function playCharacterIdle(spine) {
   }
 }
 
-function relayoutActiveMount() {
+function pauseSpineTicker() {
   if (!activeMount) return;
+  activeMount.app.ticker.remove(activeMount.onTick);
+}
+
+function resumeSpineTicker() {
+  if (!activeMount || hostContext?.inBonusMode) return;
+  activeMount.app.ticker.add(activeMount.onTick);
+}
+
+function relayoutActiveMount() {
+  if (!activeMount || !hostContext) return;
   const { app, spine, host, shell } = activeMount;
   const canvasHeight = Math.max(320, Math.round(host.clientHeight || shell.clientHeight || 0));
   const contentWidth = layoutCharacterSpine(spine, canvasHeight);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
-  applyCharacterOffset(app.canvas);
   activeMount.canvasHeight = canvasHeight;
 }
 
-function destroyCharacter() {
+function destroySpineMount() {
   if (!activeMount) return;
-  const { app, onTick, host } = activeMount;
+  const { app, onTick } = activeMount;
   app.ticker.remove(onTick);
   app.destroy(true, { children: true, texture: false, textureSource: false });
-  host.replaceChildren();
-  delete host.dataset.characterMount;
+  hostContext?.spineLayer.replaceChildren();
   activeMount = null;
+}
+
+function destroyCharacterHost() {
+  destroySpineMount();
+  hostContext?.host.replaceChildren();
+  if (hostContext?.host) {
+    delete hostContext.host.dataset.characterMount;
+  }
+  hostContext = null;
 }
 
 /**
@@ -141,6 +218,10 @@ function destroyCharacter() {
  * @param {HTMLElement} shell
  */
 async function mountCharacterSpine(host, shell) {
+  if (hostContext) hostContext.shell = shell;
+  const ctx = ensureHostStack(host);
+  ctx.shell = shell;
+
   const data = await ensureSkeletonData();
   if (!data) return;
 
@@ -148,10 +229,11 @@ async function mountCharacterSpine(host, shell) {
 
   if (activeMount?.host === host) {
     relayoutActiveMount();
+    syncCharacterLayers({ animate: false });
     return;
   }
 
-  destroyCharacter();
+  destroySpineMount();
 
   const app = new Application();
   await app.init({
@@ -172,7 +254,6 @@ async function mountCharacterSpine(host, shell) {
   spine.eventMode = 'none';
   const contentWidth = layoutCharacterSpine(spine, canvasHeight);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
-  applyCharacterOffset(app.canvas);
   app.stage.addChild(spine);
   playCharacterIdle(spine);
 
@@ -180,11 +261,74 @@ async function mountCharacterSpine(host, shell) {
   const onTick = (ticker) => {
     spine.update(ticker.deltaMS / 1000);
   };
-  app.ticker.add(onTick);
 
-  host.replaceChildren(app.canvas);
-  host.dataset.characterMount = 'spine';
+  ctx.spineLayer.replaceChildren(app.canvas);
   activeMount = { app, spine, onTick, host, shell, canvasHeight };
+
+  if (ctx.inBonusMode) pauseSpineTicker();
+  else app.ticker.add(onTick);
+
+  syncCharacterLayers({ animate: false });
+}
+
+/**
+ * @param {HTMLElement} layer
+ * @param {boolean} visible
+ * @param {{ animate?: boolean }} [opts]
+ */
+function setLayerVisible(layer, visible, { animate = true } = {}) {
+  layer.classList.toggle('is-visible', visible);
+  layer.classList.toggle('is-hidden', !visible);
+  if (animate) return waitForLayerFade(layer);
+  layer.style.transitionDuration = '0ms';
+  void layer.offsetWidth;
+  layer.style.transitionDuration = '';
+  return Promise.resolve();
+}
+
+/** @param {HTMLElement} layer */
+function waitForLayerFade(layer) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      layer.removeEventListener('transitionend', onTransitionEnd);
+      clearTimeout(fallback);
+      resolve();
+    };
+    const onTransitionEnd = (event) => {
+      if (event.target !== layer || event.propertyName !== 'opacity') return;
+      finish();
+    };
+    layer.addEventListener('transitionend', onTransitionEnd);
+    const fallback = setTimeout(finish, CHARACTER_CROSSFADE_MS + 80);
+  });
+}
+
+/**
+ * @param {{ animate?: boolean }} [opts]
+ */
+function syncCharacterLayers({ animate = true } = {}) {
+  if (!hostContext) return Promise.resolve();
+  const { spineLayer, pngLayer, inBonusMode } = hostContext;
+  const showPng = inBonusMode;
+
+  if (showPng) pauseSpineTicker();
+  else resumeSpineTicker();
+
+  if (!animate) {
+    spineLayer.classList.toggle('is-visible', !showPng);
+    spineLayer.classList.toggle('is-hidden', showPng);
+    pngLayer.classList.toggle('is-visible', showPng);
+    pngLayer.classList.toggle('is-hidden', !showPng);
+    return Promise.resolve();
+  }
+
+  return Promise.all([
+    setLayerVisible(spineLayer, !showPng, { animate: true }),
+    setLayerVisible(pngLayer, showPng, { animate: true }),
+  ]).then(() => {});
 }
 
 /**
@@ -194,16 +338,45 @@ async function mountCharacterSpine(host, shell) {
 function refreshCharacter(host, shell) {
   const isDesktop = resolveBetUiVariant(shell) === BET_UI_VARIANT.DESKTOP;
   if (!isDesktop) {
-    destroyCharacter();
+    destroyCharacterHost();
     return;
   }
   void mountCharacterSpine(host, shell);
 }
 
 /**
+ * @param {boolean} active
+ * @param {{ animate?: boolean }} [opts]
+ */
+async function applyBonusMode(active, { animate = true } = {}) {
+  if (!hostContext) return;
+  if (hostContext.inBonusMode === active) {
+    syncCharacterLayers({ animate: false });
+    return;
+  }
+
+  hostContext.inBonusMode = active;
+  await syncCharacterLayers({ animate });
+}
+
+/**
+ * @param {boolean} active
+ * @param {{ animate?: boolean }} [opts]
+ */
+export function setCharacterBonusMode(active, { animate = true } = {}) {
+  modeTransition = modeTransition
+    .then(() => applyBonusMode(active, { animate }))
+    .catch((err) => {
+      console.warn('[Basic Slot] Character bonus mode transition failed.', err);
+    });
+  return modeTransition;
+}
+
+/**
  * One-shot win track when available, then return to idle.
  */
 export function playCharacterWin() {
+  if (hostContext?.inBonusMode) return;
   const spine = activeMount?.spine;
   if (!spine) return;
 
@@ -232,8 +405,14 @@ export function playCharacterWin() {
  */
 export function initCharacter({ host, shell }) {
   if (!host || !shell) {
-    return { destroy() {}, playWin: playCharacterWin };
+    return {
+      destroy() {},
+      playWin: playCharacterWin,
+      setBonusMode: setCharacterBonusMode,
+    };
   }
+
+  if (hostContext) hostContext.shell = shell;
 
   const observer = new MutationObserver(() => refreshCharacter(host, shell));
   observer.observe(shell, {
@@ -255,8 +434,9 @@ export function initCharacter({ host, shell }) {
       observer.disconnect();
       window.removeEventListener('resize', onResize);
       window.visualViewport?.removeEventListener('resize', onResize);
-      destroyCharacter();
+      destroyCharacterHost();
     },
     playWin: playCharacterWin,
+    setBonusMode: setCharacterBonusMode,
   };
 }

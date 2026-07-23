@@ -165,7 +165,9 @@ export function createFeatureChrome({ stageEl }) {
           : 'Scatter trigger';
 
     if (!animate) {
+      intro.hidden = true;
       counter.hidden = false;
+      endBanner.hidden = true;
       setSpinProgress(1, total);
       return;
     }
