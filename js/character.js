@@ -208,6 +208,9 @@ function playCharacterIdle(spine) {
   }
 }
 
+/** Max Spine delta per frame (sec) — avoids a huge jump when returning from a background tab. */
+const MAX_SPINE_TICK_SEC = 1 / 30;
+
 function pauseSpineTicker() {
   if (!activeMount) return;
   activeMount.app.ticker.remove(activeMount.onTick);
@@ -215,6 +218,8 @@ function pauseSpineTicker() {
 
 function resumeSpineTicker() {
   if (!activeMount || hostContext?.inBonusMode) return;
+  // Idempotent: shell layout resyncs after idle can call this repeatedly.
+  activeMount.app.ticker.remove(activeMount.onTick);
   activeMount.app.ticker.add(activeMount.onTick);
 }
 
@@ -305,14 +310,12 @@ async function mountCharacterSpine(host, shell) {
 
   /** @param {import('pixi.js').Ticker} ticker */
   const onTick = (ticker) => {
-    spine.update(ticker.deltaMS / 1000);
+    const delta = Math.min(ticker.deltaMS / 1000, MAX_SPINE_TICK_SEC);
+    spine.update(delta);
   };
 
   ctx.spineLayer.replaceChildren(app.canvas);
   activeMount = { app, spine, onTick, host, shell, canvasHeight };
-
-  if (ctx.inBonusMode) pauseSpineTicker();
-  else app.ticker.add(onTick);
 
   syncCharacterLayers({ animate: false });
 }
