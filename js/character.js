@@ -63,12 +63,37 @@ let hostContext = null;
  * } | null} */
 let activeMount = null;
 
+/** Setup-pose bounds cached at mount — relayout must not reset the live skeleton pose. */
+let cachedSetupBounds = null;
+
 /**
- * @param {import('@esotericsoftware/spine-core').SkeletonData} data
- * @param {string} name
+ * @param {Spine} spine
  */
-function spineAnimHasKeyframes(data, name) {
-  return Boolean(data.findAnimation?.(name));
+function measureSetupBounds(spine) {
+  spine.skeleton.setToSetupPose();
+  spine.update(0);
+  const bounds = spine.getLocalBounds();
+  cachedSetupBounds = {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+  };
+  return cachedSetupBounds;
+}
+
+/**
+ * @param {Spine} spine
+ * @param {number} canvasHeight
+ * @param {{ x: number, y: number, width: number, height: number }} bounds
+ * @returns {number}
+ */
+function applyCharacterLayout(spine, canvasHeight, bounds) {
+  const scale = (canvasHeight * 0.98 * CHARACTER_DISPLAY_SCALE) / Math.max(bounds.height, 1);
+  spine.scale.set(scale);
+  spine.x = -bounds.x * scale;
+  spine.y = canvasHeight - (bounds.y + bounds.height) * scale;
+  return bounds.width * scale;
 }
 
 /**
@@ -77,15 +102,15 @@ function spineAnimHasKeyframes(data, name) {
  * @returns {number}
  */
 function layoutCharacterSpine(spine, canvasHeight) {
-  spine.skeleton.setToSetupPose();
-  spine.update(0);
+  return applyCharacterLayout(spine, canvasHeight, measureSetupBounds(spine));
+}
 
-  const bounds = spine.getLocalBounds();
-  const scale = (canvasHeight * 0.98 * CHARACTER_DISPLAY_SCALE) / Math.max(bounds.height, 1);
-  spine.scale.set(scale);
-  spine.x = -bounds.x * scale;
-  spine.y = canvasHeight - (bounds.y + bounds.height) * scale;
-  return bounds.width * scale;
+/**
+ * @param {import('@esotericsoftware/spine-core').SkeletonData} data
+ * @param {string} name
+ */
+function spineAnimHasKeyframes(data, name) {
+  return Boolean(data.findAnimation?.(name));
 }
 
 /** @param {HTMLElement} stack */
@@ -170,6 +195,8 @@ async function readCanvasHeight(host, shell) {
 /** @param {Spine} spine */
 function applyCharacterAnimationSpeed(spine) {
   spine.state.timeScale = CHARACTER_ANIMATION_SPEED;
+  const current = spine.state.getCurrent(0);
+  if (current) current.timeScale = 1;
 }
 
 /** @param {Spine} spine */
@@ -192,13 +219,13 @@ function resumeSpineTicker() {
 }
 
 function relayoutActiveMount() {
-  if (!activeMount || !hostContext) return;
+  if (!activeMount || !hostContext || !cachedSetupBounds) return;
   const { app, spine, host } = activeMount;
   const hostHeight = host.clientHeight;
   if (hostHeight <= 0) return;
 
   const canvasHeight = Math.max(320, Math.round(hostHeight));
-  const contentWidth = layoutCharacterSpine(spine, canvasHeight);
+  const contentWidth = applyCharacterLayout(spine, canvasHeight, cachedSetupBounds);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
   activeMount.canvasHeight = canvasHeight;
 }
@@ -220,6 +247,7 @@ function destroySpineMount() {
   app.destroy(true, { children: true, texture: false, textureSource: false });
   hostContext?.spineLayer.replaceChildren();
   activeMount = null;
+  cachedSetupBounds = null;
 }
 
 function destroyCharacterHost() {
@@ -404,7 +432,7 @@ export function playCharacterWin() {
   if (!spineAnimHasKeyframes(data, win)) return;
 
   const entry = spine.state.setAnimation(0, win, false);
-  entry.timeScale = CHARACTER_ANIMATION_SPEED;
+  applyCharacterAnimationSpeed(spine);
   if (spineAnimHasKeyframes(data, idle)) {
     entry.listener = {
       complete: () => {
