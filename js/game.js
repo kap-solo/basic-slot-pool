@@ -781,6 +781,7 @@ function resetFeaturePresentation() {
   featureChrome?.reset();
   void characterUi?.setBonusMode(false, { animate: false });
   void gameBackground?.setBonusMode(false, { animate: false });
+  backgroundMusic.setBonusMode(false, { animate: false });
 }
 
 /** True once any free-spin gameReveal has been reached (intro finished). */
@@ -844,6 +845,7 @@ async function showStaticRound(round, completed = null) {
         characterUi?.setBonusMode(true, { animate: false }),
         gameBackground?.setBonusMode(true, { animate: false }),
       ]);
+      backgroundMusic.setBonusMode(true, { animate: false });
     }
   } else {
     resetFeaturePresentation();
@@ -881,6 +883,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
         characterUi?.setBonusMode(true, { animate }),
         gameBackground?.setBonusMode(true, { animate }),
       ]);
+      backgroundMusic.setBonusMode(true, { animate });
     }
   }
 
@@ -991,6 +994,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
       characterUi?.setBonusMode(false, { animate }),
       gameBackground?.setBonusMode(false, { animate }),
     ]);
+    backgroundMusic.setBonusMode(false, { animate });
     refreshWinStatLabel();
   }
 }
