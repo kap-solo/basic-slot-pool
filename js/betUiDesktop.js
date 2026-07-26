@@ -2,6 +2,8 @@
  * Desktop bet UI — four grouped chrome panels (menu/stats, bet, spin, buy).
  */
 
+import { isPopoutSViewport } from './stakeScreenInfer.js';
+
 /**
  * @param {object} options
  * @param {HTMLElement} options.root — `#bet-ui-root`
@@ -176,10 +178,14 @@ export function mountDesktopBetUi({
     }
   }
 
+  function isPopoutSLayout() {
+    return isPopoutSViewport(stakeShell);
+  }
+
   function fitStatValue(valueEl) {
     valueEl.style.fontSize = '';
     const max = parseFloat(getComputedStyle(valueEl).fontSize) || 15;
-    const min = 6;
+    const min = isPopoutSLayout() ? 5 : 6;
     let size = max;
     valueEl.style.fontSize = `${size}px`;
 
@@ -187,13 +193,20 @@ export function mountDesktopBetUi({
       size -= 0.25;
       valueEl.style.fontSize = `${size}px`;
     }
+
+    if (valueEl.textContent) {
+      valueEl.title = valueEl.scrollWidth > valueEl.clientWidth + 1
+        ? valueEl.textContent
+        : '';
+    }
   }
 
   function fitAllStatValues() {
     if (!active) return;
-    for (const valueEl of statValueEls) {
-      fitStatValue(valueEl);
-    }
+    // Balance first — longest currency strings get the widest flex slice before bet/win shrink.
+    fitStatValue(balanceStat.valueEl);
+    fitStatValue(winStat.valueEl);
+    fitStatValue(betPickBtn.valueEl);
   }
 
   function updateWin({ text, visible, settled = false, hiding = false }) {
@@ -203,8 +216,11 @@ export function mountDesktopBetUi({
     winStat.valueEl.classList.toggle('is-visible', visible);
     winStat.valueEl.classList.toggle('is-settled', settled);
     winStat.valueEl.classList.toggle('is-hiding', hiding);
-    fitStatValue(winStat.valueEl);
-    requestAnimationFrame(() => fitStatValue(winStat.valueEl));
+    if (isPopoutSLayout() && !replayChrome) {
+      winStat.root.hidden = !visible;
+    }
+    fitAllStatValues();
+    requestAnimationFrame(() => fitAllStatValues());
   }
 
   function syncAutoVisibility() {
@@ -225,6 +241,9 @@ export function mountDesktopBetUi({
     betPickBtn.labelEl.textContent = handlers.getBetLabel?.() ?? 'Bet';
     betPickBtn.valueEl.textContent = handlers.getBet();
     winStat.labelEl.textContent = handlers.getWinLabel?.() ?? 'Win';
+    if (isPopoutSLayout() && !replayChrome) {
+      winStat.root.hidden = !winStat.valueEl.classList.contains('is-visible');
+    }
     fitAllStatValues();
     requestAnimationFrame(() => fitAllStatValues());
 

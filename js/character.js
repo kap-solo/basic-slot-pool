@@ -7,6 +7,7 @@ import './pixi/bootstrap.js';
 import { Application } from 'pixi.js';
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { BET_UI_VARIANT, resolveBetUiVariant } from './betUiVariant.js';
+import { isPopoutSViewport } from './stakeScreenInfer.js';
 import { loadSpineAsset } from './pixi/spineAssets.js';
 
 const CHARACTER_SPINE = {
@@ -26,6 +27,11 @@ const CHARACTER_DISPLAY_SCALE = 0.86;
 
 /** Horizontal offset from the left flank anchor (px). */
 const CHARACTER_OFFSET_X = 25;
+
+/** Popout S (400×225) — slightly smaller than desktop; avoid stacking multiple shrink passes. */
+const POPOUT_S_CHARACTER_DISPLAY_SCALE = 0.86;
+const POPOUT_S_CHARACTER_OFFSET_X = 12;
+const POPOUT_S_CHARACTER_HEIGHT_FIT = 0.96;
 
 /** Spine playback as a fraction of authored speed (1 = default, 0.6 = 60% of default). */
 const CHARACTER_ANIMATION_SPEED = 0.6;
@@ -83,13 +89,45 @@ function measureSetupBounds(spine) {
 }
 
 /**
+ * @param {HTMLElement | null | undefined} shell
+ */
+function resolveCharacterLayoutProfile(shell) {
+  if (isPopoutSViewport(shell)) {
+    return {
+      displayScale: POPOUT_S_CHARACTER_DISPLAY_SCALE,
+      offsetX: POPOUT_S_CHARACTER_OFFSET_X,
+      heightFit: POPOUT_S_CHARACTER_HEIGHT_FIT,
+    };
+  }
+  return {
+    displayScale: CHARACTER_DISPLAY_SCALE,
+    offsetX: CHARACTER_OFFSET_X,
+    heightFit: 0.98,
+  };
+}
+
+/**
+ * @param {HTMLElement} host
+ * @param {HTMLElement} shell
+ */
+function resolveCanvasHeight(host, shell) {
+  const hostHeight = Math.round(host.clientHeight || shell.clientHeight || 0);
+  if (hostHeight <= 0) return 320;
+  if (isPopoutSViewport(shell)) return hostHeight;
+  return Math.max(320, hostHeight);
+}
+
+/**
  * @param {Spine} spine
  * @param {number} canvasHeight
  * @param {{ x: number, y: number, width: number, height: number }} bounds
+ * @param {{ displayScale?: number, heightFit?: number }} [profile]
  * @returns {number}
  */
-function applyCharacterLayout(spine, canvasHeight, bounds) {
-  const scale = (canvasHeight * 0.98 * CHARACTER_DISPLAY_SCALE) / Math.max(bounds.height, 1);
+function applyCharacterLayout(spine, canvasHeight, bounds, profile = {}) {
+  const displayScale = profile.displayScale ?? CHARACTER_DISPLAY_SCALE;
+  const heightFit = profile.heightFit ?? 0.98;
+  const scale = (canvasHeight * heightFit * displayScale) / Math.max(bounds.height, 1);
   spine.scale.set(scale);
   spine.x = -bounds.x * scale;
   spine.y = canvasHeight - (bounds.y + bounds.height) * scale;
@@ -99,10 +137,11 @@ function applyCharacterLayout(spine, canvasHeight, bounds) {
 /**
  * @param {Spine} spine
  * @param {number} canvasHeight
+ * @param {{ displayScale?: number, heightFit?: number }} [profile]
  * @returns {number}
  */
-function layoutCharacterSpine(spine, canvasHeight) {
-  return applyCharacterLayout(spine, canvasHeight, measureSetupBounds(spine));
+function layoutCharacterSpine(spine, canvasHeight, profile = {}) {
+  return applyCharacterLayout(spine, canvasHeight, measureSetupBounds(spine), profile);
 }
 
 /**
@@ -113,9 +152,12 @@ function spineAnimHasKeyframes(data, name) {
   return Boolean(data.findAnimation?.(name));
 }
 
-/** @param {HTMLElement} stack */
-function applyCharacterOffset(stack) {
-  stack.style.marginLeft = `${CHARACTER_OFFSET_X}px`;
+/**
+ * @param {HTMLElement} stack
+ * @param {HTMLElement | null | undefined} shell
+ */
+function applyCharacterOffset(stack, shell) {
+  stack.style.marginLeft = `${resolveCharacterLayoutProfile(shell).offsetX}px`;
 }
 
 /**
@@ -141,7 +183,7 @@ function ensureHostStack(host) {
 
   pngLayer.appendChild(pngImg);
   stack.append(spineLayer, pngLayer);
-  applyCharacterOffset(stack);
+  applyCharacterOffset(stack, hostContext?.shell ?? host.closest('.suki-stake-shell'));
   stack.style.setProperty('--character-crossfade-ms', `${CHARACTER_CROSSFADE_MS}ms`);
   host.replaceChildren(stack);
   host.dataset.characterMount = 'stack';
@@ -183,13 +225,12 @@ async function ensureSkeletonData() {
 async function readCanvasHeight(host, shell) {
   for (let frame = 0; frame < 30; frame += 1) {
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    const hostHeight = host.clientHeight;
-    if (hostHeight > 0) {
-      return Math.max(320, Math.round(hostHeight));
+    if (host.clientHeight > 0) {
+      return resolveCanvasHeight(host, shell);
     }
   }
 
-  return Math.max(320, Math.round(host.clientHeight || shell.clientHeight || 0));
+  return resolveCanvasHeight(host, shell);
 }
 
 /** @param {Spine} spine */
@@ -225,12 +266,13 @@ function resumeSpineTicker() {
 
 function relayoutActiveMount() {
   if (!activeMount || !hostContext || !cachedSetupBounds) return;
-  const { app, spine, host } = activeMount;
-  const hostHeight = host.clientHeight;
-  if (hostHeight <= 0) return;
+  const { app, spine, host, shell } = activeMount;
+  if (host.clientHeight <= 0) return;
 
-  const canvasHeight = Math.max(320, Math.round(hostHeight));
-  const contentWidth = applyCharacterLayout(spine, canvasHeight, cachedSetupBounds);
+  const profile = resolveCharacterLayoutProfile(shell);
+  const canvasHeight = resolveCanvasHeight(host, shell);
+  const contentWidth = applyCharacterLayout(spine, canvasHeight, cachedSetupBounds, profile);
+  applyCharacterOffset(hostContext.stack, shell);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
   activeMount.canvasHeight = canvasHeight;
 }
@@ -277,6 +319,7 @@ async function mountCharacterSpine(host, shell) {
   if (!data) return;
 
   const canvasHeight = await readCanvasHeight(host, shell);
+  const profile = resolveCharacterLayoutProfile(shell);
 
   if (activeMount?.host === host) {
     relayoutActiveMount();
@@ -303,7 +346,8 @@ async function mountCharacterSpine(host, shell) {
 
   const spine = new Spine(data);
   spine.eventMode = 'none';
-  const contentWidth = layoutCharacterSpine(spine, canvasHeight);
+  applyCharacterOffset(ctx.stack, shell);
+  const contentWidth = layoutCharacterSpine(spine, canvasHeight, profile);
   app.renderer.resize(Math.ceil(contentWidth), canvasHeight);
   app.stage.addChild(spine);
   playCharacterIdle(spine);
@@ -467,7 +511,7 @@ export function initCharacter({ host, shell }) {
   const observer = new MutationObserver(() => refreshCharacter(host, shell));
   observer.observe(shell, {
     attributes: true,
-    attributeFilter: ['data-bet-ui-variant', 'data-suki-orientation', 'data-suki-screen', 'data-suki-replay'],
+    attributeFilter: ['data-bet-ui-variant', 'data-suki-orientation', 'data-suki-screen', 'data-suki-replay', 'class'],
   });
 
   const hostResizeObserver = typeof ResizeObserver !== 'undefined'

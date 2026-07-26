@@ -170,7 +170,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function cabinetInnerPad(cellH) {
-    if (isPopoutS()) return Math.max(4, Math.round(cellH * 0.1));
+    if (isPopoutS()) return Math.max(2, Math.round(cellH * 0.05));
     return Math.max(12, Math.round(cellH * 0.17));
   }
 
@@ -179,12 +179,16 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function ladderHeightFactor() {
-    return isPopoutS() ? 0.28 : 0.42;
+    return isPopoutS() ? 0.2 : 0.42;
+  }
+
+  function symbolContainerScale() {
+    return isPopoutS() ? 0.96 : SYMBOL_CONTAINER_SCALE;
   }
 
   /** Gap between the ladder row and the cabinet top edge. */
   function ladderGapFor(ladderBand) {
-    if (isPopoutS()) return Math.max(4, Math.round(ladderBand * 0.16));
+    if (isPopoutS()) return Math.max(3, Math.round(ladderBand * 0.12));
     return Math.max(8, Math.round(ladderBand * 0.28));
   }
 
@@ -561,7 +565,7 @@ export async function createPixiSlotBoard(hostEl) {
       flushDeferredLayouts();
     }
 
-    reelsRoot.scale.set(SYMBOL_CONTAINER_SCALE);
+    reelsRoot.scale.set(symbolContainerScale());
 
     const { outerTop } = cabinetOuterMetrics();
     const ladderGap = ladderGapFor(layout.ladderBand);

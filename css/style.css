@@ -370,6 +370,10 @@ body {
   font-size: 0;
 }
 
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .character-host__img {
+  height: calc(100% * 0.86);
+}
+
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-suki-orientation='landscape'] .suki-game-core {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -427,6 +431,20 @@ body {
     border: none;
     border-radius: 0;
     padding: 0;
+  }
+
+  .suki-stake-shell[data-suki-replay='true'][data-suki-orientation='landscape'] {
+    grid-template-columns: minmax(2.25rem, 2.75rem) minmax(0, 1fr) minmax(2.25rem, 2.75rem);
+    grid-template-areas: 'flankL core .';
+  }
+
+  .suki-stake-shell[data-suki-replay='true'][data-suki-orientation='landscape'] .suki-game-core {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding-top: 0;
+    padding-right: 0.1rem;
+    padding-bottom: var(--bet-ui-desktop-chrome-height, 0);
+    padding-left: 0.06rem;
   }
 }
 
@@ -693,6 +711,23 @@ body {
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas:
     'flankL core';
+}
+
+/* Popout S replay — keep compact shell grid; desktop replay rule above reserves too much flank width. */
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-suki-replay='true'][data-suki-orientation='landscape'] {
+  grid-template-columns: minmax(2.25rem, 2.75rem) minmax(0, 1fr) minmax(2.25rem, 2.75rem);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'flankL core .';
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-suki-replay='true'][data-suki-orientation='landscape']
+  .suki-game-core {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding-top: 0;
+  padding-right: 0.1rem;
+  padding-bottom: var(--bet-ui-desktop-chrome-height, 0);
+  padding-left: 0.06rem;
 }
 
 .suki-stake-shell[data-suki-replay='true'] .suki-footer {

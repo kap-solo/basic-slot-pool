@@ -13,10 +13,28 @@ const MODAL_CSS = `
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   padding: clamp(0.75rem, 3vw, 1.5rem);
   background: rgba(4, 8, 18, 0.72);
   backdrop-filter: blur(6px);
   pointer-events: auto;
+}
+
+.replay-start-scaler {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.replay-start-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 22rem);
+  transform-origin: center center;
 }
 
 .replay-start-overlay[hidden] {
@@ -36,7 +54,7 @@ const MODAL_CSS = `
 }
 
 .replay-start-card {
-  width: min(100%, 22rem);
+  width: 100%;
   padding: clamp(0.85rem, 3vw, 1.1rem) clamp(0.95rem, 3.2vw, 1.25rem);
   border: 1px solid rgba(120, 170, 230, 0.45);
   border-radius: 14px;
@@ -93,6 +111,7 @@ const MODAL_CSS = `
   font-weight: 700;
   text-align: right;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .replay-start-row-value--highlight {
@@ -115,7 +134,7 @@ const MODAL_CSS = `
 }
 
 .replay-start-actions {
-  width: min(100%, 22rem);
+  width: 100%;
   margin-top: 0.75rem;
 }
 
@@ -143,12 +162,151 @@ const MODAL_CSS = `
 }
 
 .replay-start-footnote {
-  width: min(100%, 22rem);
+  width: 100%;
   margin: 0.65rem 0 0;
   color: rgba(232, 237, 244, 0.82);
   font-size: clamp(0.54rem, 2.1vw, 0.64rem);
   line-height: 1.35;
   text-align: center;
+}
+
+/* Popout S (400×225) — tighter baseline; JS scales panel if still too tall. */
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-overlay {
+  padding: 0.3rem 0.45rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-panel {
+  width: min(100%, 17.5rem);
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-badge {
+  margin-bottom: 0.35rem;
+  padding: 0.14rem 0.55rem;
+  font-size: 0.52rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-card {
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-mode {
+  margin-bottom: 0.45rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-mode-label {
+  margin-bottom: 0.1rem;
+  font-size: 0.5rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-mode-value {
+  font-size: 0.62rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-rows {
+  gap: 0.28rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-row-label {
+  font-size: 0.54rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-row-value {
+  font-size: 0.58rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-row-value--highlight {
+  font-size: 0.66rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-row--total-cost {
+  margin-top: 0.05rem;
+  padding: 0.32rem 0.42rem;
+  border-radius: 8px;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-actions {
+  margin-top: 0.4rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-button {
+  padding: 0.42rem 0.65rem;
+  border-radius: 9px;
+  font-size: 0.58rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .replay-start-footnote {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 320px) and (max-width: 640px) {
+  .replay-start-overlay {
+    padding: 0.3rem 0.45rem;
+  }
+
+  .replay-start-panel {
+    width: min(100%, 17.5rem);
+  }
+
+  .replay-start-badge {
+    margin-bottom: 0.35rem;
+    padding: 0.14rem 0.55rem;
+    font-size: 0.52rem;
+  }
+
+  .replay-start-card {
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px;
+  }
+
+  .replay-start-mode {
+    margin-bottom: 0.45rem;
+  }
+
+  .replay-start-mode-label {
+    margin-bottom: 0.1rem;
+    font-size: 0.5rem;
+  }
+
+  .replay-start-mode-value {
+    font-size: 0.62rem;
+  }
+
+  .replay-start-rows {
+    gap: 0.28rem;
+  }
+
+  .replay-start-row-label {
+    font-size: 0.54rem;
+  }
+
+  .replay-start-row-value {
+    font-size: 0.58rem;
+  }
+
+  .replay-start-row-value--highlight {
+    font-size: 0.66rem;
+  }
+
+  .replay-start-row--total-cost {
+    margin-top: 0.05rem;
+    padding: 0.32rem 0.42rem;
+    border-radius: 8px;
+  }
+
+  .replay-start-actions {
+    margin-top: 0.4rem;
+  }
+
+  .replay-start-button {
+    padding: 0.42rem 0.65rem;
+    border-radius: 9px;
+    font-size: 0.58rem;
+  }
+
+  .replay-start-footnote {
+    display: none;
+  }
 }
 `;
 
@@ -237,11 +395,60 @@ export function createReplayStartModal(shell) {
   footnote.className = 'replay-start-footnote';
   footnote.textContent = '';
 
-  overlay.append(badge, card, actions, footnote);
+  const panel = document.createElement('div');
+  panel.className = 'replay-start-panel';
+  panel.append(badge, card, actions, footnote);
+
+  const scaler = document.createElement('div');
+  scaler.className = 'replay-start-scaler';
+  scaler.append(panel);
+
+  overlay.append(scaler);
   shell.appendChild(overlay);
 
   /** @type {(() => void) | null} */
   let onStart = null;
+  let fitRaf = 0;
+
+  function fitPanelToOverlay() {
+    if (overlay.hidden) return;
+
+    panel.style.transform = 'none';
+    scaler.style.width = '';
+    scaler.style.height = '';
+
+    const overlayStyle = getComputedStyle(overlay);
+    const padX = parseFloat(overlayStyle.paddingLeft) + parseFloat(overlayStyle.paddingRight);
+    const padY = parseFloat(overlayStyle.paddingTop) + parseFloat(overlayStyle.paddingBottom);
+    const maxW = overlay.clientWidth - padX;
+    const maxH = overlay.clientHeight - padY;
+    const panelW = panel.offsetWidth;
+    const panelH = panel.offsetHeight;
+    if (maxW <= 0 || maxH <= 0 || panelW <= 0 || panelH <= 0) return;
+
+    const scale = Math.min(1, maxW / panelW, maxH / panelH);
+    const applied = Math.max(0.52, scale);
+    if (applied >= 0.999) return;
+
+    panel.style.transform = `scale(${applied})`;
+    scaler.style.width = `${panelW * applied}px`;
+    scaler.style.height = `${panelH * applied}px`;
+  }
+
+  function scheduleFitPanel() {
+    if (fitRaf) return;
+    fitRaf = requestAnimationFrame(() => {
+      fitRaf = 0;
+      fitPanelToOverlay();
+    });
+  }
+
+  function onViewportChange() {
+    scheduleFitPanel();
+  }
+
+  window.addEventListener('resize', onViewportChange);
+  window.visualViewport?.addEventListener('resize', onViewportChange);
 
   startBtn.addEventListener('click', () => {
     overlay.hidden = true;
@@ -283,7 +490,11 @@ export function createReplayStartModal(shell) {
       if (details.startLabel) startBtn.textContent = details.startLabel;
 
       overlay.hidden = false;
-      startBtn.focus();
+      scheduleFitPanel();
+      requestAnimationFrame(() => {
+        scheduleFitPanel();
+        startBtn.focus();
+      });
 
       return new Promise((resolve) => {
         onStart = resolve;
@@ -292,6 +503,9 @@ export function createReplayStartModal(shell) {
     close() {
       overlay.hidden = true;
       onStart = null;
+      panel.style.transform = 'none';
+      scaler.style.width = '';
+      scaler.style.height = '';
     },
     isOpen() {
       return !overlay.hidden;
