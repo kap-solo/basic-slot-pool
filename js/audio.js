@@ -2,9 +2,20 @@
  * Game audio — wire paths when files exist under assets/audio/.
  */
 
+export const MAX_CLUSTER_STEP_SFX = 8;
+
+/** @type {string[]} cluster01.wav … cluster08.wav — one per cascade step in a spin. */
+export const CLUSTER_STEP_SFX = Array.from(
+  { length: MAX_CLUSTER_STEP_SFX },
+  (_, index) => `assets/audio/cluster${String(index + 1).padStart(2, '0')}.wav`,
+);
+
+/** Looping background bed — decoded via Web Audio for gapless sample-accurate loops. */
+export const BACKGROUND_MUSIC_URL = 'assets/audio/background_music.wav';
+
 /** @type {{ music: string | null, sfx: Record<string, string> }} */
 export const GAME_AUDIO_ASSETS = {
-  music: 'assets/audio/background_music.wav',
+  music: BACKGROUND_MUSIC_URL,
   sfx: {
     pulse: 'assets/audio/pulse.wav',
     reels: 'assets/audio/reels3.wav',
@@ -23,6 +34,9 @@ export function buildPreloadAssets() {
   for (const src of Object.values(GAME_AUDIO_ASSETS.sfx ?? {})) {
     if (src) assets.push({ src, type: 'audio' });
   }
+  for (const src of CLUSTER_STEP_SFX) {
+    assets.push({ src, type: 'audio' });
+  }
   return assets;
 }
 
@@ -30,7 +44,136 @@ export function buildPreloadAssets() {
  * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createGameAudio>} gameAudio
  */
 export function wireTemplateAudio(gameAudio) {
-  gameAudio.setAssets(GAME_AUDIO_ASSETS);
+  gameAudio.setAssets({
+    ...GAME_AUDIO_ASSETS,
+    music: null,
+  });
+}
+
+/**
+ * Gapless background music — HTMLAudioElement.loop re-seeks the decoder and often
+ * produces a brief gap or click; Web Audio buffer looping is sample-accurate.
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ * @param {string} [url]
+ */
+export function createBackgroundMusicLoop(audioPrefs, url = BACKGROUND_MUSIC_URL) {
+  /** @type {AudioContext | null} */
+  let ctx = null;
+  /** @type {GainNode | null} */
+  let gain = null;
+  /** @type {AudioBuffer | null} */
+  let buffer = null;
+  /** @type {AudioBufferSourceNode | null} */
+  let source = null;
+  /** @type {Promise<AudioBuffer | null> | null} */
+  let loadPromise = null;
+  let unlocked = false;
+
+  function effectiveVolume() {
+    return unlocked ? audioPrefs.musicVolume.value : 0;
+  }
+
+  function ensureContext() {
+    if (ctx) return ctx;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    ctx = new AudioCtx();
+    gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(ctx.destination);
+    return ctx;
+  }
+
+  function loadBuffer() {
+    if (buffer) return Promise.resolve(buffer);
+    if (loadPromise) return loadPromise;
+    loadPromise = (async () => {
+      if (!url) return null;
+      ensureContext();
+      if (!ctx) return null;
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const data = await response.arrayBuffer();
+      buffer = await ctx.decodeAudioData(data);
+      return buffer;
+    })().catch(() => {
+      loadPromise = null;
+      return null;
+    });
+    return loadPromise;
+  }
+
+  function stopSource() {
+    if (!source) return;
+    try {
+      source.stop();
+    } catch {
+      /* already stopped */
+    }
+    source.disconnect();
+    source = null;
+  }
+
+  function startSource() {
+    if (!ctx || !gain || !buffer || source) return;
+    source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(gain);
+    source.onended = () => {
+      source = null;
+    };
+    source.start(0);
+  }
+
+  async function sync() {
+    if (!gain) ensureContext();
+    if (!gain) return;
+
+    gain.gain.value = Math.min(1, Math.max(0, effectiveVolume()));
+
+    if (!unlocked || effectiveVolume() <= 0) return;
+
+    await loadBuffer();
+    if (ctx?.state === 'suspended') {
+      await ctx.resume().catch(() => {});
+    }
+    startSource();
+  }
+
+  audioPrefs.music.onChange(() => {
+    void sync();
+  });
+  audioPrefs.musicVolume.onChange(() => {
+    void sync();
+  });
+
+  return {
+    prime() {
+      void loadBuffer();
+    },
+    async unlock() {
+      if (unlocked) {
+        await sync();
+        return;
+      }
+      unlocked = true;
+      await sync();
+    },
+    sync,
+    destroy() {
+      stopSource();
+      gain?.disconnect();
+      gain = null;
+      if (ctx) {
+        void ctx.close();
+        ctx = null;
+      }
+      buffer = null;
+      loadPromise = null;
+    },
+  };
 }
 
 /**
@@ -391,6 +534,88 @@ export function createCascadeAudio(audioPrefs) {
     },
     stop({ fadeMs = 0 } = {}) {
       halt({ fadeMs });
+    },
+  };
+}
+
+/**
+ * Cluster highlight — one-shot per cascade step (cluster01 … cluster08).
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ */
+export function createClusterStepAudio(audioPrefs) {
+  /** @type {Map<number, HTMLAudioElement>} */
+  const stepEls = new Map();
+
+  function sfxLevel() {
+    return audioPrefs.sfxVolume?.value ?? (audioPrefs.sfx?.enabled ? 1 : 0);
+  }
+
+  function clampStep(step) {
+    const rounded = Math.round(step);
+    if (!Number.isFinite(rounded) || rounded < 1) return 1;
+    return Math.min(MAX_CLUSTER_STEP_SFX, rounded);
+  }
+
+  function applySfxVolume(el) {
+    el.volume = sfxLevel();
+  }
+
+  audioPrefs.sfxVolume?.onChange(() => {
+    for (const el of stepEls.values()) applySfxVolume(el);
+  });
+
+  function ensureElement(step) {
+    const clamped = clampStep(step);
+    const url = CLUSTER_STEP_SFX[clamped - 1];
+    if (!url) return null;
+
+    let el = stepEls.get(clamped);
+    const resolved = new URL(url, window.location.href).href;
+    if (el && el.src !== resolved) {
+      el.pause();
+      stepEls.delete(clamped);
+      el = undefined;
+    }
+    if (!el) {
+      el = new Audio(url);
+      el.loop = false;
+      el.preload = 'auto';
+      el.volume = 1;
+      el.playbackRate = 1;
+      stepEls.set(clamped, el);
+    }
+    return el;
+  }
+
+  return {
+    prime() {
+      if (sfxLevel() <= 0) return;
+      for (let step = 1; step <= MAX_CLUSTER_STEP_SFX; step += 1) {
+        const el = ensureElement(step);
+        if (!el) continue;
+        applySfxVolume(el);
+        const playPromise = el.play();
+        if (!playPromise) continue;
+        playPromise
+          .then(() => {
+            el.pause();
+            el.currentTime = 0;
+            applySfxVolume(el);
+          })
+          .catch(() => {});
+      }
+    },
+    play(step, unlock) {
+      if (sfxLevel() <= 0) return;
+      const el = ensureElement(step);
+      if (!el) return;
+      unlock?.();
+      applySfxVolume(el);
+      el.pause();
+      el.playbackRate = 1;
+      el.currentTime = 0;
+      el.play().catch(() => {});
     },
   };
 }

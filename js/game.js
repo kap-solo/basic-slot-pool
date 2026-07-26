@@ -31,11 +31,12 @@ import {
 } from '@kap-solo/suki-engine/client/rgs.js';
 import {
   buildPreloadAssets,
+  createBackgroundMusicLoop,
   createCascadeAudio,
+  createClusterStepAudio,
   createGreenSquareAudio,
   createReelSpinAudio,
   createSpinClickAudio,
-  createWhooshAudio,
   wireTemplateAudio,
 } from './audio.js';
 import { initCharacter } from './character.js';
@@ -97,22 +98,25 @@ const replayStartModal = createReplayStartModal(shellEl);
 const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
 const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
 wireTemplateAudio(gameAudio);
+const backgroundMusic = createBackgroundMusicLoop(audioPrefs);
+backgroundMusic.prime();
 const reelSpinAudio = createReelSpinAudio(audioPrefs);
 const spinClickAudio = createSpinClickAudio(audioPrefs);
 const greenSquareAudio = createGreenSquareAudio(audioPrefs);
 const cascadeAudio = createCascadeAudio(audioPrefs);
-const whooshAudio = createWhooshAudio(audioPrefs);
+const clusterStepAudio = createClusterStepAudio(audioPrefs);
 
 function primeGameSfx() {
   spinClickAudio.prime();
   reelSpinAudio.prime();
   greenSquareAudio.prime();
   cascadeAudio.prime();
-  whooshAudio.prime();
+  clusterStepAudio.prime();
 }
 
 function unlockGameAudio() {
   gameAudio.unlock();
+  void backgroundMusic.unlock();
   primeGameSfx();
 }
 
@@ -2067,7 +2071,7 @@ async function playDevFeatureSample() {
 
 /** @param {import('./slot.js').ClusterHighlightEvent} event */
 function onClusterHighlight(event) {
-  whooshAudio.play(() => gameAudio.unlock());
+  clusterStepAudio.play(event.cascadeStep, () => gameAudio.unlock());
 }
 
 async function initSlotStage() {
