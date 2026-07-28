@@ -3,12 +3,14 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { defaultBoardColumn, GAME } from '../config.js';
 import { TIMING } from './timing.js';
 import { animateCascadeJiggle, animateReelSpin, easeCascadeFall, scaledDelay, animateAlphaTargets } from './easing.js';
 import { createSymbolNode, SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { SYMBOL_IDS } from './symbols.js';
 import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
+import { playClusterBlobPop } from './blobSpriteOverlay.js';
 import {
   blockCenterY,
   blockForRow,
@@ -631,6 +633,33 @@ export class ReelColumn {
       this.rebuildStrip(this.currentColumn);
       this.boardSealed = true;
     }
+  }
+
+  /** Advance Spine symbol tracks on the board app ticker (not Ticker.shared). */
+  tickSpines(deltaSec) {
+    /** @type {Set<Spine>} */
+    const seen = new Set();
+    const tickSpine = (spine) => {
+      if (!spine || seen.has(spine)) return;
+      seen.add(spine);
+      spine.update(deltaSec);
+    };
+    const tickNode = (node) => {
+      if (node?.spine) tickSpine(node.spine);
+    };
+    const walkContainer = (container) => {
+      if (!container?.children?.length) return;
+      for (const child of container.children) {
+        if (child instanceof Spine) tickSpine(child);
+        else walkContainer(child);
+      }
+    };
+
+    for (const node of this.symbolNodes) tickNode(node);
+    for (const node of this.pendingSpinFinalize?.nodes ?? []) tickNode(node);
+
+    const strip = this.window.children[0];
+    if (strip instanceof Container) walkContainer(strip);
   }
 
   /** @param {Set<string> | null | undefined} winCells */
@@ -1710,26 +1739,18 @@ export class ReelColumn {
 
     await Promise.all(
       targets.map(async ({ node }) => {
+        const blockHeight = this.cellH * (node.span ?? 1);
+
         if (node.symbolId === PERFORMANCE_BLOB_SYMBOL && node.playDissolve) {
-          await node.playDissolve({ speed, durationMs: dissolveDurationMs });
+          const duration = dissolveDurationMs ?? Math.max(80, TIMING.cascadePopMs / speed);
+          await node.playDissolve({ speed, durationMs: duration });
           return;
         }
 
-        await new Promise((resolve) => {
-          const root = node.root;
-          const startScale = root.scale.x;
-          const startAlpha = root.alpha;
-          const duration = Math.max(80, TIMING.cascadePopMs / speed);
-          const start = performance.now();
-          const step = (now) => {
-            const t = Math.min(1, (now - start) / duration);
-            const eased = 1 - (1 - t) ** 2;
-            root.alpha = startAlpha * (1 - eased);
-            root.scale.set(startScale * (1 - eased * 0.35));
-            if (t < 1) requestAnimationFrame(step);
-            else resolve();
-          };
-          requestAnimationFrame(step);
+        await playClusterBlobPop(node.root, {
+          cellW: this.cellW,
+          cellH: blockHeight,
+          speed,
         });
       }),
     );

@@ -5,22 +5,39 @@
 
 import { Assets, Cache } from 'pixi.js';
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
+import { BUILD_COMMIT } from '../build-info.js';
 import { SYMBOL_VISUAL } from './symbols.js';
 
 /** @type {Map<string, import('@esotericsoftware/spine-core').SkeletonData> | null} */
 let cache = null;
 
+/** One bust token per dev page load so Spine file edits show after refresh. */
+let devAssetBust = null;
+
+/** @param {string} path */
+function versionedSpineSrc(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  const dev = typeof location !== 'undefined' && /[?&]dev=true/.test(location.search);
+  if (dev) {
+    devAssetBust ??= Date.now();
+    return `${path}${sep}v=${BUILD_COMMIT}-${devAssetBust}`;
+  }
+  return `${path}${sep}v=${BUILD_COMMIT}`;
+}
+
 async function loadSpinePair(paths) {
-  const skeletonAlias = `spine-skel:${paths.skeleton}`;
-  const atlasAlias = `spine-atlas:${paths.atlas}`;
+  const skeletonSrc = versionedSpineSrc(paths.skeleton);
+  const atlasSrc = versionedSpineSrc(paths.atlas);
+  const skeletonAlias = `spine-skel:${skeletonSrc}`;
+  const atlasAlias = `spine-atlas:${atlasSrc}`;
   const scale = paths.scale ?? 1;
   const cacheKey = `${skeletonAlias}-${atlasAlias}-${scale}`;
 
   if (!Assets.cache.has(skeletonAlias)) {
-    await Assets.load({ alias: skeletonAlias, src: paths.skeleton });
+    await Assets.load({ alias: skeletonAlias, src: skeletonSrc });
   }
   if (!Assets.cache.has(atlasAlias)) {
-    await Assets.load({ alias: atlasAlias, src: paths.atlas });
+    await Assets.load({ alias: atlasAlias, src: atlasSrc });
   }
 
   if (!Cache.has(cacheKey)) {

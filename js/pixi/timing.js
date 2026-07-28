@@ -40,8 +40,8 @@ export const TIMING = {
   firstCascadeLeadMs: 52,
   /** Brief lead before chained cascade highlights — unchanged chain timing. */
   cascadeLeadMs: 120,
-  /** Win flash before symbols pop. */
-  cascadeHighlightMs: 380,
+  /** Win flash before symbols pop — with dim in/out, ~2s from green box to pop start. */
+  cascadeHighlightMs: 1460,
   /** Non-win symbols dim/undim during cluster highlight. */
   cascadeDimInMs: 300,
   cascadeDimOutMs: 240,
@@ -50,6 +50,12 @@ export const TIMING = {
   /** Cascade ladder row fades after the round settles. */
   cascadeLadderFadeMs: 420,
   cascadePopMs: 195,
+  /** Blob spritesheet — 11-frame playback while symbol stays visible underneath. */
+  blobPopSpritePlayMs: 400,
+  /** Last blob frame held before symbol + overlay exit together. */
+  blobPopSpriteHoldMs: 250,
+  /** Shared fade-out for symbol root and blob overlay. */
+  blobPopSpriteExitMs: 160,
   tumbleGravityMs: 270,
   tumbleDropMs: 300,
   tumbleFillStaggerMs: 38,

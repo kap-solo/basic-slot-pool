@@ -48,8 +48,30 @@ function queueIdleAfterOneShot(spine, visual, entry) {
   entry.listener = {
     complete: () => {
       spine.state.setAnimation(0, idle, true);
+      spine.update(0);
     },
   };
+}
+
+/** Apply the current track pose immediately (don't wait for the next ticker frame). */
+function applySpinePose(spine) {
+  spine.update(0);
+}
+
+/**
+ * Play win once, then loop idle when both tracks exist.
+ * @param {Spine} spine
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @returns {boolean}
+ */
+function playSpineWinThenIdle(spine, visual) {
+  const data = spine.skeleton.data;
+  const win = visual.animations?.win ?? 'win';
+  if (!spineAnimHasKeyframes(data, win)) return false;
+
+  const entry = spine.state.setAnimation(0, win, false);
+  queueIdleAfterOneShot(spine, visual, entry);
+  return true;
 }
 
 /**
@@ -64,15 +86,22 @@ function playSpineSymbolState(spine, visual, state) {
     const dissolve = visual.animations?.dissolve ?? 'dissolve';
     if (spineAnimHasKeyframes(data, dissolve)) {
       spine.state.setAnimation(0, dissolve, false);
+      applySpinePose(spine);
     }
     return;
   }
 
+  if (state === 'win') {
+    if (playSpineWinThenIdle(spine, visual)) applySpinePose(spine);
+    return;
+  }
+
   const primary = resolveSpineAnimName(visual, state);
-  const loop = state === 'static' || state === 'win' || state === 'spin';
+  const loop = state === 'static' || state === 'spin';
 
   if (spineAnimHasKeyframes(data, primary)) {
     const entry = spine.state.setAnimation(0, primary, loop);
+    applySpinePose(spine);
     if (!loop) queueIdleAfterOneShot(spine, visual, entry);
     return;
   }
@@ -81,6 +110,7 @@ function playSpineSymbolState(spine, visual, state) {
     const land = visual.animations?.land ?? 'land';
     if (spineAnimHasKeyframes(data, land)) {
       const entry = spine.state.setAnimation(0, land, false);
+      applySpinePose(spine);
       queueIdleAfterOneShot(spine, visual, entry);
     }
   }
@@ -146,23 +176,10 @@ function animateBlobDissolveFallback(root, durationMs) {
  * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
  */
 export function playLedgerSpineAnimation(spine, visual) {
-  const data = spine.skeleton.data;
-  const win = visual.animations?.win ?? 'win';
+  if (playSpineWinThenIdle(spine, visual)) return;
+
   const idle = visual.animations?.idle ?? 'idle';
-
-  if (spineAnimHasKeyframes(data, win)) {
-    const entry = spine.state.setAnimation(0, win, false);
-    if (spineAnimHasKeyframes(data, idle)) {
-      entry.listener = {
-        complete: () => {
-          spine.state.setAnimation(0, idle, true);
-        },
-      };
-    }
-    return;
-  }
-
-  if (spineAnimHasKeyframes(data, idle)) {
+  if (spineAnimHasKeyframes(spine.skeleton.data, idle)) {
     spine.state.setAnimation(0, idle, true);
   }
 }
@@ -197,7 +214,7 @@ function addBadge(root, text, x, y, fontSize, style = {}) {
 }
 
 /** Shared placeholder tile geometry — width = one cell, height = span × cell. */
-const TILE_PAD = 0.1;
+const TILE_PAD = 0.04;
 const TILE_RADIUS = 0.1;
 
 /**
@@ -564,6 +581,7 @@ export function createPlaceholderSymbol(id, cellW, cellH, span = 1) {
  */
 export function createSpineSymbol(skeletonData, cellW, blockHeight, animations = {}, spineMeta = {}) {
   const spine = new Spine(skeletonData);
+  spine.autoUpdate = false;
   spine.skeleton.setToSetupPose();
   spine.update(0);
 
@@ -582,6 +600,7 @@ export function createSpineSymbol(skeletonData, cellW, blockHeight, animations =
   const idle = animations.idle ?? 'idle';
   if (spineAnimHasKeyframes(spine.skeleton.data, idle)) {
     spine.state.setAnimation(0, idle, true);
+    applySpinePose(spine);
   }
 
   const root = new Container();
@@ -645,8 +664,8 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
       root.scale.set(1);
     },
     setWinHighlight(on) {
-      if (spine && on) {
-        this.setState('win');
+      if (spine) {
+        this.setState(on ? 'win' : 'static');
         return;
       }
       root.scale.set(on ? 1.08 : 1);

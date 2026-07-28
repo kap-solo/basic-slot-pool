@@ -2,7 +2,7 @@
  * Pixi slot stage — cabinet frame, reel columns, cluster highlight overlay.
  */
 
-import { Application, Assets, Container, Graphics, Sprite } from 'pixi.js';
+import { Application, Assets, Container, Graphics, Sprite, UPDATE_PRIORITY } from 'pixi.js';
 import { GAME, defaultBoardColumn } from '../config.js';
 import {
   blockForRow,
@@ -13,6 +13,7 @@ import { ReelColumn } from './reel.js';
 import { createCascadeLadder } from './cascadeLadder.js';
 import { MAX_CASCADE_LADDER } from '../cluster.js';
 import { loadSpineSymbolRegistry } from './spineAssets.js';
+import { ensureBlobPopSpriteFrames } from './blobSpriteOverlay.js';
 import { scaledDelay, animateAlphaTargets, animateCabinetPulse } from './easing.js';
 import { TIMING } from './timing.js';
 import { playWinPopups } from './winPopup.js';
@@ -27,7 +28,9 @@ const CABINET_BG_VISUAL_SCALE = 1.16;
 const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
-const SYMBOL_CONTAINER_SCALE = 0.9;
+const SYMBOL_CONTAINER_SCALE = 0.94;
+/** Cap Spine dt — same as flank character (`character.js`). */
+const SPINE_TICK_CAP_SEC = 1 / 30;
 
 /**
  * Fired when the green cluster highlight box appears — one event per cascade step.
@@ -104,6 +107,17 @@ export async function createPixiSlotBoard(hostEl) {
     reelsRoot.addChild(reel.root);
   }
 
+  /** @param {import('pixi.js').Ticker} ticker */
+  function tickBoardSpines(ticker) {
+    const dt = Math.min(ticker.deltaMS / 1000, SPINE_TICK_CAP_SEC);
+    for (const reel of reels) {
+      reel.tickSpines(dt);
+    }
+  }
+
+  app.ticker.add(tickBoardSpines, undefined, UPDATE_PRIORITY.HIGH);
+  app.ticker.start();
+
   let layout = { cellW: 80, cellH: 80, boardW: 240, boardH: 240, ladderBand: 28 };
   let layoutW = 0;
   let layoutH = 0;
@@ -171,7 +185,7 @@ export async function createPixiSlotBoard(hostEl) {
 
   function cabinetInnerPad(cellH) {
     if (isPopoutS()) return Math.max(2, Math.round(cellH * 0.05));
-    return Math.max(12, Math.round(cellH * 0.17));
+    return Math.max(10, Math.round(cellH * 0.11));
   }
 
   function cabinetInnerPadForBoardH(boardH) {
@@ -183,7 +197,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function symbolContainerScale() {
-    return isPopoutS() ? 0.96 : SYMBOL_CONTAINER_SCALE;
+    return isPopoutS() ? 0.98 : SYMBOL_CONTAINER_SCALE;
   }
 
   /** Gap between the ladder row and the cabinet top edge. */
@@ -583,6 +597,9 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   await ensureCabinetBackground();
+  void ensureBlobPopSpriteFrames().catch((err) => {
+    console.warn('[Basic Slot] Blob pop sprite unavailable.', err);
+  });
 
   let layoutRaf = 0;
   function scheduleLayout() {
@@ -921,7 +938,6 @@ export async function createPixiSlotBoard(hostEl) {
         await Promise.all([popupPromise, highlightWait]);
 
         drawClusterOverlay(null);
-        await fadeClusterSymbolDim(null, 'out', dimOutMs);
 
         const pops = reels.map((reel) => {
           const rows = [];
@@ -930,7 +946,8 @@ export async function createPixiSlotBoard(hostEl) {
           }
           return reel.popWinRows(rows, { speed });
         });
-        await Promise.all(pops);
+
+        await Promise.all([fadeClusterSymbolDim(null, 'out', dimOutMs), ...pops]);
       } finally {
         reels.forEach((reel) => {
           reel.clusterPresentationLock = false;
@@ -999,6 +1016,7 @@ export async function createPixiSlotBoard(hostEl) {
         cancelAnimationFrame(layoutRaf);
         layoutRaf = 0;
       }
+      app.ticker.remove(tickBoardSpines);
       resizeObserver.disconnect();
       app.destroy(true, { children: true });
     },
