@@ -48,15 +48,21 @@ export async function ensureBlobPopSpriteFrames() {
  * @param {Sprite} overlay
  * @param {Texture[]} sheetFrames
  * @param {number} durationMs
+ * @param {{ atMs?: number, onAt?: () => void }} [hooks]
  */
-function animateBlobFrames(overlay, sheetFrames, durationMs) {
+function animateBlobFrames(overlay, sheetFrames, durationMs, { atMs, onAt } = {}) {
   const frameMs = durationMs / FRAME_COUNT;
 
   return new Promise((resolve) => {
     let frame = 0;
+    let atFired = false;
     const start = performance.now();
     const step = (now) => {
       const elapsed = now - start;
+      if (!atFired && onAt && atMs != null && elapsed >= atMs) {
+        atFired = true;
+        onAt();
+      }
       const idx = Math.min(FRAME_COUNT - 1, Math.floor(elapsed / frameMs));
       if (idx !== frame) {
         frame = idx;
@@ -99,9 +105,9 @@ function fadeOutRoot(root, durationMs) {
 /**
  * Blob overlay plays on a fully visible symbol, holds, then root fades out together.
  * @param {import('pixi.js').Container} root — symbol root container
- * @param {{ cellW: number, cellH: number, speed?: number }} opts
+ * @param {{ cellW: number, cellH: number, speed?: number, onCover?: () => void }} opts
  */
-export async function playClusterBlobPop(root, { cellW, cellH, speed = 1 }) {
+export async function playClusterBlobPop(root, { cellW, cellH, speed = 1, onCover } = {}) {
   let sheetFrames;
   try {
     sheetFrames = await ensureBlobPopSpriteFrames();
@@ -123,7 +129,10 @@ export async function playClusterBlobPop(root, { cellW, cellH, speed = 1 }) {
   overlay.scale.set(fit / FRAME_SIZE);
   root.addChild(overlay);
 
-  await animateBlobFrames(overlay, sheetFrames, playMs);
+  await animateBlobFrames(overlay, sheetFrames, playMs, {
+    atMs: playMs * 0.35,
+    onAt: onCover,
+  });
   await delay(holdMs);
   await fadeOutRoot(root, exitMs);
 }

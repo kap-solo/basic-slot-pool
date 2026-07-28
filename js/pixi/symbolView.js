@@ -214,7 +214,7 @@ function addBadge(root, text, x, y, fontSize, style = {}) {
 }
 
 /** Shared placeholder tile geometry — width = one cell, height = span × cell. */
-const TILE_PAD = 0.04;
+const TILE_PAD = 0.07;
 const TILE_RADIUS = 0.1;
 
 /**

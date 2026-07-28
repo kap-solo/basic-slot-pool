@@ -327,11 +327,18 @@ body {
   width: 100%;
   max-width: 100%;
   margin-top: var(--cabinet-top-offset, 0px);
-  height: var(--cabinet-height, 50%);
-  max-height: var(--cabinet-height, 50%);
+  font-size: 0.72rem;
+  --ledger-row-height: 3.03em;
+  --ledger-visible-rows: 8;
+  --ledger-panel-height: min(
+    var(--cabinet-height, 50%),
+    calc(0.6rem + var(--ledger-visible-rows) * var(--ledger-row-height))
+  );
+  height: var(--ledger-panel-height);
+  max-height: var(--ledger-panel-height);
   min-height: 0;
   min-width: 0;
-  padding: 0.3rem 0.35rem;
+  padding: 0.3rem 0.6rem;
   border-radius: 10px;
   border: 1px solid #2a3548;
   background: rgba(10, 14, 20, 0.3);
@@ -482,6 +489,7 @@ body {
   width: 100%;
   max-width: 100%;
   table-layout: fixed;
+  line-height: 0;
 }
 
 .ledger-entry .ledger-entry-cluster {
@@ -519,14 +527,14 @@ body {
 .ledger-entry-cluster {
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: 0.1em;
   min-width: 0;
   overflow: hidden;
-  padding: 0.4rem 0.2rem 0.4rem 0.1rem;
+  padding: 0 0.2rem 0 0.1rem;
   font-weight: 700;
   white-space: nowrap;
   text-align: left;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .ledger-entry-count {
@@ -535,17 +543,17 @@ body {
 
 .ledger-symbol-icon,
 .ledger-symbol-spine {
-  width: 4.025em;
-  height: 4.025em;
-  max-height: 4.025em;
+  width: 3.03em;
+  height: 3.03em;
+  max-height: 3.03em;
   flex-shrink: 0;
-  min-width: 4.025em;
+  min-width: 3.03em;
 }
 
 .ledger-symbol-icon {
   object-fit: contain;
   min-width: 0;
-  width: min(4.025em, 100%);
+  width: min(3.03em, 100%);
 }
 
 .ledger-symbol-spine {
@@ -562,12 +570,13 @@ body {
 }
 
 .ledger-symbol-glyph {
-  font-size: 3.5em;
+  font-size: 2.625em;
   line-height: 1;
 }
 
 .ledger-entry-win {
-  padding: 0.4rem 0.1rem 0.4rem 0.15rem;
+  padding: 0 0.1rem 0 0.15rem;
+  line-height: 3.03em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -575,11 +584,6 @@ body {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.ledger-entry + .ledger-entry .ledger-entry-cluster,
-.ledger-entry + .ledger-entry .ledger-entry-win {
-  border-top: 1px solid rgba(42, 53, 72, 0.65);
 }
 
 .hud {

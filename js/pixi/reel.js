@@ -1710,7 +1710,7 @@ export class ReelColumn {
    * @param {number[]} rows
    * @param {{ speed?: number, silent?: boolean }} [opts]
    */
-  async popWinRows(rows, { speed = 1, silent = false, dissolveDurationMs } = {}) {
+  async popWinRows(rows, { speed = 1, silent = false, dissolveDurationMs, onBlobCover } = {}) {
     if (silent) {
       this.removeWinRowsSilent(rows);
       return;
@@ -1751,6 +1751,7 @@ export class ReelColumn {
           cellW: this.cellW,
           cellH: blockHeight,
           speed,
+          onCover: onBlobCover,
         });
       }),
     );

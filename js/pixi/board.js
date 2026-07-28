@@ -28,7 +28,7 @@ const CABINET_BG_VISUAL_SCALE = 1.16;
 const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
-const SYMBOL_CONTAINER_SCALE = 0.94;
+const SYMBOL_CONTAINER_SCALE = 0.92;
 /** Cap Spine dt — same as flank character (`character.js`). */
 const SPINE_TICK_CAP_SEC = 1 / 30;
 
@@ -72,6 +72,8 @@ export async function createPixiSlotBoard(hostEl) {
 
   const cabinetBgMask = new Graphics();
   const frame = new Graphics();
+  const gridLines = new Graphics();
+  gridLines.label = 'board-grid';
   const clusterOverlay = new Graphics();
   const winPopupLayer = new Container();
   const reelsRoot = new Container();
@@ -106,6 +108,7 @@ export async function createPixiSlotBoard(hostEl) {
     reels.push(reel);
     reelsRoot.addChild(reel.root);
   }
+  reelsRoot.addChildAt(gridLines, 0);
 
   /** @param {import('pixi.js').Ticker} ticker */
   function tickBoardSpines(ticker) {
@@ -185,7 +188,7 @@ export async function createPixiSlotBoard(hostEl) {
 
   function cabinetInnerPad(cellH) {
     if (isPopoutS()) return Math.max(2, Math.round(cellH * 0.05));
-    return Math.max(10, Math.round(cellH * 0.11));
+    return Math.max(10, Math.round(cellH * 0.13));
   }
 
   function cabinetInnerPadForBoardH(boardH) {
@@ -197,7 +200,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function symbolContainerScale() {
-    return isPopoutS() ? 0.98 : SYMBOL_CONTAINER_SCALE;
+    return isPopoutS() ? 0.96 : SYMBOL_CONTAINER_SCALE;
   }
 
   /** Gap between the ladder row and the cabinet top edge. */
@@ -315,6 +318,25 @@ export async function createPixiSlotBoard(hostEl) {
 
   function drawFrame() {
     frame.clear();
+    drawBoardGridLines();
+  }
+
+  function drawBoardGridLines() {
+    gridLines.clear();
+    const { boardW, boardH, cellW } = layout;
+    if (boardW <= 0 || boardH <= 0) return;
+
+    const left = -boardW / 2;
+    const top = -boardH / 2;
+    const lineWidth = Math.max(1, 1 / (app.renderer.resolution || 1));
+
+    for (let col = 1; col < GAME.reels; col += 1) {
+      const x = left + col * cellW;
+      gridLines.moveTo(x, top);
+      gridLines.lineTo(x, top + boardH);
+    }
+
+    gridLines.stroke({ color: 0x000000, width: lineWidth, alpha: 0.4 });
   }
 
   /** @param {Set<string> | null | undefined} winCells */
@@ -854,7 +876,7 @@ export async function createPixiSlotBoard(hostEl) {
 
     /**
      * @param {Set<string>} winCells — all cells removed after this cascade step
-     * @param {{ speed?: number, winPopup?: import('./winPopup.js').WinPopupContent | null, clusterPresentations?: { winCells: Set<string>, winPopup: import('./winPopup.js').WinPopupContent | null }[], firstCascade?: boolean, cascadeStep?: number, cascadeMultiplier?: number }} [opts]
+     * @param {{ speed?: number, winPopup?: import('./winPopup.js').WinPopupContent | null, clusterPresentations?: { winCells: Set<string>, winPopup: import('./winPopup.js').WinPopupContent | null }[], firstCascade?: boolean, cascadeStep?: number, cascadeMultiplier?: number, blobCoverAudio?: { play?: (unlock?: () => void) => void } }} [opts]
      */
     async animateClusterWin(
       winCells,
@@ -865,6 +887,7 @@ export async function createPixiSlotBoard(hostEl) {
         firstCascade = false,
         cascadeStep = 1,
         cascadeMultiplier = 1,
+        blobCoverAudio = null,
       } = {},
     ) {
       const presentations =
@@ -939,12 +962,19 @@ export async function createPixiSlotBoard(hostEl) {
 
         drawClusterOverlay(null);
 
+        let blobCoverPlayed = false;
+        const onBlobCover = () => {
+          if (blobCoverPlayed) return;
+          blobCoverPlayed = true;
+          blobCoverAudio?.play?.();
+        };
+
         const pops = reels.map((reel) => {
           const rows = [];
           for (let row = 0; row < GAME.rows; row += 1) {
             if (winCells.has(`${reel.reelIndex},${row}`)) rows.push(row);
           }
-          return reel.popWinRows(rows, { speed });
+          return reel.popWinRows(rows, { speed, onBlobCover });
         });
 
         await Promise.all([fadeClusterSymbolDim(null, 'out', dimOutMs), ...pops]);

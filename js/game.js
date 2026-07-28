@@ -936,6 +936,7 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
         firstCascade: event.cascade === 1,
         cascadeStep: event.cascade ?? cascadeMultiplier,
         cascadeMultiplier,
+        blobCoverAudio: greenSquareAudio,
       });
       await hudPromise;
       gameAudio.playSfx('win');

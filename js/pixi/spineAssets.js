@@ -53,6 +53,11 @@ async function loadSpinePair(paths) {
   return /** @type {import('@esotericsoftware/spine-core').SkeletonData} */ (Cache.get(cacheKey));
 }
 
+/** @param {import('./symbols.js').SpineAssetPaths} spine */
+function spinePairKey(spine) {
+  return `${spine.skeleton}|${spine.atlas}|${spine.scale ?? 1}`;
+}
+
 /**
  * @returns {Promise<Map<string, import('@esotericsoftware/spine-core').SkeletonData>>}
  */
@@ -61,12 +66,17 @@ export async function loadSpineSymbolRegistry() {
 
   /** @type {Map<string, import('@esotericsoftware/spine-core').SkeletonData>} */
   const loaded = new Map();
+  /** @type {Map<string, import('@esotericsoftware/spine-core').SkeletonData>} */
+  const pairCache = new Map();
 
   for (const [id, visual] of Object.entries(SYMBOL_VISUAL)) {
     if (!visual.spine?.skeleton || !visual.spine?.atlas) continue;
+    const pairKey = spinePairKey(visual.spine);
     try {
-      const data = await loadSpinePair(visual.spine);
-      loaded.set(id, data);
+      if (!pairCache.has(pairKey)) {
+        pairCache.set(pairKey, await loadSpinePair(visual.spine));
+      }
+      loaded.set(id, pairCache.get(pairKey));
       console.info(`[Basic Slot] Spine symbol "${id}" loaded.`);
     } catch (err) {
       console.warn(`[Basic Slot] Spine symbol "${id}" unavailable — using placeholder.`, err);

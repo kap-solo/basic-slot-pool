@@ -38,7 +38,7 @@ async function readHostIconSize(hostEl) {
   const rect = hostEl.getBoundingClientRect();
   const width = rect.width || hostEl.clientWidth;
   const height = rect.height || hostEl.clientHeight;
-  return Math.max(32, Math.round(Math.min(width, height) || 46));
+  return Math.max(27, Math.round(Math.min(width, height) || 46));
 }
 
 /**

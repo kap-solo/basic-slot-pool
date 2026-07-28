@@ -9,6 +9,28 @@ import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 /** @typedef {{ skeleton: string, atlas: string, scale?: number, designSize?: { width: number, height: number } }} SpineAssetPaths */
 /** @typedef {{ idle?: string, land?: string, win?: string, cascade?: string, spin?: string, dissolve?: string }} SymbolAnimations */
 
+/** Shared Spine export — one skeleton, per-symbol tracks like idle_cherry. */
+export const SYMBOLS_ALL_SPINE = {
+  skeleton: 'assets/spine/symbols_all/symbols_all.json',
+  atlas: 'assets/spine/symbols_all/symbols_all.atlas',
+  scale: 1,
+  designSize: { width: 256, height: 256 },
+};
+
+/** Game symbol id → symbols_all track suffix (idle_{suffix}). */
+export const SYMBOLS_ALL_TRACK = {
+  CH: 'cherry',
+  LM: 'lemon',
+  OR: 'orange',
+  GR: 'grape',
+  ST: 'star',
+  S7: '7',
+  DM: 'diamond',
+  CR: 'crown',
+  WD: 'wild',
+  SC: 'scatter',
+};
+
 /** Spine track names — export matching keys from the editor. */
 export const SYMBOL_ANIMATION_DEFAULTS = {
   idle: 'idle',
@@ -29,65 +51,44 @@ export const BLOB_ANIMATION_DEFAULTS = {
 export const SPINE_TEXTURE_CANVAS_SIZE = 256;
 
 /** Board fit ratio — see `@kap-solo/suki-engine` `SPINE_SYMBOL_FIT_RATIO`. */
-export const SPINE_SYMBOL_FIT_RATIO = 0.92;
+export const SPINE_SYMBOL_FIT_RATIO = 0.88;
+
+/**
+ * Per-symbol animations in symbols_all — all states use idle until win/falling export.
+ * @param {string} id
+ * @returns {SymbolAnimations}
+ */
+export function symbolsAllAnimations(id) {
+  const suffix = SYMBOLS_ALL_TRACK[id];
+  if (!suffix) return { ...SYMBOL_ANIMATION_DEFAULTS };
+  const idle = `idle_${suffix}`;
+  return { idle, land: idle, win: idle, cascade: idle, spin: idle };
+}
+
+/**
+ * @param {string} id
+ * @param {{ color: number, accent?: number, ledgerIcon?: string }} base
+ */
+function withSymbolsAllSpine(id, base) {
+  return {
+    ...base,
+    spine: { ...SYMBOLS_ALL_SPINE },
+    animations: symbolsAllAnimations(id),
+  };
+}
 
 /** @type {Record<string, { color: number, accent?: number, spine?: SpineAssetPaths | null, ledgerIcon?: string, animations?: SymbolAnimations }>} */
 export const SYMBOL_VISUAL = {
-  CH: {
-    color: 0x8b4558,
-    accent: 0xc96a7a,
-    spine: {
-      skeleton: 'assets/spine/cherry/cherry.json',
-      atlas: 'assets/spine/cherry/cherry.atlas',
-      scale: 1,
-      designSize: { width: 256, height: 256 },
-    },
-    ledgerIcon: 'assets/spine/cherry/cherry.png',
-    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
-  },
-  LM: {
-    color: 0x7a7a2e,
-    accent: 0xb8b84a,
-    spine: {
-      skeleton: 'assets/spine/lemon/lemon.json',
-      atlas: 'assets/spine/lemon/lemon.atlas',
-      scale: 1,
-      designSize: { width: 460, height: 313 },
-    },
-    ledgerIcon: 'assets/spine/lemon/lemon.png',
-    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
-  },
-  OR: {
-    color: 0x9a5520,
-    accent: 0xd47a32,
-    spine: {
-      skeleton: 'assets/spine/orange/orange.json',
-      atlas: 'assets/spine/orange/orange.atlas',
-      scale: 1,
-      // Legacy 512 export — re-export at SPINE_TEXTURE_CANVAS_SIZE and halve these values
-      designSize: { width: 460, height: 313 },
-    },
-    ledgerIcon: 'assets/spine/orange/orange.png',
-    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
-  },
-  GR: {
-    color: 0x5c3d7a,
-    accent: 0x8a5cad,
-    spine: {
-      skeleton: 'assets/spine/grape/grape.json',
-      atlas: 'assets/spine/grape/grape.atlas',
-      scale: 1,
-      designSize: { width: 460, height: 313 },
-    },
-    ledgerIcon: 'assets/spine/grape/grape.png',
-    animations: { ...SYMBOL_ANIMATION_DEFAULTS },
-  },
-  ST: { color: 0x1a4a8c, accent: 0x3d8fd9, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
-  S7: { color: 0x6a1a8c, accent: 0xa040d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
-  DM: { color: 0x0a6878, accent: 0x28b8d0, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
-  CR: { color: 0x8a6500, accent: 0xd4a017, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
-  WD: { color: 0x1a6b3a, accent: 0x3ecf6e, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
-  SC: { color: 0x4a2080, accent: 0xc080ff, spine: null, animations: { ...SYMBOL_ANIMATION_DEFAULTS } },
+  CH: withSymbolsAllSpine('CH', { color: 0x8b4558, accent: 0xc96a7a }),
+  LM: withSymbolsAllSpine('LM', { color: 0x7a7a2e, accent: 0xb8b84a }),
+  OR: withSymbolsAllSpine('OR', { color: 0x9a5520, accent: 0xd47a32 }),
+  GR: withSymbolsAllSpine('GR', { color: 0x5c3d7a, accent: 0x8a5cad }),
+  ST: withSymbolsAllSpine('ST', { color: 0x1a4a8c, accent: 0x3d8fd9 }),
+  S7: withSymbolsAllSpine('S7', { color: 0x6a1a8c, accent: 0xa040d0 }),
+  DM: withSymbolsAllSpine('DM', { color: 0x0a6878, accent: 0x28b8d0 }),
+  CR: withSymbolsAllSpine('CR', { color: 0x8a6500, accent: 0xd4a017 }),
+  WD: withSymbolsAllSpine('WD', { color: 0x1a6b3a, accent: 0x3ecf6e }),
+  SC: withSymbolsAllSpine('SC', { color: 0x4a2080, accent: 0xc080ff }),
   /** Client-only performance blob — green square on the reveal strip. */
   BL: {
     color: 0x16a34a,
