@@ -144,9 +144,7 @@ export function mountDesktopBetUi({
     if (disclaimer) {
       replayDisclaimer.textContent = disclaimer;
     }
-    if (active) {
-      sync();
-    }
+    sync();
   }
 
   function restorePlayButton() {

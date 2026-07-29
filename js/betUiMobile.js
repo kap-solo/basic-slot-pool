@@ -123,9 +123,7 @@ export function mountMobileBetUi({
     actions.hidden = isReplay;
     balanceStat.root.hidden = isReplay;
     betPickBtn.root.hidden = isReplay;
-    if (active) {
-      sync();
-    }
+    sync();
   }
 
   function restorePlayButton() {

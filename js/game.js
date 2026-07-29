@@ -55,6 +55,7 @@ import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantize
 import { mountBetStepper } from './betStepper.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
 import { applyInferredStakeScreen, patchStakeLayoutForProduction } from './stakeScreenInfer.js';
+import { showDevTools } from '@kap-solo/suki-engine/client/suki/environment.js';
 import { mountMobileBetUi } from './betUiMobile.js';
 import { mountDesktopBetUi } from './betUiDesktop.js';
 import { registerGameModals } from './menu.js';
@@ -1275,6 +1276,7 @@ const game = createGameBootstrap({
       } else {
         bet = snapBetToLevel(bet);
       }
+      syncControls();
     },
   },
   ui: {
@@ -1378,6 +1380,9 @@ function resyncBetChromeLayout() {
   game.stakeLayout?.refresh();
   onStakeScreenInferred();
   syncControls();
+  // Suki re-authenticates asynchronously after tab return; resync visibility once that settles.
+  requestAnimationFrame(() => syncControls());
+  window.setTimeout(() => syncControls(), 300);
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -1616,8 +1621,8 @@ const betChromeHandlers = {
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
   getAutoVisible: () => {
     if (replayMode) return false;
-    if (isDevMode()) return true;
     if (autoplaying) return true;
+    if (isDevMode() || showDevTools()) return true;
     return controls.canAutoplay;
   },
   onBuy: () => onBuyBonus(),
