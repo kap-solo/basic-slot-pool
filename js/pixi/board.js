@@ -30,6 +30,8 @@ const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
 const SYMBOL_CONTAINER_SCALE = 0.89;
+/** Experiment — 0-based reel indices for semi-transparent column backgrounds (2nd & 4th reels). */
+const REEL_COLUMN_EXPERIMENT_TINT = [1, 3];
 /** Cap Spine dt — same as flank character (`character.js`). */
 const SPINE_TICK_CAP_SEC = 1 / 60;
 
@@ -73,8 +75,8 @@ export async function createPixiSlotBoard(hostEl) {
 
   const cabinetBgMask = new Graphics();
   const frame = new Graphics();
-  const gridLines = new Graphics();
-  gridLines.label = 'board-grid';
+  const reelColumnExperimentBg = new Graphics();
+  reelColumnExperimentBg.label = 'reel-column-experiment';
   const clusterFillOverlay = new Graphics();
   clusterFillOverlay.label = 'cluster-fill';
   const clusterStrokeOverlay = new Graphics();
@@ -94,6 +96,7 @@ export async function createPixiSlotBoard(hostEl) {
   cabinetRoot.addChild(cascadeLadder.root);
   cabinetRoot.addChild(clusterFillOverlay);
   cabinetRoot.addChild(reelsRoot);
+  reelsRoot.addChild(reelColumnExperimentBg);
   stage.addChild(clusterStrokeOverlay);
   stage.addChild(winPopupLayer);
 
@@ -113,7 +116,6 @@ export async function createPixiSlotBoard(hostEl) {
     reels.push(reel);
     reelsRoot.addChild(reel.root);
   }
-  reelsRoot.addChildAt(gridLines, 0);
 
   /** @param {import('pixi.js').Ticker} ticker */
   function tickBoardSpines(ticker) {
@@ -323,25 +325,23 @@ export async function createPixiSlotBoard(hostEl) {
 
   function drawFrame() {
     frame.clear();
-    drawBoardGridLines();
+    drawReelColumnExperimentBackgrounds();
   }
 
-  function drawBoardGridLines() {
-    gridLines.clear();
+  function drawReelColumnExperimentBackgrounds() {
+    reelColumnExperimentBg.clear();
     const { boardW, boardH, cellW } = layout;
     if (boardW <= 0 || boardH <= 0) return;
 
     const left = -boardW / 2;
     const top = -boardH / 2;
-    const lineWidth = Math.max(1, 1 / (app.renderer.resolution || 1));
+    const radius = Math.max(4, Math.round(cellW * 0.08));
 
-    for (let col = 1; col < GAME.reels; col += 1) {
-      const x = left + col * cellW;
-      gridLines.moveTo(x, top);
-      gridLines.lineTo(x, top + boardH);
+    for (const col of REEL_COLUMN_EXPERIMENT_TINT) {
+      if (col < 0 || col >= GAME.reels) continue;
+      reelColumnExperimentBg.roundRect(left + col * cellW, top, cellW, boardH, radius);
+      reelColumnExperimentBg.fill({ color: 0x000000, alpha: 0.2 });
     }
-
-    gridLines.stroke({ color: 0x000000, width: lineWidth, alpha: 0.4 });
   }
 
   /** @type {Set<string>[] | null} */
@@ -512,14 +512,26 @@ export async function createPixiSlotBoard(hostEl) {
     };
 
     for (const winCells of clusterOverlayGroups) {
-      for (const loop of traceClusterPerimeterLoops(winCells)) {
-        if (loop.length < 3) continue;
+      if (style.drawOn >= 1 && style.fillAlpha > 0) {
+        for (const cellKey of winCells) {
+          const [colRaw, rowRaw] = cellKey.split(',');
+          const col = Number(colRaw);
+          const row = Number(rowRaw);
+          if (!Number.isFinite(col) || !Number.isFinite(row)) continue;
 
-        if (style.drawOn >= 1 && style.fillAlpha > 0) {
-          const fillPoints = loop.map(([gridX, gridY]) => clusterCornerCabinetPoint(gridX, gridY));
+          const fillPoints = [
+            clusterCornerCabinetPoint(col, row),
+            clusterCornerCabinetPoint(col + 1, row),
+            clusterCornerCabinetPoint(col + 1, row + 1),
+            clusterCornerCabinetPoint(col, row + 1),
+          ];
           drawLoopClosed(clusterFillOverlay, fillPoints);
           clusterFillOverlay.fill({ color: style.color, alpha: style.fillAlpha });
         }
+      }
+
+      for (const loop of traceClusterPerimeterLoops(winCells)) {
+        if (loop.length < 3) continue;
 
         const strokePoints = loop.map(([gridX, gridY]) => clusterCornerStagePoint(gridX, gridY));
         if (style.drawOn >= 1) {
