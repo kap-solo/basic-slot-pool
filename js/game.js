@@ -779,6 +779,7 @@ function seedInitialBoard() {
 
 function resetFeaturePresentation() {
   featureChrome?.reset();
+  slotBoard?.setClusterOutlineBonusMode(false);
   void characterUi?.setBonusMode(false, { animate: false });
   void gameBackground?.setBonusMode(false, { animate: false });
   backgroundMusic.setBonusMode(false, { animate: false });
@@ -846,6 +847,7 @@ async function showStaticRound(round, completed = null) {
         gameBackground?.setBonusMode(true, { animate: false }),
       ]);
       backgroundMusic.setBonusMode(true, { animate: false });
+      slotBoard.setClusterOutlineBonusMode(true);
     }
   } else {
     resetFeaturePresentation();
@@ -884,6 +886,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
         gameBackground?.setBonusMode(true, { animate }),
       ]);
       backgroundMusic.setBonusMode(true, { animate });
+      slotBoard.setClusterOutlineBonusMode(true);
     }
   }
 
@@ -996,6 +999,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
       gameBackground?.setBonusMode(false, { animate }),
     ]);
     backgroundMusic.setBonusMode(false, { animate });
+    slotBoard?.setClusterOutlineBonusMode(false);
     refreshWinStatLabel();
   }
 }

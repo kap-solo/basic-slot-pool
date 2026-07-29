@@ -1,0 +1,44 @@
+{
+"skeleton": { "hash": "UxHk4wP1bwI", "spine": "4.3.23", "x": -114.56238, "y": -977.7262, "width": 234, "height": 978 },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "Layer 91", "bone": "root", "attachment": "Layer 91" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"Layer 91": {
+				"Layer 91": { "x": 2.437622, "y": -488.7261, "width": 234, "height": 978 }
+			}
+		}
+	}
+],
+"animations": {
+	"animation": {
+		"slots": {
+			"Layer 91": {
+				"rgba": [
+					{ "color": "ffffff00" },
+					{ "time": 0.13333334, "color": "ffffffff", "curve": "stepped" },
+					{ "time": 0.3333333, "color": "ffffffff" },
+					{ "time": 0.6, "color": "ffffff00" }
+				]
+			}
+		},
+		"bones": {
+			"root": {
+				"translate": [
+					{ "time": 1.2 }
+				],
+				"scale": [
+					{ "y": 0.07513553 },
+					{ "time": 0.3333333 }
+				]
+			}
+		}
+	}
+}
+}

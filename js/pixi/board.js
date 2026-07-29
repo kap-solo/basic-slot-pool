@@ -19,7 +19,7 @@ import { TIMING } from './timing.js';
 import { playWinPopups } from './winPopup.js';
 import { SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { blobCascadeColumnState } from './performanceBlob.js';
-import { traceClusterPerimeterLoops, clusterOutlineAnimStyle, CLUSTER_OUTLINE_GREEN, drawLoopClosed, drawLoopProgress } from './clusterOutline.js';
+import { traceClusterPerimeterLoops, clusterOutlineAnimStyle, clusterOutlineColor, CLUSTER_OUTLINE_FILL_ALPHA, CLUSTER_OUTLINE_CORNER_RADIUS_FRAC, drawLoopClosed, drawLoopProgress } from './clusterOutline.js';
 import { isPopoutSViewport } from '../stakeScreenInfer.js';
 
 const CABINET_BG_SRC = 'assets/ui/cabinet-bg.webp';
@@ -348,6 +348,7 @@ export async function createPixiSlotBoard(hostEl) {
   let clusterOverlayGroups = null;
   /** @param {Set<string> | null | undefined} winCells */
   let clusterOverlayCells = null;
+  let clusterOutlineBonusMode = false;
 
   /**
    * @param {Set<string>} winCells
@@ -492,15 +493,16 @@ export async function createPixiSlotBoard(hostEl) {
     if (!clusterOverlayGroups) return;
 
     const baseStrokeWidth = Math.max(1, layout.cellW * 0.028);
+    const cornerRadius = Math.max(4, Math.round(layout.cellW * CLUSTER_OUTLINE_CORNER_RADIUS_FRAC));
     const animated = animStartMs != null && animNow != null;
     const style = animated
-      ? clusterOutlineAnimStyle(animStartMs, animNow, baseStrokeWidth, speed)
+      ? clusterOutlineAnimStyle(animStartMs, animNow, baseStrokeWidth, speed, clusterOutlineBonusMode)
       : {
           drawOn: 1,
           strokeWidth: baseStrokeWidth,
           strokeAlpha: 0.9,
-          fillAlpha: 0.1,
-          color: CLUSTER_OUTLINE_GREEN,
+          fillAlpha: CLUSTER_OUTLINE_FILL_ALPHA,
+          color: clusterOutlineColor(clusterOutlineBonusMode),
         };
 
     const strokeStyle = {
@@ -535,9 +537,9 @@ export async function createPixiSlotBoard(hostEl) {
 
         const strokePoints = loop.map(([gridX, gridY]) => clusterCornerStagePoint(gridX, gridY));
         if (style.drawOn >= 1) {
-          drawLoopClosed(clusterStrokeOverlay, strokePoints);
+          drawLoopClosed(clusterStrokeOverlay, strokePoints, cornerRadius);
         } else {
-          drawLoopProgress(clusterStrokeOverlay, strokePoints, style.drawOn);
+          drawLoopProgress(clusterStrokeOverlay, strokePoints, style.drawOn, cornerRadius);
         }
         clusterStrokeOverlay.stroke(strokeStyle);
       }
@@ -799,6 +801,12 @@ export async function createPixiSlotBoard(hostEl) {
     /** Green cluster highlight box — one callback per cascade step (×1, ×2, …). */
     setClusterHighlightAudio(fn) {
       clusterHighlightStart = typeof fn === 'function' ? fn : null;
+    },
+
+    /** Free-spin bonus — cluster outline uses CLUSTER_OUTLINE_BONUS (#de1a72). */
+    setClusterOutlineBonusMode(active) {
+      clusterOutlineBonusMode = Boolean(active);
+      if (clusterOverlayGroups) drawClusterOverlay(clusterOverlayGroups);
     },
 
     isPresenting() {
