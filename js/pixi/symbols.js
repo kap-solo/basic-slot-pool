@@ -11,13 +11,13 @@ import { formatBasePayMult, basePayForSymbol } from '../cluster.js';
 
 /** Shared Spine export — one skeleton, per-symbol tracks like idle_cherry. */
 export const SYMBOLS_ALL_SPINE = {
-  skeleton: 'assets/spine/symbols_all/symbols_all.json',
-  atlas: 'assets/spine/symbols_all/symbols_all.atlas',
+  skeleton: 'assets/spine/symbols_spinr-flat.json',
+  atlas: 'assets/spine/symbols_spinr-flat.atlas',
   scale: 1,
   designSize: { width: 256, height: 256 },
 };
 
-/** Game symbol id → symbols_all track suffix (idle_{suffix}). */
+/** Game symbol id → symbols_spinr-flat track suffix (idle_{suffix}). */
 export const SYMBOLS_ALL_TRACK = {
   CH: 'cherry',
   LM: 'lemon',
@@ -30,6 +30,20 @@ export const SYMBOLS_ALL_TRACK = {
   WD: 'wild',
   SC: 'scatter',
 };
+
+/** Symbols with exported `fall_{suffix}` tracks in symbols_spinr-flat. */
+export const SPIN_FALL_SYMBOLS = new Set([
+  'CH',
+  'LM',
+  'OR',
+  'GR',
+  'S7',
+  'CR',
+  'DM',
+  'SC',
+  'ST',
+  'WD',
+]);
 
 /** Spine track names — export matching keys from the editor. */
 export const SYMBOL_ANIMATION_DEFAULTS = {
@@ -51,10 +65,10 @@ export const BLOB_ANIMATION_DEFAULTS = {
 export const SPINE_TEXTURE_CANVAS_SIZE = 256;
 
 /** Board fit ratio — see `@kap-solo/suki-engine` `SPINE_SYMBOL_FIT_RATIO`. */
-export const SPINE_SYMBOL_FIT_RATIO = 0.88;
+export const SPINE_SYMBOL_FIT_RATIO = 0.84;
 
 /**
- * Per-symbol animations in symbols_all — all states use idle until win/falling export.
+ * Per-symbol animations in symbols_spinr-flat — fall on spin when a fall track exists.
  * @param {string} id
  * @returns {SymbolAnimations}
  */
@@ -62,7 +76,10 @@ export function symbolsAllAnimations(id) {
   const suffix = SYMBOLS_ALL_TRACK[id];
   if (!suffix) return { ...SYMBOL_ANIMATION_DEFAULTS };
   const idle = `idle_${suffix}`;
-  return { idle, land: idle, win: idle, cascade: idle, spin: idle };
+  const fall = `fall_${suffix}`;
+  const win = suffix === 'star' ? 'win_star' : idle;
+  const spin = SPIN_FALL_SYMBOLS.has(id) ? fall : idle;
+  return { idle, spin, land: idle, win, cascade: idle };
 }
 
 /**

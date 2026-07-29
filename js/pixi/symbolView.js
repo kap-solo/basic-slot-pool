@@ -16,6 +16,7 @@ import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
 import { animateAlphaTargets } from './easing.js';
 import { TIMING } from './timing.js';
 import { MAX_TALL_SPAN } from '../tall-symbols.js';
+import { isRealtimeMotionAnim, isSpinFallAnim } from './motionFallSync.js';
 
 /** @typedef {'static' | 'spin' | 'land' | 'cascade' | 'win' | 'dissolve'} SymbolState */
 
@@ -29,6 +30,63 @@ function spineAnimHasKeyframes(data, name) {
   return !!anim && anim.timelines.length > 0;
 }
 
+/** @param {import('@esotericsoftware/spine-core').SkeletonData} data @param {string} name */
+function spineAnimDurationSec(data, name) {
+  const anim = data.findAnimation(name);
+  return anim?.duration > 0 ? anim.duration : 0;
+}
+
+/**
+ * First translate/rotate key time on fall tracks — skips pre-motion hold (e.g. 0.67s on premium falls).
+ * @param {import('@esotericsoftware/spine-core').SkeletonData} data
+ * @param {string} animName
+ */
+function spinFallMotionStartSec(data, animName) {
+  if (!isSpinFallAnim(animName)) return 0;
+  const anim = data.findAnimation(animName);
+  if (!anim?.timelines?.length) return 0;
+
+  let min = Infinity;
+  for (const timeline of anim.timelines) {
+    const typeName = String(timeline.constructor?.name ?? '');
+    if (!typeName.includes('Rotate') && !typeName.includes('Translate')) continue;
+    const frames = timeline.frames;
+    if (!frames?.length) continue;
+    for (const frame of frames) {
+      if (frame.time > 0.01) min = Math.min(min, frame.time);
+    }
+  }
+  if (Number.isFinite(min)) return min;
+  return animName === 'fall_scatter' ? 0 : 2 / 3;
+}
+
+/**
+ * @param {import('@esotericsoftware/spine-core').AnimationStateTrackEntry} entry
+ * @param {import('@esotericsoftware/spine-core').SkeletonData} data
+ * @param {string} animName
+ * @param {number | undefined} motionMs
+ */
+function applyMotionTimeScale(entry, data, animName, motionMs) {
+  if (!entry || !motionMs || motionMs <= 0) return;
+  const durationSec = spineAnimDurationSec(data, animName);
+  if (durationSec <= 0) return;
+  entry.timeScale = durationSec / (motionMs / 1000);
+}
+
+/**
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @param {SymbolState} state
+ * @param {string} animName
+ */
+function shouldLoopSpineState(visual, state, animName) {
+  if (state === 'static') return true;
+  if (state === 'spin') {
+    const idle = visual.animations?.idle ?? 'idle';
+    return animName === idle;
+  }
+  return false;
+}
+
 /**
  * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
  * @param {SymbolState} state
@@ -39,14 +97,69 @@ function resolveSpineAnimName(visual, state) {
 }
 
 /**
+ * @param {import('@esotericsoftware/spine-core').TrackEntry} entry
+ */
+function trackEntryIsActive(entry) {
+  if (!entry?.animation) return false;
+  if (typeof entry.isComplete === 'function') return !entry.isComplete();
+  return entry.trackTime < entry.animation.duration - 0.02;
+}
+
+/**
+ * @param {Spine} spine
+ * @returns {boolean}
+ */
+function isAnyRealtimeMotionTrackActive(spine) {
+  const { tracks } = spine.state;
+  for (let i = 0; i < tracks.length; i += 1) {
+    for (let entry = tracks[i]; entry; entry = entry.next) {
+      const name = entry.animation?.name;
+      if (name && isRealtimeMotionAnim(name) && trackEntryIsActive(entry)) return true;
+    }
+  }
+  return false;
+}
+
+/** @param {Spine} spine @param {number} [trackIndex] */
+function clearTrackListeners(spine, trackIndex = 0) {
+  for (let entry = spine.state.tracks[trackIndex]; entry; entry = entry.next) {
+    entry.listener = null;
+  }
+}
+
+/**
+ * @param {Spine} spine
+ * @param {import('./symbols.js').SymbolAnimations} animations
+ */
+function configureSymbolMotionMix(spine, animations) {
+  const data = spine.state.data;
+  const skeletonData = spine.skeleton.data;
+  const names = new Set(
+    [animations.idle, animations.land, animations.spin, animations.cascade, animations.win].filter(Boolean),
+  );
+  for (const from of names) {
+    for (const to of names) {
+      if (from === to) continue;
+      if (spineAnimHasKeyframes(skeletonData, from) && spineAnimHasKeyframes(skeletonData, to)) {
+        data.setMix(from, to, 0);
+      }
+    }
+  }
+}
+
+/**
  * @param {Spine} spine
  * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @param {import('@esotericsoftware/spine-core').TrackEntry} entry
  */
 function queueIdleAfterOneShot(spine, visual, entry) {
   const idle = visual.animations?.idle ?? 'idle';
   if (!spineAnimHasKeyframes(spine.skeleton.data, idle)) return;
   entry.listener = {
-    complete: () => {
+    complete: (completed) => {
+      if (completed !== entry) return;
+      if (isAnyRealtimeMotionTrackActive(spine)) return;
+      spine._motionOneShotLock = false;
       spine.state.setAnimation(0, idle, true);
       spine.update(0);
     },
@@ -76,11 +189,59 @@ function playSpineWinThenIdle(spine, visual) {
 
 /**
  * @param {Spine} spine
+ * @returns {boolean}
+ */
+function isRealtimeMotionTrackActive(spine) {
+  return isAnyRealtimeMotionTrackActive(spine);
+}
+
+/** @param {ReturnType<typeof createSymbolNode> | null | undefined} node */
+export function beginSymbolSpinFall(node) {
+  node?.beginSpinFall?.();
+}
+
+/**
+ * @param {ReturnType<typeof createSymbolNode> | null | undefined} node
+ */
+export function settleSymbolState(node) {
+  if (!node) return;
+  if (node.spine && isAnyRealtimeMotionTrackActive(node.spine)) return;
+  node.setState('static');
+}
+
+/**
+ * @param {Spine} spine
+ * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
+ * @param {string} animName
+ */
+function playRealtimeOneShot(spine, visual, animName) {
+  if (!spineAnimHasKeyframes(spine.skeleton.data, animName)) return;
+  const current = spine.state.getCurrent(0);
+  if (current?.animation?.name === animName && trackEntryIsActive(current)) return;
+
+  clearTrackListeners(spine, 0);
+  spine._motionOneShotLock = true;
+  const entry = spine.state.setAnimation(0, animName, false);
+  entry.mixDuration = 0;
+  entry.timeScale = 1;
+  const motionStart = spinFallMotionStartSec(spine.skeleton.data, animName);
+  if (motionStart > 0) entry.trackTime = motionStart;
+  queueIdleAfterOneShot(spine, visual, entry);
+  applySpinePose(spine);
+}
+
+/**
+ * @param {Spine} spine
  * @param {{ animations?: import('./symbols.js').SymbolAnimations }} visual
  * @param {SymbolState} state
+ * @param {{ motionMs?: number }} [opts]
  */
-function playSpineSymbolState(spine, visual, state) {
+function playSpineSymbolState(spine, visual, state, { motionMs } = {}) {
   const data = spine.skeleton.data;
+
+  if (spine._motionOneShotLock && state !== 'dissolve' && state !== 'win') {
+    return;
+  }
 
   if (state === 'dissolve') {
     const dissolve = visual.animations?.dissolve ?? 'dissolve';
@@ -96,13 +257,25 @@ function playSpineSymbolState(spine, visual, state) {
     return;
   }
 
+  if (state === 'static') {
+    if (isAnyRealtimeMotionTrackActive(spine)) return;
+  }
+
   const primary = resolveSpineAnimName(visual, state);
-  const loop = state === 'static' || state === 'spin';
+  const loop = shouldLoopSpineState(visual, state, primary);
 
   if (spineAnimHasKeyframes(data, primary)) {
+    if (!loop && isRealtimeMotionAnim(primary)) {
+      playRealtimeOneShot(spine, visual, primary);
+      return;
+    }
+
     const entry = spine.state.setAnimation(0, primary, loop);
+    if (!loop) {
+      applyMotionTimeScale(entry, data, primary, motionMs);
+      queueIdleAfterOneShot(spine, visual, entry);
+    }
     applySpinePose(spine);
-    if (!loop) queueIdleAfterOneShot(spine, visual, entry);
     return;
   }
 
@@ -110,6 +283,7 @@ function playSpineSymbolState(spine, visual, state) {
     const land = visual.animations?.land ?? 'land';
     if (spineAnimHasKeyframes(data, land)) {
       const entry = spine.state.setAnimation(0, land, false);
+      applyMotionTimeScale(entry, data, land, motionMs);
       applySpinePose(spine);
       queueIdleAfterOneShot(spine, visual, entry);
     }
@@ -214,7 +388,7 @@ function addBadge(root, text, x, y, fontSize, style = {}) {
 }
 
 /** Shared placeholder tile geometry — width = one cell, height = span × cell. */
-const TILE_PAD = 0.07;
+const TILE_PAD = 0.09;
 const TILE_RADIUS = 0.1;
 
 /**
@@ -288,7 +462,7 @@ function createOrdinaryPlaceholder(id, cellW, blockHeight, span = 1) {
 function createBlobPlaceholder(cellW, cellH) {
   const root = new Container();
   const { w, h } = tileMetrics(cellW, cellH);
-  const side = Math.min(w, h) * 0.88;
+  const side = Math.min(w, h) * 0.84;
 
   const bg = new Graphics();
   bg.rect(-side / 2, -side / 2, side, side);
@@ -582,6 +756,7 @@ export function createPlaceholderSymbol(id, cellW, cellH, span = 1) {
 export function createSpineSymbol(skeletonData, cellW, blockHeight, animations = {}, spineMeta = {}) {
   const spine = new Spine(skeletonData);
   spine.autoUpdate = false;
+  configureSymbolMotionMix(spine, animations);
   spine.skeleton.setToSetupPose();
   spine.update(0);
 
@@ -644,9 +819,13 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
     symbolId: id,
     span,
     anchorRow: 0,
-    setState(nextState) {
+    setState(nextState, opts) {
       if (!spine) return;
-      playSpineSymbolState(spine, visual, nextState);
+      playSpineSymbolState(spine, visual, nextState, opts);
+    },
+    beginSpinFall() {
+      if (!spine) return;
+      playSpineSymbolState(spine, visual, 'spin');
     },
     setDimmed(dimmed) {
       root.alpha = dimmed ? SYMBOL_DIM_ALPHA : 1;
@@ -665,7 +844,8 @@ export function createSymbolNode({ id, cellW, cellH, span = 1, spineData, state 
     },
     setWinHighlight(on) {
       if (spine) {
-        this.setState(on ? 'win' : 'static');
+        if (on) this.setState('win');
+        else settleSymbolState(this);
         return;
       }
       root.scale.set(on ? 1.08 : 1);

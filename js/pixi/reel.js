@@ -7,9 +7,9 @@ import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { defaultBoardColumn, GAME } from '../config.js';
 import { TIMING } from './timing.js';
 import { animateCascadeJiggle, animateReelSpin, easeCascadeFall, scaledDelay, animateAlphaTargets } from './easing.js';
-import { createSymbolNode, SYMBOL_DIM_ALPHA } from './symbolView.js';
-import { SYMBOL_IDS } from './symbols.js';
+import { createSymbolNode, beginSymbolSpinFall, SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { PERFORMANCE_BLOB_SYMBOL } from './performanceBlob.js';
+import { SPIN_FALL_SYMBOLS, SYMBOL_IDS } from './symbols.js';
 import { playClusterBlobPop } from './blobSpriteOverlay.js';
 import {
   blockCenterY,
@@ -41,6 +41,15 @@ function setTumbleMotionState(node, moving) {
 /** @param {Iterable<ReturnType<typeof createSymbolNode> | null | undefined>} nodes */
 function settleTumbleSymbols(nodes) {
   for (const node of nodes) node?.setState('static');
+}
+
+/** @param {(ReturnType<typeof createSymbolNode> | null | undefined)[]} nodes */
+function beginSpinFallOnNodes(nodes) {
+  for (const node of nodes) {
+    if (!isLiveSymbolNode(node) || node.symbolId === PERFORMANCE_BLOB_SYMBOL) continue;
+    if (!SPIN_FALL_SYMBOLS.has(node.symbolId)) continue;
+    beginSymbolSpinFall(node);
+  }
 }
 
 /** @param {number} row @param {number} cellH */
@@ -103,6 +112,74 @@ function buildStripFromBlocks(blocks, ctx) {
   }
 
   return { strip, symbolNodesByRow };
+}
+
+/**
+ * Fall-off strip — reuse live board nodes so spin fall tracks keep playing smoothly.
+ * @param {ReelColumn} reel
+ * @param {string[]} visualColumn
+ */
+function buildFallOffStripFromLiveNodes(reel, visualColumn) {
+  const { cellW, cellH, visibleRows, tallEnabled, spineRegistry, symbolNodes } = reel;
+  const strip = new Container();
+  const mergeSegments = [[0, visibleRows - 1]];
+
+  /** @param {ReturnType<typeof createSymbolNode>} node @param {number} x @param {number} y */
+  const adoptNode = (node, x, y) => {
+    const parent = node.root.parent;
+    if (parent) parent.removeChild(node.root);
+    node.root.x = x;
+    node.root.y = y;
+    strip.addChild(node.root);
+  };
+
+  /** @param {string} id @param {number} span @param {number} anchorRow */
+  const fallbackNode = (id, span, anchorRow) => {
+    const spineData = spineRegistry.get(id) ?? null;
+    const node = createSymbolNode({
+      id,
+      cellW,
+      cellH,
+      span,
+      spineData,
+      state: 'static',
+    });
+    if (span > 1) node.anchorRow = anchorRow;
+    return node;
+  };
+
+  if (!tallEnabled) {
+    /** @type {ReturnType<typeof createSymbolNode>[]} */
+    const nodes = [];
+    for (let row = 0; row < visibleRows; row += 1) {
+      let node = symbolNodes[row];
+      if (!isLiveSymbolNode(node)) {
+        node = fallbackNode(visualColumn[row] ?? 'CH', 1, row);
+      }
+      adoptNode(node, colCenterX(cellW), rowCenterY(row, cellH));
+      nodes.push(node);
+    }
+    return { strip, nodes };
+  }
+
+  const blocks = parseColumnBlocks(visualColumn, { tallEnabled: true, mergeSegments });
+  /** @type {(ReturnType<typeof createSymbolNode> | null)[]} */
+  const nodes = Array.from({ length: visibleRows }, () => null);
+  for (const block of blocks) {
+    let node = symbolNodes[block.anchorRow];
+    if (!isLiveSymbolNode(node)) {
+      node = fallbackNode(block.id, block.span, block.anchorRow);
+    }
+    node.anchorRow = block.anchorRow;
+    node.span = block.span;
+    adoptNode(
+      node,
+      colCenterX(cellW),
+      blockCenterY(block.anchorRow, block.span, cellH),
+    );
+    nodes[block.anchorRow] = node;
+  }
+  return { strip, nodes };
 }
 
 /**
@@ -635,6 +712,11 @@ export class ReelColumn {
     }
   }
 
+  /** Play spin fall on live board symbols (skip performance blob). */
+  beginSpinFallOnLiveSymbols() {
+    beginSpinFallOnNodes(this.symbolNodes);
+  }
+
   /** Advance Spine symbol tracks on the board app ticker (not Ticker.shared). */
   tickSpines(deltaSec) {
     /** @type {Set<Spine>} */
@@ -658,8 +740,9 @@ export class ReelColumn {
     for (const node of this.symbolNodes) tickNode(node);
     for (const node of this.pendingSpinFinalize?.nodes ?? []) tickNode(node);
 
-    const strip = this.window.children[0];
-    if (strip instanceof Container) walkContainer(strip);
+    for (const child of this.window.children) {
+      if (child instanceof Container) walkContainer(child);
+    }
   }
 
   /** @param {Set<string> | null | undefined} winCells */
@@ -1168,17 +1251,20 @@ export class ReelColumn {
     /** @type {[number, number][]} */
     const mergeSegments = [[0, this.visibleRows - 1]];
 
-    this.window.removeChildren();
-    const stripCtx = {
-      cellW: this.cellW,
-      cellH: this.cellH,
-      spineRegistry: this.spineRegistry,
-      visibleRows: this.visibleRows,
-      mergeSegments,
-    };
-    const { strip, nodes } = buildSpinStripFromRowIds(visualCurrent, stripCtx, this.tallEnabled);
+    const { strip, nodes } = buildFallOffStripFromLiveNodes(this, visualCurrent);
 
-    nodes.forEach((node) => node?.setState('spin'));
+    for (const child of [...this.window.children]) {
+      this.window.removeChild(child);
+      child.destroy({ children: true });
+    }
+
+    beginSpinFallOnNodes(nodes);
+
+    const { spinDuration } = this.spinRevealTiming(speed);
+    const fallDuration = Math.max(
+      220,
+      spinDuration * (this.visibleRows / Math.max(1, padding)),
+    );
 
     const stripStartY = 0;
     const totalScroll = this.visibleRows * this.cellH;
@@ -1207,12 +1293,6 @@ export class ReelColumn {
 
     strip.y = stripStartY;
     this.window.addChild(strip);
-
-    const { spinDuration } = this.spinRevealTiming(speed);
-    const fallDuration = Math.max(
-      220,
-      spinDuration * (this.visibleRows / Math.max(1, padding)),
-    );
 
     await scaledDelay(TIMING.reelStaggerMs * this.reelIndex, speed);
 
@@ -1294,7 +1374,7 @@ export class ReelColumn {
     };
     const { strip, nodes } = buildSpinStripFromRowIds(visualTarget, stripCtx, this.tallEnabled);
 
-    nodes.forEach((node) => node?.setState('spin'));
+    const refillTiming = this.revealRefillTiming(speed);
 
     const stripStartY = -(this.visibleRows * this.cellH);
     const totalScroll = this.visibleRows * this.cellH;
@@ -1430,8 +1510,6 @@ export class ReelColumn {
     };
     const { strip, nodes } = buildSpinStripFromRowIds(stripIds, stripCtx, this.tallEnabled);
 
-    nodes.forEach((node) => node?.setState('spin'));
-
     const targetY = -(padding * this.cellH);
     const totalScroll = padding * this.cellH;
     const stripStartY = targetY - totalScroll;
@@ -1467,7 +1545,6 @@ export class ReelColumn {
     const maxStaggerMs = TIMING.reelStaggerMs * (GAME.reels - 1);
     const staggerDelay = TIMING.reelStaggerMs * this.reelIndex;
     const spinDuration = Math.max(280, (TIMING.spinMs + maxStaggerMs - staggerDelay) / speed);
-
     const maxSpinDuration = TIMING.spinMs + maxStaggerMs;
     const jellyLandImpactScale = Math.min(1, spinDuration / maxSpinDuration);
 
@@ -2134,8 +2211,6 @@ export class ReelColumn {
     const { strip: fillStrip, nodes } = buildSpinStripFromRowIds(stripIds, stripCtx, this.tallEnabled);
 
     this.adoptCascadeFillStripNodes(fillStrip, nodes, stripIds, mainStrip, nextNodes);
-
-    nodes.forEach((node) => node?.setState('cascade'));
 
     const stripStartY = -(rowCount * this.cellH);
     const totalScroll = rowCount * this.cellH;

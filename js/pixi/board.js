@@ -19,6 +19,7 @@ import { TIMING } from './timing.js';
 import { playWinPopups } from './winPopup.js';
 import { SYMBOL_DIM_ALPHA } from './symbolView.js';
 import { blobCascadeColumnState } from './performanceBlob.js';
+import { traceClusterPerimeterLoops, clusterOutlineAnimStyle, CLUSTER_OUTLINE_GREEN, drawLoopClosed, drawLoopProgress } from './clusterOutline.js';
 import { isPopoutSViewport } from '../stakeScreenInfer.js';
 
 const CABINET_BG_SRC = 'assets/ui/cabinet-bg.webp';
@@ -28,9 +29,9 @@ const CABINET_BG_VISUAL_SCALE = 1.16;
 const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
-const SYMBOL_CONTAINER_SCALE = 0.92;
+const SYMBOL_CONTAINER_SCALE = 0.89;
 /** Cap Spine dt — same as flank character (`character.js`). */
-const SPINE_TICK_CAP_SEC = 1 / 30;
+const SPINE_TICK_CAP_SEC = 1 / 60;
 
 /**
  * Fired when the green cluster highlight box appears — one event per cascade step.
@@ -74,7 +75,10 @@ export async function createPixiSlotBoard(hostEl) {
   const frame = new Graphics();
   const gridLines = new Graphics();
   gridLines.label = 'board-grid';
-  const clusterOverlay = new Graphics();
+  const clusterFillOverlay = new Graphics();
+  clusterFillOverlay.label = 'cluster-fill';
+  const clusterStrokeOverlay = new Graphics();
+  clusterStrokeOverlay.label = 'cluster-stroke';
   const winPopupLayer = new Container();
   const reelsRoot = new Container();
   const cascadeLadder = createCascadeLadder({ maxSteps: MAX_CASCADE_LADDER });
@@ -88,8 +92,9 @@ export async function createPixiSlotBoard(hostEl) {
   cabinetRoot.addChild(cabinetBgMask);
   cabinetRoot.addChild(frame);
   cabinetRoot.addChild(cascadeLadder.root);
+  cabinetRoot.addChild(clusterFillOverlay);
   cabinetRoot.addChild(reelsRoot);
-  stage.addChild(clusterOverlay);
+  stage.addChild(clusterStrokeOverlay);
   stage.addChild(winPopupLayer);
 
   const tallEnabled = isTallSymbolPreview();
@@ -187,8 +192,8 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function cabinetInnerPad(cellH) {
-    if (isPopoutS()) return Math.max(2, Math.round(cellH * 0.05));
-    return Math.max(10, Math.round(cellH * 0.13));
+    if (isPopoutS()) return Math.max(2, Math.round(cellH * 0.045));
+    return Math.max(10, Math.round(cellH * 0.115));
   }
 
   function cabinetInnerPadForBoardH(boardH) {
@@ -200,7 +205,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   function symbolContainerScale() {
-    return isPopoutS() ? 0.96 : SYMBOL_CONTAINER_SCALE;
+    return isPopoutS() ? 0.92 : SYMBOL_CONTAINER_SCALE;
   }
 
   /** Gap between the ladder row and the cabinet top edge. */
@@ -339,6 +344,8 @@ export async function createPixiSlotBoard(hostEl) {
     gridLines.stroke({ color: 0x000000, width: lineWidth, alpha: 0.4 });
   }
 
+  /** @type {Set<string>[] | null} */
+  let clusterOverlayGroups = null;
   /** @param {Set<string> | null | undefined} winCells */
   let clusterOverlayCells = null;
 
@@ -443,9 +450,86 @@ export async function createPixiSlotBoard(hostEl) {
     }));
   }
 
-  function drawClusterOverlay(winCells) {
-    clusterOverlayCells = winCells?.size ? winCells : null;
-    clusterOverlay.clear();
+  /**
+   * @param {Set<string> | Set<string>[] | null | undefined} groups
+   */
+  function normalizeClusterOverlayGroups(groups) {
+    if (!groups) return null;
+    if (groups instanceof Set) return groups.size ? [groups] : null;
+    const normalized = groups.filter((group) => group?.size);
+    return normalized.length ? normalized : null;
+  }
+
+  /** Map a grid corner to cabinet-local pixels (fill layer — behind symbols). */
+  function clusterCornerCabinetPoint(gridX, gridY) {
+    const xInReels = -layout.boardW / 2 + gridX * layout.cellW;
+    const yInReels = -layout.boardH / 2 + gridY * layout.cellH;
+    const global = reelsRoot.toGlobal({ x: xInReels, y: yInReels });
+    const local = cabinetRoot.toLocal(global);
+    return { x: snapPx(local.x), y: snapPx(local.y) };
+  }
+
+  /** Map a grid corner to stage-local pixels (stroke layer — above symbols). */
+  function clusterCornerStagePoint(gridX, gridY) {
+    const xInReels = -layout.boardW / 2 + gridX * layout.cellW;
+    const yInReels = -layout.boardH / 2 + gridY * layout.cellH;
+    const global = reelsRoot.toGlobal({ x: xInReels, y: yInReels });
+    const local = stage.toLocal(global);
+    return { x: snapPx(local.x), y: snapPx(local.y) };
+  }
+
+  /**
+   * @param {Set<string> | Set<string>[] | null | undefined} groups
+   * @param {{ animStartMs?: number | null, animNow?: number | null, speed?: number }} [opts]
+   */
+  function drawClusterOverlay(groups, { animStartMs = null, animNow = null, speed = 1 } = {}) {
+    clusterOverlayGroups = normalizeClusterOverlayGroups(groups);
+    clusterOverlayCells = clusterOverlayGroups
+      ? new Set(clusterOverlayGroups.flatMap((group) => [...group]))
+      : null;
+    clusterFillOverlay.clear();
+    clusterStrokeOverlay.clear();
+    if (!clusterOverlayGroups) return;
+
+    const baseStrokeWidth = Math.max(1, layout.cellW * 0.028);
+    const animated = animStartMs != null && animNow != null;
+    const style = animated
+      ? clusterOutlineAnimStyle(animStartMs, animNow, baseStrokeWidth, speed)
+      : {
+          drawOn: 1,
+          strokeWidth: baseStrokeWidth,
+          strokeAlpha: 0.9,
+          fillAlpha: 0.1,
+          color: CLUSTER_OUTLINE_GREEN,
+        };
+
+    const strokeStyle = {
+      color: style.color,
+      width: style.strokeWidth,
+      alpha: style.strokeAlpha,
+      join: 'round',
+      cap: 'round',
+    };
+
+    for (const winCells of clusterOverlayGroups) {
+      for (const loop of traceClusterPerimeterLoops(winCells)) {
+        if (loop.length < 3) continue;
+
+        if (style.drawOn >= 1 && style.fillAlpha > 0) {
+          const fillPoints = loop.map(([gridX, gridY]) => clusterCornerCabinetPoint(gridX, gridY));
+          drawLoopClosed(clusterFillOverlay, fillPoints);
+          clusterFillOverlay.fill({ color: style.color, alpha: style.fillAlpha });
+        }
+
+        const strokePoints = loop.map(([gridX, gridY]) => clusterCornerStagePoint(gridX, gridY));
+        if (style.drawOn >= 1) {
+          drawLoopClosed(clusterStrokeOverlay, strokePoints);
+        } else {
+          drawLoopProgress(clusterStrokeOverlay, strokePoints, style.drawOn);
+        }
+        clusterStrokeOverlay.stroke(strokeStyle);
+      }
+    }
   }
 
   /**
@@ -535,7 +619,7 @@ export async function createPixiSlotBoard(hostEl) {
     reels.forEach((reel) => {
       reel.flushLayoutRescale({ winCells: clusterOverlayCells, dimNonWin });
     });
-    if (clusterOverlayCells) drawClusterOverlay(clusterOverlayCells);
+    if (clusterOverlayGroups) drawClusterOverlay(clusterOverlayGroups);
   }
 
   function applyLayout() {
@@ -614,7 +698,7 @@ export async function createPixiSlotBoard(hostEl) {
     });
     layoutCabinetBackground();
     drawFrame();
-    if (clusterOverlayCells) drawClusterOverlay(clusterOverlayCells);
+    if (clusterOverlayGroups) drawClusterOverlay(clusterOverlayGroups);
     syncLedgerCabinetAlignment();
   }
 
@@ -840,6 +924,8 @@ export async function createPixiSlotBoard(hostEl) {
         reel.boardSealed = false;
       });
 
+      reels.forEach((reel) => reel.beginSpinFallOnLiveSymbols());
+
       await scaledDelay(TIMING.preSpinMs, speed);
       onMotionStart?.();
 
@@ -913,16 +999,24 @@ export async function createPixiSlotBoard(hostEl) {
         const dimOutMs = Math.round(TIMING.cascadeDimOutMs / speed);
         const highlightMs = Math.round(TIMING.cascadeHighlightMs / speed);
         const popupMs = Math.round(TIMING.cascadeWinPopupMs / speed);
+        const overlayGroups = presentations.map((entry) => entry.winCells);
         const simultaneous = presentations.length > 1;
+        const sequenceStart = performance.now();
+        const overlayDrawStart = sequenceStart + dimInMs * 0.5;
+        const overlayAnim = {
+          animStartMs: overlayDrawStart,
+          speed,
+        };
+        const highlightEnd = sequenceStart + dimInMs + highlightMs;
 
-        drawClusterOverlay(winCells);
         triggerClusterHighlightStart({
           cascadeStep,
           cascadeMultiplier,
           firstCascade,
           clusterCount: presentations.length,
         });
-        await fadeClusterSymbolDim(winCells, 'in', dimInMs);
+
+        const dimPromise = fadeClusterSymbolDim(winCells, 'in', dimInMs);
 
         cascadeLadder.setActiveStep(cascadeMultiplier);
 
@@ -946,10 +1040,9 @@ export async function createPixiSlotBoard(hostEl) {
           : Promise.resolve();
 
         const highlightWait = new Promise((resolve) => {
-          const start = performance.now();
           const step = (now) => {
-            drawClusterOverlay(winCells);
-            if (now - start >= highlightMs) {
+            drawClusterOverlay(overlayGroups, { ...overlayAnim, animNow: now });
+            if (now >= highlightEnd) {
               resolve();
               return;
             }
@@ -958,7 +1051,7 @@ export async function createPixiSlotBoard(hostEl) {
           requestAnimationFrame(step);
         });
 
-        await Promise.all([popupPromise, highlightWait]);
+        await Promise.all([dimPromise, popupPromise, highlightWait]);
 
         drawClusterOverlay(null);
 
