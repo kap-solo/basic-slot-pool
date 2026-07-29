@@ -17,6 +17,8 @@ export const SYMBOLS_ALL_SPINE = {
   designSize: { width: 256, height: 256 },
 };
 
+/** Spine editor export lands in assets/spine/symbols_all/ — copy json/atlas/png to SYMBOLS_ALL_SPINE paths. */
+
 /** Game symbol id → symbols_spinr-flat track suffix (idle_{suffix}). */
 export const SYMBOLS_ALL_TRACK = {
   CH: 'cherry',

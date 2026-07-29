@@ -1,5 +1,5 @@
 {
-"skeleton": { "hash": "/VXyO1akKf4", "spine": "4.3.23", "x": -128, "y": -128, "width": 256, "height": 256 },
+"skeleton": { "hash": "j4topsYW2sI", "spine": "4.3.23", "x": -128, "y": -128, "width": 256, "height": 256 },
 "bones": [
 	{ "name": "root" },
 	{ "name": "z_bg", "parent": "root", "rotation": 81.25377, "x": -2.3707275, "y": 2.018148 },
@@ -8,7 +8,7 @@
 ],
 "slots": [
 	{ "name": "BG", "bone": "z_bg" },
-	{ "name": "A", "bone": "main", "attachment": "blue chip" },
+	{ "name": "A", "bone": "main", "attachment": "X" },
 	{ "name": "scatter-word", "bone": "a_top-objects" }
 ],
 "skins": [
@@ -19,10 +19,8 @@
 				"A": { "x": -1.634191, "y": -2.650036, "rotation": -81.25377, "width": 256, "height": 256 },
 				"algae bottle": { "x": -1.634191, "y": -2.6500356, "rotation": -81.25377, "width": 256, "height": 256 },
 				"badge": { "x": -1.634191, "y": -2.6500354, "rotation": -81.25377, "width": 256, "height": 256 },
-				"blue chip": { "x": -1.634191, "y": -2.650036, "rotation": -81.25377, "width": 256, "height": 256 },
 				"box cutter": { "x": -1.634191, "y": -2.650035, "rotation": -81.25377, "width": 256, "height": 256 },
 				"brush": { "x": -1.634191, "y": -2.650035, "rotation": -81.25377, "width": 256, "height": 256 },
-				"hand-cuffs": { "x": -1.634191, "y": -2.650036, "rotation": -81.25377, "width": 256, "height": 256 },
 				"hat": { "x": -1.634191, "y": -2.650035, "rotation": -81.25377, "width": 256, "height": 256 },
 				"Layer 2": { "x": -1.634191, "y": -2.650036, "rotation": -81.25377, "width": 256, "height": 256 },
 				"no-bid": { "x": -1.634191, "y": -2.650036, "rotation": -81.25377, "width": 256, "height": 256 },
@@ -74,6 +72,18 @@
 		}
 	},
 	"fall_cherry": {
+		"slots": {
+			"A": {
+				"attachment": [
+					{}
+				]
+			},
+			"BG": {
+				"attachment": [
+					{ "name": "J" }
+				]
+			}
+		},
 		"bones": {
 			"main": {
 				"scale": [
@@ -164,11 +174,12 @@
 		"slots": {
 			"A": {
 				"attachment": [
-					{ "name": "hat" }
+					{}
 				]
 			},
 			"BG": {
 				"attachment": [
+					{ "name": "A" },
 					{ "time": 2.1333334, "name": "K" }
 				]
 			}
@@ -200,13 +211,6 @@
 		}
 	},
 	"fall_lemon": {
-		"slots": {
-			"A": {
-				"attachment": [
-					{ "name": "X" }
-				]
-			}
-		},
 		"bones": {
 			"main": {
 				"scale": [
@@ -306,7 +310,7 @@
 		"slots": {
 			"A": {
 				"attachment": [
-					{ "name": "hand-cuffs" }
+					{ "name": "hat" }
 				]
 			}
 		},
@@ -395,6 +399,18 @@
 		}
 	},
 	"idle_cherry": {
+		"slots": {
+			"A": {
+				"attachment": [
+					{}
+				]
+			},
+			"BG": {
+				"attachment": [
+					{ "name": "J" }
+				]
+			}
+		},
 		"bones": {
 			"main": {
 				"scale": [
@@ -489,11 +505,12 @@
 		"slots": {
 			"A": {
 				"attachment": [
-					{ "name": "hat" }
+					{}
 				]
 			},
 			"BG": {
 				"attachment": [
+					{ "name": "A" },
 					{ "time": 2.1333334, "name": "K" }
 				]
 			}
@@ -525,13 +542,6 @@
 		}
 	},
 	"idle_lemon": {
-		"slots": {
-			"A": {
-				"attachment": [
-					{ "name": "X" }
-				]
-			}
-		},
 		"bones": {
 			"main": {
 				"scale": [
@@ -633,7 +643,7 @@
 		"slots": {
 			"A": {
 				"attachment": [
-					{ "name": "hand-cuffs" }
+					{ "name": "hat" }
 				]
 			}
 		},
