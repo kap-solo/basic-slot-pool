@@ -25,7 +25,7 @@
   "dependencies": {
     "@esotericsoftware/spine-core": "4.2.74",
     "@esotericsoftware/spine-pixi-v8": "4.2.74",
-    "@kap-solo/suki-engine": "github:kap-solo/suki-engine#17e2bfe",
+    "@kap-solo/suki-engine": "github:kap-solo/suki-engine#86a92df",
     "pixi.js": "8.8.1"
   },
   "engines": {
