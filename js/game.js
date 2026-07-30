@@ -115,14 +115,19 @@ function primeGameSfx() {
   clusterStepAudio.prime();
 }
 
+let gameSfxPrimed = false;
+
 function unlockGameAudio() {
   gameAudio.unlock();
   void backgroundMusic.unlock();
-  primeGameSfx();
+  if (!gameSfxPrimed) {
+    gameSfxPrimed = true;
+    primeGameSfx();
+  }
 }
 
 function startCascadeMotionAudio() {
-  cascadeAudio.start(() => gameAudio.unlock());
+  cascadeAudio.start(unlockGameAudio);
 }
 
 const recentResults = createRecentResultsStore({ max: 25 });
@@ -862,7 +867,7 @@ async function animateReveal(board) {
   if (!slotBoard) return;
   await animateSlotSpin(slotBoard, board, {
     speed: animationSpeed,
-    onMotionStart: () => reelSpinAudio.start(() => gameAudio.unlock()),
+    onMotionStart: () => reelSpinAudio.start(unlockGameAudio),
   });
 }
 
@@ -1159,7 +1164,7 @@ async function withSpinLock(fn, { resetFeature = false, preserveWinDisplay = fal
   if (resetFeature) resetFeaturePresentation();
   refreshWinStatLabel();
   slotBoard?.pulseCabinet();
-  spinClickAudio.play(() => gameAudio.unlock());
+  spinClickAudio.play(unlockGameAudio);
   syncControls();
   try {
     return await fn();
@@ -1388,6 +1393,7 @@ function resyncBetChromeLayout() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   resyncBetChromeLayout();
+  void backgroundMusic.sync();
 });
 
 window.addEventListener('focus', () => {
@@ -2085,7 +2091,7 @@ async function playDevFeatureSample() {
 
 /** @param {import('./slot.js').ClusterHighlightEvent} event */
 function onClusterHighlight(event) {
-  clusterStepAudio.play(event.cascadeStep, () => gameAudio.unlock());
+  clusterStepAudio.play(event.cascadeStep, unlockGameAudio);
 }
 
 async function initSlotStage() {

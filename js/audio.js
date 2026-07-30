@@ -170,6 +170,14 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
     masterGain.gain.value = Math.min(1, Math.max(0, effectiveVolume()));
   }
 
+  /** Must run synchronously inside a user-gesture handler (iOS Web Audio policy). */
+  function resumeContextSync() {
+    ensureContext();
+    if (ctx?.state === 'suspended') {
+      void ctx.resume().catch(() => {});
+    }
+  }
+
   /** @param {{ animate?: boolean }} [opts] */
   async function applyModeGains({ animate = true } = {}) {
     if (!ctx || !tracks.base.gain || !tracks.bonus.gain) return;
@@ -215,7 +223,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
   }
 
   async function sync() {
-    ensureContext();
+    resumeContextSync();
     applyMasterVolume();
     if (!unlocked || effectiveVolume() <= 0) return;
     await applyModeGains({ animate: false });
@@ -245,6 +253,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
       void loadTrack('bonus');
     },
     async unlock() {
+      resumeContextSync();
       if (unlocked) {
         await sync();
         return;
