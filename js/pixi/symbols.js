@@ -67,7 +67,7 @@ export const BLOB_ANIMATION_DEFAULTS = {
 export const SPINE_TEXTURE_CANVAS_SIZE = 256;
 
 /** Board fit ratio — see `@kap-solo/suki-engine` `SPINE_SYMBOL_FIT_RATIO`. */
-export const SPINE_SYMBOL_FIT_RATIO = 0.84;
+export const SPINE_SYMBOL_FIT_RATIO = 0.88;
 
 /**
  * Per-symbol animations in symbols_spinr-flat — fall on spin when a fall track exists.

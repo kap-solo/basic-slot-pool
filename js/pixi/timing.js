@@ -47,8 +47,8 @@ export const TIMING = {
   cascadeDimOutMs: 240,
   /** Win amount label — lingers a little longer than the highlight flash. */
   cascadeWinPopupMs: 560,
-  /** Cascade ladder row fades after the round settles. */
-  cascadeLadderFadeMs: 420,
+  /** Cascade ladder live → default crossfade after the round settles. */
+  cascadeLadderFadeMs: 1500,
   cascadePopMs: 195,
   /** Blob spritesheet — 11-frame playback while symbol stays visible underneath. */
   blobPopSpritePlayMs: 400,

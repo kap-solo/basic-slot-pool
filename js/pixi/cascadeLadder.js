@@ -1,6 +1,6 @@
 /**
- * Cascade multiplier ladder — graphics + Spine row above the reel grid.
- * Indicators are flush (no gap) with square corners until Spine art ships.
+ * Cascade multiplier ladder — stone-spine indicators above the reel grid.
+ * All steps use stone-spine tracks ({n}x-default / {n}x-alert / {n}x-live).
  */
 
 import { Container, Graphics, Text } from 'pixi.js';
@@ -8,22 +8,54 @@ import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { loadSpineAsset } from './spineAssets.js';
 import { sleep } from './easing.js';
 
-/** @typedef {'idle' | 'done' | 'active'} LadderSlotState */
+/** Live/active → default crossfade at cascade end (ms). */
+export const CASCADE_LADDER_DEFAULT_CROSSFADE_MS = 1500;
 
-/** Future Spine export — drop files under assets/spine/cascade-ladder/. */
+/** Extra cover so flush neighbours don't show 1px gaps at fractional scale. */
+const CASCADE_LADDER_SEAM_BLEED_PX = 1;
+
+/** @param {number} value */
+function snapLayoutPx(value) {
+  return Math.round(value);
+}
+
+/**
+ * @param {number} slotW
+ * @param {number} slotH
+ * @param {number} contentW
+ * @param {number} contentH
+ */
+function ladderSpineCoverScale(slotW, slotH, contentW, contentH) {
+  const scaleX = slotW / Math.max(contentW, 1);
+  const scaleY = slotH / Math.max(contentH, 1);
+  const cover = Math.max(scaleX, scaleY);
+  const bleed = 1 + CASCADE_LADDER_SEAM_BLEED_PX / Math.max(1, Math.min(slotW, slotH));
+  return Math.round(cover * bleed * 10000) / 10000;
+}
+
+/** @typedef {'idle' | 'live' | 'done' | 'active'} LadderSlotState */
+
+/** Stone Spine export — one skeleton; per-step tracks like 1x-default / 1x-alert. */
 export const CASCADE_LADDER_SPINE = {
-  skeleton: 'assets/spine/cascade-ladder/cascade-ladder.json',
-  atlas: 'assets/spine/cascade-ladder/cascade-ladder.atlas',
+  skeleton: 'assets/spine/stone-spine.json',
+  atlas: 'assets/spine/stone-spine.atlas',
   scale: 1,
   designSize: { width: 120, height: 100 },
 };
 
-/** Per-slot state tracks — one shared skeleton, instanced per step. */
-export const CASCADE_LADDER_ANIMATIONS = {
-  idle: 'idle',
-  done: 'done',
-  active: 'active',
-};
+/**
+ * Spine track names for one ladder step (1 … 8).
+ * @param {number} step
+ */
+export function cascadeLadderStepTracks(step) {
+  const prefix = `${step}x`;
+  return {
+    idle: `${prefix}-default`,
+    active: `${prefix}-alert`,
+    live: `${prefix}-live`,
+    done: `${prefix}-default`,
+  };
+}
 
 /** Authoring aspect — height / width (100 / 120). */
 export const CASCADE_LADDER_ASPECT =
@@ -36,8 +68,8 @@ export const CASCADE_LADDER_ASPECT =
  * @param {number} [maxSteps=8]
  */
 export function cascadeLadderSlotSize(boardW, cellW, maxSteps = 8) {
-  const inset = Math.max(2, Math.round(cellW * 0.06));
-  const maxTotalW = Math.max(1, boardW - inset * 2);
+  void cellW;
+  const maxTotalW = Math.max(1, boardW);
   const slotW = Math.max(4, Math.floor(maxTotalW / maxSteps));
   const slotH = Math.max(4, Math.round(slotW * CASCADE_LADDER_ASPECT));
   return { slotW, slotH, totalW: maxSteps * slotW };
@@ -59,7 +91,7 @@ export function cascadeLadderBandFor(boardW, cellW, maxSteps = 8) {
 export async function loadCascadeLadderSpine() {
   try {
     const data = await loadSpineAsset(CASCADE_LADDER_SPINE);
-    console.info('[Basic Slot] Cascade ladder Spine loaded.');
+    console.info('[Basic Slot] Cascade ladder stone-spine loaded.');
     return data;
   } catch (err) {
     console.warn('[Basic Slot] Cascade ladder Spine unavailable — using graphics placeholder.', err);
@@ -72,6 +104,57 @@ function spineAnimHasKeyframes(data, name) {
   return Boolean(data.findAnimation(name));
 }
 
+/** Alert/live snaps use 0 mix; live → default uses a long blend at cascade end. */
+/** @param {Spine} spine @param {number} step */
+function configureLadderSpineMix(spine, step) {
+  const tracks = cascadeLadderStepTracks(step);
+  const data = spine.state.data;
+  const skeletonData = spine.skeleton.data;
+  const defaultMixSec = CASCADE_LADDER_DEFAULT_CROSSFADE_MS / 1000;
+  for (const from of [tracks.live, tracks.active]) {
+    if (!from || from === tracks.idle) continue;
+    if (spineAnimHasKeyframes(skeletonData, from) && spineAnimHasKeyframes(skeletonData, tracks.idle)) {
+      data.setMix(from, tracks.idle, defaultMixSec);
+    }
+  }
+  if (
+    tracks.active &&
+    tracks.live &&
+    tracks.active !== tracks.live &&
+    spineAnimHasKeyframes(skeletonData, tracks.active) &&
+    spineAnimHasKeyframes(skeletonData, tracks.live)
+  ) {
+    data.setMix(tracks.active, tracks.live, 0);
+  }
+}
+
+/** @param {Spine} spine @param {string} anim @param {boolean} loop @param {boolean} [snap] */
+function setSpineAnimation(spine, anim, loop, snap = false) {
+  if (snap) {
+    const current = spine.state.getCurrent(0);
+    const fromAnim = current?.animation?.name;
+    if (fromAnim && fromAnim !== anim) {
+      spine.state.data.setMix(fromAnim, anim, 0);
+    }
+  }
+  return spine.state.setAnimation(0, anim, loop);
+}
+
+/** @param {{ spine: Spine | null, step: number, spineState: LadderSlotState | null }} slot @param {number} mixSec */
+function crossfadeSpineToDefault(slot, mixSec) {
+  const { spine, step } = slot;
+  const tracks = cascadeLadderStepTracks(step);
+  if (!spine || !spineAnimHasKeyframes(spine.skeleton.data, tracks.idle)) return;
+
+  const current = spine.state.getCurrent(0);
+  const fromAnim = current?.animation?.name;
+  if (fromAnim && fromAnim !== tracks.idle) {
+    spine.state.data.setMix(fromAnim, tracks.idle, mixSec);
+  }
+  spine.state.setAnimation(0, tracks.idle, true);
+  slot.spineState = 'idle';
+}
+
 /** @param {Spine} spine */
 function applySpinePose(spine) {
   spine.update(0);
@@ -81,23 +164,33 @@ function applySpinePose(spine) {
  * @param {import('@esotericsoftware/spine-core').SkeletonData} skeletonData
  * @param {number} slotW
  * @param {number} slotH
+ * @param {number} step
  */
-function createSlotSpine(skeletonData, slotW, slotH) {
+function createSlotSpine(skeletonData, slotW, slotH, step) {
   const spine = new Spine(skeletonData);
   spine.autoUpdate = false;
   spine.skeleton.setToSetupPose();
+
+  const tracks = cascadeLadderStepTracks(step);
+  if (spineAnimHasKeyframes(spine.skeleton.data, tracks.idle)) {
+    spine.state.setAnimation(0, tracks.idle, true);
+  }
   spine.update(0);
 
   const bounds = spine.getLocalBounds();
   const design = CASCADE_LADDER_SPINE.designSize;
   const contentW = design?.width > 0 ? design.width : bounds.width;
   const contentH = design?.height > 0 ? design.height : bounds.height;
-  const scaleX = slotW / Math.max(contentW > 0 ? contentW : slotW, 1);
-  const scaleY = slotH / Math.max(contentH > 0 ? contentH : slotH, 1);
-  const scale = Math.max(scaleX, scaleY);
+  const scale = ladderSpineCoverScale(
+    slotW,
+    slotH,
+    contentW > 0 ? contentW : slotW,
+    contentH > 0 ? contentH : slotH,
+  );
   spine.scale.set(scale);
-  spine.x = -(bounds.x + bounds.width / 2) * scale;
-  spine.y = -(bounds.y + bounds.height / 2) * scale;
+  spine.x = snapLayoutPx(-(bounds.x + bounds.width / 2) * scale);
+  spine.y = snapLayoutPx(-(bounds.y + bounds.height / 2) * scale);
+  spine.roundPixels = true;
   spine.eventMode = 'none';
   return spine;
 }
@@ -109,13 +202,14 @@ function createSlotSpine(skeletonData, slotW, slotH) {
  */
 export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
   const root = new Container();
-  const useSpine = Boolean(spineData);
+  root.roundPixels = true;
 
-  /** @type {{ slotRoot: Container, bg: Graphics, label: Text, spine: Spine | null, step: number }[]} */
+  /** @type {{ slotRoot: Container, bg: Graphics, label: Text, spine: Spine | null, step: number, spineState: LadderSlotState | null }[]} */
   const slots = [];
 
   for (let step = 1; step <= maxSteps; step += 1) {
     const slotRoot = new Container();
+    slotRoot.roundPixels = true;
     const bg = new Graphics();
     const label = new Text({
       text: `${step}×`,
@@ -131,7 +225,7 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
     bg.addChild(label);
     slotRoot.addChild(bg);
     root.addChild(slotRoot);
-    slots.push({ slotRoot, bg, label, spine: null, step });
+    slots.push({ slotRoot, bg, label, spine: null, step, spineState: null });
   }
 
   let activeStep = 0;
@@ -139,24 +233,43 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
   let slotH = 22;
   let fontSize = 12;
 
-  /** @param {Spine} spine @param {LadderSlotState} state */
-  function applySpineState(spine, state) {
-    const anim = CASCADE_LADDER_ANIMATIONS[state] ?? CASCADE_LADDER_ANIMATIONS.idle;
+  /** @param {typeof slots[number]} slot @param {LadderSlotState} state */
+  function applySpineState(slot, state) {
+    const { spine, step } = slot;
+    const tracks = cascadeLadderStepTracks(step);
+    if (!spine || !tracks) return;
+    if (slot.spineState === state) return;
+    slot.spineState = state;
+    const anim =
+      state === 'active'
+        ? tracks.active
+        : state === 'live'
+          ? tracks.live ?? tracks.done ?? tracks.idle
+          : state === 'done'
+            ? tracks.done ?? tracks.idle
+            : tracks.idle;
     if (!spineAnimHasKeyframes(spine.skeleton.data, anim)) return;
-    spine.state.setAnimation(0, anim, state === 'active');
+    const snap = state === 'live' || state === 'done' || state === 'idle';
+    setSpineAnimation(spine, anim, state !== 'active', snap);
     applySpinePose(spine);
   }
 
-  /** Rebuild Spine instances when layout dimensions change. */
+  /** @param {typeof slots[number]} slot */
+  function destroySlotSpine(slot) {
+    if (!slot.spine) return;
+    slot.slotRoot.removeChild(slot.spine);
+    slot.spine.destroy({ children: true });
+    slot.spine = null;
+    slot.spineState = null;
+  }
+
+  /** Create or refresh Spine instances for wired steps when layout dimensions change. */
   function syncSpineInstances() {
     if (!spineData) return;
     for (const slot of slots) {
-      if (slot.spine) {
-        slot.slotRoot.removeChild(slot.spine);
-        slot.spine.destroy({ children: true });
-        slot.spine = null;
-      }
-      const spine = createSlotSpine(spineData, slotW, slotH);
+      destroySlotSpine(slot);
+      const spine = createSlotSpine(spineData, slotW, slotH, slot.step);
+      configureLadderSpineMix(spine, slot.step);
       slot.slotRoot.addChild(spine);
       slot.spine = spine;
       slot.bg.visible = false;
@@ -199,14 +312,17 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
   }
 
   function syncSlotStyles() {
-    for (const { bg, label, spine, step } of slots) {
+    for (const slot of slots) {
+      const { bg, label, spine, step } = slot;
       let state = /** @type {LadderSlotState} */ ('idle');
       if (activeStep > 0) {
         if (step === activeStep) state = 'active';
-        else if (step < activeStep) state = 'done';
+        else if (step < activeStep) state = 'live';
       }
-      if (useSpine && spine) {
-        applySpineState(spine, state);
+      if (spine) {
+        applySpineState(slot, state);
+        bg.visible = false;
+        label.visible = false;
       } else {
         bg.visible = true;
         label.visible = true;
@@ -215,7 +331,7 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
     }
   }
 
-  if (useSpine) {
+  if (spineData) {
     syncSpineInstances();
     syncSlotStyles();
   }
@@ -236,14 +352,15 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
       let x = -totalW / 2 + slotW / 2;
 
       for (const { slotRoot, label } of slots) {
-        slotRoot.x = x;
+        slotRoot.x = snapLayoutPx(x);
         label.style.fontSize = fontSize;
         x += slotW;
       }
 
-      if (useSpine) syncSpineInstances();
+      if (spineData) syncSpineInstances();
 
-      root.y = y ?? (-boardH / 2 - ladderBand / 2 - 6);
+      root.x = 0;
+      root.y = snapLayoutPx(y ?? -boardH / 2 - ladderBand / 2 - 6);
       syncSlotStyles();
     },
 
@@ -266,7 +383,6 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
 
     /** @param {number} dt */
     tickSpines(dt) {
-      if (!useSpine) return;
       for (const { spine } of slots) {
         if (!spine) continue;
         spine.update(dt);
@@ -274,33 +390,37 @@ export function createCascadeLadder({ maxSteps = 8, spineData = null } = {}) {
     },
 
     /**
-     * Ease highlights back to the default idle row (still visible for the next spin).
+     * Crossfade live/active stones back to default when the cascade ends.
      * @param {{ durationMs?: number }} [opts]
      */
-    async fadeOut({ durationMs = 420 } = {}) {
+    async fadeOut({ durationMs = CASCADE_LADDER_DEFAULT_CROSSFADE_MS } = {}) {
       if (activeStep <= 0) return;
 
-      const steps = 12;
-      const stepMs = Math.max(16, Math.round(durationMs / steps));
-      const half = Math.floor(steps / 2);
-
-      for (let i = 0; i <= half; i += 1) {
-        const t = i / Math.max(1, half);
-        root.alpha = 1 - t * 0.55;
-        if (i < half) await sleep(stepMs);
-      }
-
+      const prevActive = activeStep;
+      const mixSec = durationMs / 1000;
       activeStep = 0;
-      syncSlotStyles();
-
-      for (let i = 0; i <= half; i += 1) {
-        const t = i / Math.max(1, half);
-        root.alpha = 0.45 + t * 0.55;
-        if (i < half) await sleep(stepMs);
-      }
-
       root.alpha = 1;
       root.visible = true;
+
+      let crossfaded = false;
+
+      for (const slot of slots) {
+        if (slot.spine && slot.step <= prevActive) {
+          crossfadeSpineToDefault(slot, mixSec);
+          crossfaded = true;
+          continue;
+        }
+        if (!slot.spine) {
+          const { bg, label, step } = slot;
+          const state = /** @type {LadderSlotState} */ ('idle');
+          bg.visible = true;
+          label.visible = true;
+          paintSlotGraphics(bg, label, state);
+          if (step <= prevActive) slot.spineState = state;
+        }
+      }
+
+      if (crossfaded) await sleep(durationMs);
     },
   };
 }

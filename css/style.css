@@ -168,6 +168,10 @@ body {
     'flankL core';
 }
 
+.suki-stake-shell[data-suki-screen='desktop'][data-suki-orientation='landscape'] {
+  --game-core-shell-scale: 0.96;
+}
+
 .suki-stake-shell[data-suki-orientation='landscape'] .suki-flank-left {
   display: flex;
   align-items: stretch;
@@ -343,6 +347,21 @@ body {
   border: 1px solid #2a3548;
   background: rgba(10, 14, 20, 0.3);
   overflow: hidden;
+}
+
+/* Laptop — nudge cluster ledger toward the cabinet. */
+.suki-stake-shell[data-suki-screen='laptop'][data-suki-orientation='landscape'] .multiplier-panel {
+  margin-left: -20px;
+}
+
+/* Desktop — stronger nudge toward the cabinet. */
+.suki-stake-shell[data-suki-screen='desktop'][data-suki-orientation='landscape'] .multiplier-panel {
+  margin-left: -40px;
+  margin-top: calc(var(--cabinet-top-offset, 0px) + 11px);
+}
+
+.suki-stake-shell[data-suki-screen='popout-l'][data-suki-orientation='landscape'] .multiplier-panel {
+  margin-top: calc(var(--cabinet-top-offset, 0px) + 4px);
 }
 
 /* Popout S — drop cluster ledger; viewport too small for side panel + board. */

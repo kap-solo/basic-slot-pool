@@ -79,6 +79,8 @@ export async function createPixiSlotBoard(hostEl) {
 
   const stage = new Container();
   const cabinetRoot = new Container();
+  const cabinetBodyRoot = new Container();
+  cabinetBodyRoot.label = 'cabinet-body';
   app.stage.addChild(stage);
 
   const cabinetBgMask = new Graphics();
@@ -102,11 +104,12 @@ export async function createPixiSlotBoard(hostEl) {
   let cabinetPulseGen = 0;
 
   stage.addChild(cabinetRoot);
-  cabinetRoot.addChild(cabinetBgMask);
-  cabinetRoot.addChild(frame);
   cabinetRoot.addChild(cascadeLadder.root);
-  cabinetRoot.addChild(clusterFillOverlay);
-  cabinetRoot.addChild(reelsRoot);
+  cabinetRoot.addChild(cabinetBodyRoot);
+  cabinetBodyRoot.addChild(cabinetBgMask);
+  cabinetBodyRoot.addChild(frame);
+  cabinetBodyRoot.addChild(clusterFillOverlay);
+  cabinetBodyRoot.addChild(reelsRoot);
   reelsRoot.addChild(reelColumnExperimentBg);
   stage.addChild(clusterStrokeOverlay);
   stage.addChild(winPopupLayer);
@@ -154,6 +157,15 @@ export async function createPixiSlotBoard(hostEl) {
 
   function isLaptop() {
     return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'laptop';
+  }
+
+  function isDesktop() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'desktop';
+  }
+
+  /** Desktop-only lift for cabinet art + reels (cascade ladder stays put). */
+  function cabinetBodyDesktopOffsetY() {
+    return isDesktop() ? -16 : 0;
   }
 
   function isMobileBetUi() {
@@ -229,11 +241,12 @@ export async function createPixiSlotBoard(hostEl) {
     return Math.max(8, Math.round(ladderBand * 0.28));
   }
 
-  /** Ladder row height — matches 120×100 indicator aspect at current board width. */
+  /** Ladder row height — matches 120×100 indicator aspect at cabinet width. */
   function ladderBandForBoardH(boardH) {
     const cellH = boardH / GAME.rows;
     const boardW = cellH * GAME.reels;
-    return Math.max(24, cascadeLadderBandFor(boardW, cellH, MAX_CASCADE_LADDER));
+    const outerW = boardW + cabinetInnerPad(cellH) * 2;
+    return Math.max(24, cascadeLadderBandFor(outerW, cellH, MAX_CASCADE_LADDER));
   }
 
   /** Total stack: ladder + gap + cabinet (padding + reel grid). */
@@ -246,12 +259,14 @@ export async function createPixiSlotBoard(hostEl) {
   function snapBoardDimensions(boardW, boardH) {
     const cellW = snapPx(boardW / GAME.reels);
     const cellH = snapPx(boardH / GAME.rows);
+    const snappedBoardW = snapPx(cellW * GAME.reels);
+    const outerW = snappedBoardW + cabinetInnerPad(cellH) * 2;
     return {
       cellW,
       cellH,
-      boardW: snapPx(cellW * GAME.reels),
+      boardW: snappedBoardW,
       boardH: snapPx(cellH * GAME.rows),
-      ladderBand: Math.max(24, cascadeLadderBandFor(snapPx(cellW * GAME.reels), cellW, MAX_CASCADE_LADDER)),
+      ladderBand: Math.max(24, cascadeLadderBandFor(outerW, cellW, MAX_CASCADE_LADDER)),
     };
   }
 
@@ -290,7 +305,7 @@ export async function createPixiSlotBoard(hostEl) {
     const gameCore = hostEl.closest('.suki-game-core');
     if (!gameCore) return;
     const { outerTop, outerH } = cabinetOuterMetrics();
-    const topPx = Math.max(0, Math.round(stage.y + outerTop));
+    const topPx = Math.max(0, Math.round(stage.y + outerTop + cabinetBodyRoot.y));
     const heightPx = Math.max(0, Math.round(outerH));
     gameCore.style.setProperty('--cabinet-top-offset', `${topPx}px`);
     gameCore.style.setProperty('--cabinet-height', `${heightPx}px`);
@@ -330,7 +345,7 @@ export async function createPixiSlotBoard(hostEl) {
       cabinetBgSprite = new Sprite(texture);
       cabinetBgSprite.label = 'cabinet-bg';
       cabinetBgSprite.mask = cabinetBgMask;
-      cabinetRoot.addChildAt(cabinetBgSprite, 0);
+      cabinetBodyRoot.addChildAt(cabinetBgSprite, 0);
       console.info('[Basic Slot] Cabinet background loaded.');
     } catch (err) {
       console.warn('[Basic Slot] Cabinet background unavailable — using frame only.', err);
@@ -480,7 +495,7 @@ export async function createPixiSlotBoard(hostEl) {
     const xInReels = -layout.boardW / 2 + gridX * layout.cellW;
     const yInReels = -layout.boardH / 2 + gridY * layout.cellH;
     const global = reelsRoot.toGlobal({ x: xInReels, y: yInReels });
-    const local = cabinetRoot.toLocal(global);
+    const local = cabinetBodyRoot.toLocal(global);
     return { x: snapPx(local.x), y: snapPx(local.y) };
   }
 
@@ -715,15 +730,16 @@ export async function createPixiSlotBoard(hostEl) {
     }
 
     reelsRoot.scale.set(symbolContainerScale());
+    cabinetBodyRoot.y = cabinetBodyDesktopOffsetY();
 
-    const { outerTop } = cabinetOuterMetrics();
+    const cabinetMetrics = cabinetOuterMetrics();
     const ladderGap = ladderGapFor(layout.ladderBand);
     cascadeLadder.layout({
-      boardW: layout.boardW,
+      boardW: cabinetMetrics.outerW,
       boardH: layout.boardH,
       cellW: layout.cellW,
       ladderBand: layout.ladderBand,
-      y: outerTop - ladderGap - layout.ladderBand / 2,
+      y: cabinetMetrics.outerTop - ladderGap - layout.ladderBand / 2,
     });
     layoutCabinetBackground();
     drawFrame();
