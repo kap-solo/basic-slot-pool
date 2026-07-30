@@ -130,6 +130,12 @@ function unlockGameAudio() {
   }
 }
 
+/** Blob / cluster SFX fire outside the spin gesture — always pass unlock. */
+const greenSquareSfx = {
+  play: (unlock) => greenSquareAudio.play(unlock ?? unlockGameAudio),
+  durationMs: () => greenSquareAudio.durationMs(),
+};
+
 function startCascadeMotionAudio() {
   cascadeAudio.start(unlockGameAudio);
 }
@@ -910,7 +916,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
       slotBoard.syncBookColumnData(event.board);
       await presentBlobAfterReveal(slotBoard, event.board, blobPlan, {
         speed: animationSpeed,
-        blobDissolve: greenSquareAudio,
+        blobDissolve: greenSquareSfx,
       });
     }
   } else {
@@ -953,7 +959,7 @@ async function presentBookEvent(event, { animate = true, round = null } = {}) {
         firstCascade: event.cascade === 1,
         cascadeStep: event.cascade ?? cascadeMultiplier,
         cascadeMultiplier,
-        blobCoverAudio: greenSquareAudio,
+        blobCoverAudio: greenSquareSfx,
       });
       await hudPromise;
       gameAudio.playSfx('win');

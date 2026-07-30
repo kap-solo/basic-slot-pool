@@ -29,6 +29,23 @@ export const GAME_AUDIO_ASSETS = {
   },
 };
 
+/**
+ * iOS unlock — play then pause synchronously inside the user-gesture stack.
+ * Awaiting play() or priming many elements concurrently leaves later elements locked.
+ *
+ * @param {HTMLAudioElement} el
+ * @param {() => void} [applyVolume]
+ */
+function primeAudioElement(el, applyVolume) {
+  applyVolume?.();
+  el.currentTime = 0;
+  const playPromise = el.play();
+  el.pause();
+  el.currentTime = 0;
+  applyVolume?.();
+  playPromise?.catch(() => {});
+}
+
 /** Paths to front-load during the Suki preloader. */
 export function buildPreloadAssets() {
   const assets = [];
@@ -327,16 +344,7 @@ export function createSpinClickAudio(audioPrefs) {
       if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
-      applySfxVolume();
-      const playPromise = el.play();
-      if (!playPromise) return;
-      playPromise
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          applySfxVolume();
-        })
-        .catch(() => {});
+      primeAudioElement(el, applySfxVolume);
     },
     play(unlock) {
       if (sfxLevel() <= 0) return;
@@ -425,16 +433,7 @@ export function createReelSpinAudio(audioPrefs) {
       if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
-      applySfxVolume();
-      const playPromise = el.play();
-      if (!playPromise) return;
-      playPromise
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          applySfxVolume();
-        })
-        .catch(() => {});
+      primeAudioElement(el, applySfxVolume);
     },
     start(unlock) {
       if (sfxLevel() <= 0) return;
@@ -511,17 +510,8 @@ export function createGreenSquareAudio(audioPrefs) {
       if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
-      applySfxVolume();
       syncDurationFromElement(el);
-      const playPromise = el.play();
-      if (!playPromise) return;
-      playPromise
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          applySfxVolume();
-        })
-        .catch(() => {});
+      primeAudioElement(el, applySfxVolume);
     },
     play(unlock) {
       if (sfxLevel() <= 0) return;
@@ -616,16 +606,7 @@ export function createCascadeAudio(audioPrefs) {
       if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
-      applySfxVolume();
-      const playPromise = el.play();
-      if (!playPromise) return;
-      playPromise
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          applySfxVolume();
-        })
-        .catch(() => {});
+      primeAudioElement(el, applySfxVolume);
     },
     start(unlock) {
       if (sfxLevel() <= 0) return;
@@ -701,16 +682,7 @@ export function createClusterStepAudio(audioPrefs) {
       for (let step = 1; step <= MAX_CLUSTER_STEP_SFX; step += 1) {
         const el = ensureElement(step);
         if (!el) continue;
-        applySfxVolume(el);
-        const playPromise = el.play();
-        if (!playPromise) continue;
-        playPromise
-          .then(() => {
-            el.pause();
-            el.currentTime = 0;
-            applySfxVolume(el);
-          })
-          .catch(() => {});
+        primeAudioElement(el, () => applySfxVolume(el));
       }
     },
     play(step, unlock) {
@@ -770,16 +742,7 @@ export function createWhooshAudio(audioPrefs) {
       if (sfxLevel() <= 0) return;
       const el = ensureElement();
       if (!el) return;
-      applySfxVolume();
-      const playPromise = el.play();
-      if (!playPromise) return;
-      playPromise
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          applySfxVolume();
-        })
-        .catch(() => {});
+      primeAudioElement(el, applySfxVolume);
     },
     play(unlock) {
       if (sfxLevel() <= 0) return;
