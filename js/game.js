@@ -28,6 +28,11 @@ import {
   roundPayoutMultiplier,
   registerBuyBonusConfirm,
   startNewRgsSession,
+  createAutoplayController,
+  createAutoplayPanelPolicy,
+  attachBetChromeResync,
+  applyInferredStakeScreen,
+  patchStakeLayoutForProduction,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import {
   buildPreloadAssets,
@@ -54,7 +59,6 @@ import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
-import { applyInferredStakeScreen, patchStakeLayoutForProduction } from './stakeScreenInfer.js';
 import { showDevTools } from '@kap-solo/suki-engine/client/suki/environment.js';
 import { mountMobileBetUi } from './betUiMobile.js';
 import { mountDesktopBetUi } from './betUiDesktop.js';
@@ -423,10 +427,10 @@ let bet = DEFAULT_BET;
 /** @type {number[]} */
 let betOptions = [...BET_OPTIONS];
 let spinning = false;
-let autoplaying = false;
-let autoplayStopRequested = false;
-let autoplayTotalRounds = 0;
-let autoplayCurrentRound = 0;
+/** @type {ReturnType<typeof createAutoplayController> | null} */
+let autoplaySession = null;
+/** @type {ReturnType<typeof createAutoplayPanelPolicy> | null} */
+let autoplayPanelPolicy = null;
 let animationSpeed = 1;
 /** Authoritative payout from the last settled round. */
 let lastWinPayout = 0;
@@ -500,6 +504,10 @@ function ensurePlayHitWrap() {
   return wrap;
 }
 
+function isAutoplaying() {
+  return autoplaySession?.active ?? false;
+}
+
 function syncPlayAffordBlocker() {
   const wrap = ensurePlayHitWrap();
   if (!wrap) return;
@@ -507,7 +515,7 @@ function syncPlayAffordBlocker() {
   const showBlocker = game.rgsReady
     && !replayMode
     && !spinning
-    && !autoplaying
+    && !isAutoplaying()
     && !canAffordPlay()
     && betUi.elements.dropButton.disabled;
 
@@ -668,7 +676,7 @@ function canBuyBonus() {
     && game.betModes.canBuyFeature()
     && game.betModes.canSelectMode(BB_MODE)
     && !spinning
-    && !autoplaying
+    && !isAutoplaying()
     && !isBoardPresenting()
     && balance >= buyCostDisplay()
   );
@@ -679,7 +687,7 @@ function buyButtonLabel() {
 }
 
 function canPickBet() {
-  return !spinning && !autoplaying && !isBoardPresenting() && !replayMode && game.rgsReady;
+  return !spinning && !isAutoplaying() && !isBoardPresenting() && !replayMode && game.rgsReady;
 }
 
 function playButtonLabel() {
@@ -721,7 +729,7 @@ function snapBetToLevel(amount) {
  * @param {number} direction -1 = lower level, +1 = higher level
  */
 function stepBet(direction) {
-  if (spinning || autoplaying || isBoardPresenting() || replayMode || !game.rgsReady) return;
+  if (spinning || isAutoplaying() || isBoardPresenting() || replayMode || !game.rgsReady) return;
 
   const levels = [...betOptions].sort((a, b) => a - b);
   if (!levels.length) return;
@@ -755,7 +763,7 @@ function syncBetStepperState({ downButton, upButton }) {
     idx = levels.findIndex((level) => level >= bet);
     if (idx < 0) idx = levels.length - 1;
   }
-  const busy = spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode;
+  const busy = spinning || isAutoplaying() || isBoardPresenting() || !game.rgsReady || replayMode;
 
   downButton.disabled = busy || idx <= 0;
   upButton.disabled = busy || idx >= levels.length - 1;
@@ -771,7 +779,7 @@ function syncDevToolbar() {
   const show = isDevMode() && !replayMode;
   devToolbar.sync({
     visible: show,
-    disabled: spinning || autoplaying || isBoardPresenting(),
+    disabled: spinning || isAutoplaying() || isBoardPresenting(),
     replayReady: Boolean(lastReplayUrl),
     spinId: lastReplayEventId,
   });
@@ -1282,12 +1290,18 @@ const game = createGameBootstrap({
         bet = snapBetToLevel(bet);
       }
       syncControls();
+      autoplayPanelPolicy?.sync();
     },
   },
   ui: {
     setMessage,
     syncHud,
-    isBusy: () => spinning || autoplaying || isBoardPresenting(),
+    onBalanceRefresh: () => {
+      if (document.visibilityState === 'visible' && balanceAnimRaf == null) {
+        syncControls();
+      }
+    },
+    isBusy: () => spinning || isAutoplaying() || isBoardPresenting(),
     onRgsReady: () => syncControls(),
     onReady: () => {
       if (!skipNextSeedBoard) seedInitialBoard();
@@ -1307,6 +1321,7 @@ const game = createGameBootstrap({
   },
   onJurisdictionChange: () => {
     disableTurboForGame(game.jurisdiction);
+    autoplayPanelPolicy?.sync();
     gameMenu.refresh();
     syncControls();
     syncHud();
@@ -1315,6 +1330,41 @@ const game = createGameBootstrap({
 });
 
 const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
+
+autoplayPanelPolicy = createAutoplayPanelPolicy({
+  getCanAutoplay: () => controls.canAutoplay,
+  getReplayMode: () => replayMode,
+});
+autoplayPanelPolicy.sync();
+
+autoplaySession = createAutoplayController({
+  canStart: () => !spinning
+    && !autoplaySession?.active
+    && controls.canAutoplay
+    && game.rgsReady
+    && balance >= playCostDisplay(),
+  prepareStart: async () => {
+    slotBoard?.cancelPresentation?.();
+    if (slotBoard?.waitUntilIdle) {
+      await slotBoard.waitUntilIdle();
+    }
+  },
+  runSpin: async () => {
+    await withSpinLock(async () => {
+      activeRoundPending = true;
+      await lifecycle.executeDrop({ animate: true });
+    }, { resetFeature: true });
+  },
+  getPlayCost: playCostDisplay,
+  getBalance: () => balance,
+  onDebit: (cost) => {
+    balance = Math.max(0, balance - cost);
+    syncHud();
+  },
+  onSync: () => syncControls(),
+  setMessage,
+  t: (key, vars) => copyTerm(key, vars),
+});
 
 async function syncActiveRoundFromAuth() {
   const data = await authenticate();
@@ -1385,24 +1435,13 @@ function resyncBetChromeLayout() {
   game.stakeLayout?.refresh();
   onStakeScreenInferred();
   syncControls();
-  // Suki re-authenticates asynchronously after tab return; resync visibility once that settles.
-  requestAnimationFrame(() => syncControls());
-  window.setTimeout(() => syncControls(), 300);
 }
 
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  resyncBetChromeLayout();
-  void backgroundMusic.sync();
-});
-
-window.addEventListener('focus', () => {
-  if (document.visibilityState !== 'visible') return;
-  resyncBetChromeLayout();
-});
-
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted) resyncBetChromeLayout();
+attachBetChromeResync({
+  onResync: resyncBetChromeLayout,
+  onVisible: () => {
+    void backgroundMusic.sync();
+  },
 });
 
 patchStakeLayoutForProduction(shellEl, game.stakeLayout, onStakeScreenInferred);
@@ -1560,9 +1599,9 @@ betUi.bind({
   setBetOptions: (levels) => {
     betOptions = levels;
   },
-  getBusy: () => spinning || autoplaying || isBoardPresenting(),
+  getBusy: () => spinning || isAutoplaying() || isBoardPresenting(),
   getPlaying: () => spinning || isBoardPresenting(),
-  getAutoplaying: () => autoplaying,
+  getAutoplaying: () => isAutoplaying(),
   getPlayLabel: playButtonLabel,
   getPlayCost: playCostDisplay,
   getBalance: () => balance,
@@ -1597,7 +1636,7 @@ ensurePlayHitWrap();
 const betChromeHandlers = {
   onMenu: () => openGameMenu(),
   onAuto: () => {
-    if (autoplaying) {
+    if (isAutoplaying()) {
       stopAutoplay();
       return;
     }
@@ -1613,24 +1652,21 @@ const betChromeHandlers = {
   getBet: () => fmtBalance(baseBetDisplay()),
   getBetLabel: () => copyTerm('bet'),
   getWinLabel: winStatLabel,
-  getBusy: () => spinning || autoplaying || isBoardPresenting() || !game.rgsReady || replayMode,
+  getBusy: () => spinning || isAutoplaying() || isBoardPresenting() || !game.rgsReady || replayMode,
   getCanPickBet: canPickBet,
   onBetPick: () => {
     closeGameMenu();
     betPicker.open();
   },
-  getAutoplayActive: () => autoplaying,
-  getAutoplayProgress: () => ({
-    current: autoplayCurrentRound,
-    total: autoplayTotalRounds,
-  }),
+  getAutoplayActive: () => isAutoplaying(),
+  getAutoplayStopPending: () => autoplaySession?.stopRequested ?? false,
+  getAutoplayStopLabel: () => autoplaySession?.stopLabel ?? 'Stopping…',
+  getAutoplayProgress: () => autoplaySession?.progress ?? { current: 0, total: 0 },
   getAutoEnabled: () => controls.canAutoplay && game.rgsReady && balance >= playCostDisplay(),
-  getAutoVisible: () => {
-    if (replayMode) return false;
-    if (autoplaying) return true;
-    if (isDevMode() || showDevTools()) return true;
-    return controls.canAutoplay;
-  },
+  getAutoVisible: () => autoplayPanelPolicy?.isPanelVisible({
+    autoplaying: isAutoplaying(),
+    replayMode,
+  }) ?? true,
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
   getBuyLabel: () => buyButtonLabel(),
@@ -1689,7 +1725,7 @@ gameBackground = initGameBackground({
 });
 
 async function onBuyBonus() {
-  if (spinning || autoplaying || replayMode) return;
+  if (spinning || isAutoplaying() || replayMode) return;
   if (!game.rgsReady) {
     setMessage(copyTerm('connectingRgs'));
     return;
@@ -1728,7 +1764,7 @@ async function executeBuyBonus() {
 }
 
 async function onSpin() {
-  if (spinning || autoplaying) return;
+  if (spinning || isAutoplaying()) return;
   if (!game.rgsReady) {
     setMessage(copyTerm('connectingRgs'));
     return;
@@ -1783,10 +1819,10 @@ window.addEventListener('keydown', (e) => {
   if (replayMode || !controls.canSpacebar) return;
   if (e.code !== 'Space' || e.repeat) return;
   if (isTypingTarget(e.target)) return;
-  if (autoplaying || !game.rgsReady) return;
+  if (isAutoplaying() || !game.rgsReady) return;
 
   const playing = spinning || isBoardPresenting();
-  const busy = spinning || autoplaying || isBoardPresenting();
+  const busy = spinning || isAutoplaying() || isBoardPresenting();
 
   if (playing && controls.canTurbo) {
     e.preventDefault();
@@ -1804,69 +1840,16 @@ window.addEventListener('keydown', (e) => {
 });
 
 function stopAutoplay() {
-  if (!autoplaying) return;
-  autoplayStopRequested = true;
-  slotBoard?.cancelPresentation?.();
-  reelSpinAudio.stop({ fadeMs: 0 });
-  cascadeAudio.stop({ fadeMs: 0 });
-  syncControls();
+  autoplaySession?.stop();
 }
 
 async function runAutoplay(roundCount) {
-  if (spinning || autoplaying || !controls.canAutoplay) return;
   if (!game.rgsReady || balance < playCostDisplay()) return;
-
-  autoplayStopRequested = false;
-  autoplayTotalRounds = roundCount;
-  autoplayCurrentRound = 0;
-
-  slotBoard?.cancelPresentation?.();
-  if (slotBoard?.waitUntilIdle) {
-    await slotBoard.waitUntilIdle();
-  }
-
-  autoplaying = true;
-  syncControls();
   try {
-    for (let i = 0; i < roundCount; i += 1) {
-      if (autoplayStopRequested) {
-        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
-        break;
-      }
-
-      const playCost = playCostDisplay();
-      if (balance < playCost) {
-        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
-        break;
-      }
-
-      autoplayCurrentRound = i + 1;
-      balance = Math.max(0, balance - playCost);
-      syncHud();
-      syncControls();
-
-      await withSpinLock(async () => {
-        activeRoundPending = true;
-        await lifecycle.executeDrop({ animate: true });
-      }, { resetFeature: true });
-
-      if (autoplayStopRequested) {
-        setMessage(`${copyTerm('autoplayStopped')} ${autoplayCurrentRound} spins.`);
-        break;
-      }
-    }
-    if (autoplayCurrentRound === roundCount && !autoplayStopRequested) {
-      setMessage(copyTerm('autoplayComplete', { count: roundCount }));
-    }
+    await autoplaySession?.run(roundCount);
   } catch (err) {
     console.error(err);
     setMessage(messageForRgsCode(String(err.message)));
-  } finally {
-    autoplaying = false;
-    autoplayStopRequested = false;
-    autoplayTotalRounds = 0;
-    autoplayCurrentRound = 0;
-    syncControls();
   }
 }
 
@@ -2058,7 +2041,7 @@ async function onCopyReplayLink() {
 }
 
 async function playDevFeatureSample() {
-  if (spinning || autoplaying || replayMode || !slotBoard) return;
+  if (spinning || isAutoplaying() || replayMode || !slotBoard) return;
 
   await withSpinLock(async () => {
     activeRoundPending = true;

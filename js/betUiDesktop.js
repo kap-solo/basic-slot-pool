@@ -3,6 +3,11 @@
  */
 
 import { isPopoutSViewport } from './stakeScreenInfer.js';
+import {
+  flashAutoplayStopClick,
+  syncAutoplayBetControl,
+} from '@kap-solo/suki-engine/client/suki/betChromeAutoplay.js';
+import { syncAutoplayChromeHidden } from '@kap-solo/suki-engine/client/suki/autoplayVisibility.js';
 
 /**
  * @param {object} options
@@ -14,6 +19,8 @@ import { isPopoutSViewport } from './stakeScreenInfer.js';
  * @param {() => void} options.handlers.onMenu
  * @param {() => void} options.handlers.onAuto
  * @param {() => boolean} [options.handlers.getAutoplayActive]
+ * @param {() => boolean} [options.handlers.getAutoplayStopPending]
+ * @param {() => string} [options.handlers.getAutoplayStopLabel]
  * @param {() => { current: number, total: number }} [options.handlers.getAutoplayProgress]
  * @param {() => void} options.handlers.onStepUp
  * @param {() => void} options.handlers.onStepDown
@@ -222,13 +229,17 @@ export function mountDesktopBetUi({
   }
 
   function syncAutoVisibility() {
-    if (replayChrome) {
-      autoPanel.hidden = true;
-      return;
-    }
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
+    const stopPending = autoplayActive && (handlers.getAutoplayStopPending?.() ?? false);
     const autoVisible = autoplayActive || (handlers.getAutoVisible?.() ?? true);
-    autoPanel.hidden = !autoVisible;
+    syncAutoplayChromeHidden({
+      root: autoCluster,
+      panel: autoPanel,
+      replayChrome,
+      autoplaying: autoplayActive,
+      stopPending,
+      visible: autoVisible,
+    });
   }
 
   function sync() {
@@ -252,25 +263,30 @@ export function mountDesktopBetUi({
     betPickBtn.button.disabled = !canPickBet;
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
-
+    const stopPending = autoplayActive && (handlers.getAutoplayStopPending?.() ?? false);
     const progress = handlers.getAutoplayProgress?.() ?? { current: 0, total: 0 };
     const iconEl = autoBtn.querySelector('.bet-ui-desktop__icon');
 
-    autoBtn.classList.toggle('bet-ui-desktop__icon-btn--stop', autoplayActive);
     if (iconEl) {
       iconEl.textContent = autoplayActive ? '■' : '';
     }
-    autoBtn.setAttribute('aria-label', autoplayActive ? 'Stop autoplay' : 'Autoplay');
 
-    if (autoplayActive && progress.total > 0) {
-      autoProgress.hidden = false;
-      autoProgress.textContent = `${progress.current} / ${progress.total}`;
-    } else {
-      autoProgress.hidden = true;
-      autoProgress.textContent = '';
-    }
-
-    autoBtn.disabled = autoplayActive ? false : (!handlers.getAutoEnabled() || busy);
+    syncAutoplayBetControl({
+      button: autoBtn,
+      cluster: autoCluster,
+      panel: autoPanel,
+      progressEl: autoProgress,
+      autoplaying: autoplayActive,
+      stopPending,
+      stopMode: autoplayActive,
+      stopLabel: handlers.getAutoplayStopLabel?.() ?? 'Stopping…',
+      progress,
+      disabled: stopPending
+        ? true
+        : autoplayActive
+          ? false
+          : (!handlers.getAutoEnabled() || busy),
+    });
 
     buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
     buyBtn.textContent = handlers.getBuyLabel?.() ?? 'Buy';
@@ -285,7 +301,12 @@ export function mountDesktopBetUi({
     event.stopPropagation();
     handlers.onMenu();
   });
-  autoBtn.addEventListener('click', () => handlers.onAuto());
+  autoBtn.addEventListener('click', () => {
+    if (handlers.getAutoplayActive?.() && !handlers.getAutoplayStopPending?.()) {
+      flashAutoplayStopClick(autoBtn);
+    }
+    handlers.onAuto();
+  });
   buyBtn.addEventListener('click', () => handlers.onBuy?.());
   betUpBtn.addEventListener('click', () => handlers.onStepUp());
   betDownBtn.addEventListener('click', () => handlers.onStepDown());
@@ -330,10 +351,10 @@ function createBuyButton() {
 function createIconButton(part, label, icon) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `bet-ui-desktop__icon-btn bet-ui-desktop__icon-btn--${part}`;
+  button.className = `bet-ui-desktop__icon-btn bet-ui-desktop__icon-btn--${part}${part === 'auto' ? ' suki-autoplay-btn' : ''}`;
   button.dataset.betUiPart = part;
   button.setAttribute('aria-label', label);
-  button.innerHTML = `<span class="bet-ui-desktop__icon" aria-hidden="true">${icon}</span>`;
+  button.innerHTML = `<span class="bet-ui-desktop__icon${part === 'auto' ? ' suki-autoplay-btn__icon' : ''}" aria-hidden="true">${icon}</span>`;
   return button;
 }
 
