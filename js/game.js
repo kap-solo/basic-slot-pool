@@ -42,6 +42,7 @@ import {
   createGreenSquareAudio,
   createReelSpinAudio,
   createSpinClickAudio,
+  resumeGameSfxContext,
   wireTemplateAudio,
 } from './audio.js';
 import { initCharacter } from './character.js';
@@ -124,6 +125,7 @@ let gameSfxPrimed = false;
 function unlockGameAudio() {
   gameAudio.unlock();
   void backgroundMusic.unlock();
+  resumeGameSfxContext(audioPrefs);
   if (!gameSfxPrimed) {
     gameSfxPrimed = true;
     primeGameSfx();
@@ -1447,6 +1449,7 @@ attachBetChromeResync({
   onResync: resyncBetChromeLayout,
   onVisible: () => {
     void backgroundMusic.sync();
+    resumeGameSfxContext(audioPrefs);
   },
 });
 
