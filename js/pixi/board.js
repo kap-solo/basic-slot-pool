@@ -10,7 +10,12 @@ import {
   isTallSymbolPreview,
 } from '../tall-symbols.js';
 import { ReelColumn } from './reel.js';
-import { createCascadeLadder } from './cascadeLadder.js';
+import {
+  CASCADE_LADDER_ASPECT,
+  cascadeLadderBandFor,
+  createCascadeLadder,
+  loadCascadeLadderSpine,
+} from './cascadeLadder.js';
 import { MAX_CASCADE_LADDER } from '../cluster.js';
 import { loadSpineSymbolRegistry } from './spineAssets.js';
 import { ensureBlobPopSpriteFrames } from './blobSpriteOverlay.js';
@@ -54,7 +59,10 @@ function snapPx(value) {
  * @param {HTMLElement} hostEl
  */
 export async function createPixiSlotBoard(hostEl) {
-  const spineRegistry = await loadSpineSymbolRegistry();
+  const [spineRegistry, cascadeLadderSpine] = await Promise.all([
+    loadSpineSymbolRegistry(),
+    loadCascadeLadderSpine(),
+  ]);
 
   const app = new Application();
   await app.init({
@@ -83,7 +91,10 @@ export async function createPixiSlotBoard(hostEl) {
   clusterStrokeOverlay.label = 'cluster-stroke';
   const winPopupLayer = new Container();
   const reelsRoot = new Container();
-  const cascadeLadder = createCascadeLadder({ maxSteps: MAX_CASCADE_LADDER });
+  const cascadeLadder = createCascadeLadder({
+    maxSteps: MAX_CASCADE_LADDER,
+    spineData: cascadeLadderSpine,
+  });
 
   /** @type {Sprite | null} */
   let cabinetBgSprite = null;
@@ -120,6 +131,7 @@ export async function createPixiSlotBoard(hostEl) {
   /** @param {import('pixi.js').Ticker} ticker */
   function tickBoardSpines(ticker) {
     const dt = Math.min(ticker.deltaMS / 1000, SPINE_TICK_CAP_SEC);
+    cascadeLadder.tickSpines(dt);
     for (const reel of reels) {
       reel.tickSpines(dt);
     }
@@ -202,8 +214,9 @@ export async function createPixiSlotBoard(hostEl) {
     return cabinetInnerPad(boardH / GAME.rows);
   }
 
-  function ladderHeightFactor() {
-    return isPopoutS() ? 0.2 : 0.42;
+  /** Approx ladder band / cell height for stack-fit math (120×100 indicators, 8 flush slots). */
+  function ladderStackFactor() {
+    return (GAME.reels / MAX_CASCADE_LADDER) * CASCADE_LADDER_ASPECT;
   }
 
   function symbolContainerScale() {
@@ -216,9 +229,11 @@ export async function createPixiSlotBoard(hostEl) {
     return Math.max(8, Math.round(ladderBand * 0.28));
   }
 
-  /** Ladder row height scales with cell size — must be reserved before fitting the grid. */
+  /** Ladder row height — matches 120×100 indicator aspect at current board width. */
   function ladderBandForBoardH(boardH) {
-    return Math.max(24, Math.round((boardH / GAME.rows) * ladderHeightFactor()));
+    const cellH = boardH / GAME.rows;
+    const boardW = cellH * GAME.reels;
+    return Math.max(24, cascadeLadderBandFor(boardW, cellH, MAX_CASCADE_LADDER));
   }
 
   /** Total stack: ladder + gap + cabinet (padding + reel grid). */
@@ -231,13 +246,12 @@ export async function createPixiSlotBoard(hostEl) {
   function snapBoardDimensions(boardW, boardH) {
     const cellW = snapPx(boardW / GAME.reels);
     const cellH = snapPx(boardH / GAME.rows);
-    const ladderFactor = ladderHeightFactor();
     return {
       cellW,
       cellH,
       boardW: snapPx(cellW * GAME.reels),
       boardH: snapPx(cellH * GAME.rows),
-      ladderBand: Math.max(24, Math.round(cellH * ladderFactor)),
+      ladderBand: Math.max(24, cascadeLadderBandFor(snapPx(cellW * GAME.reels), cellW, MAX_CASCADE_LADDER)),
     };
   }
 
@@ -648,7 +662,7 @@ export async function createPixiSlotBoard(hostEl) {
     const boardAspect = GAME.reels / GAME.rows;
     const maxW = w * layoutMaxScale();
     const maxH = h * layoutMaxScale();
-    const ladderFactor = ladderHeightFactor();
+    const ladderFactor = ladderStackFactor();
 
     let boardW = maxW;
     let boardH = boardW / boardAspect;
