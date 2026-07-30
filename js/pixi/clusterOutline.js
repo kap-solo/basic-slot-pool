@@ -291,6 +291,57 @@ function cornerFillet(a, b, c, radius) {
 }
 
 /**
+ * Flat arc tessellation — lineTo-only polylines avoid Pixi/WebGL arc pen connectors
+ * that show as thin stray lines on some Android GPUs.
+ * @param {number} cx
+ * @param {number} cy
+ * @param {number} radius
+ * @param {number} startAngle
+ * @param {number} endAngle
+ * @param {boolean} anticlockwise
+ * @returns {{ x: number, y: number }[]}
+ */
+function tessellateArcPoints(cx, cy, radius, startAngle, endAngle, anticlockwise) {
+  let dist = Math.abs(startAngle - endAngle);
+  if (!anticlockwise && startAngle > endAngle) {
+    dist = 2 * Math.PI - dist;
+  } else if (anticlockwise && endAngle > startAngle) {
+    dist = 2 * Math.PI - dist;
+  }
+  let steps = Math.max(6, Math.floor(6 * Math.pow(radius, 1 / 3) * (dist / Math.PI)));
+  steps = Math.max(steps, 3);
+  let step = dist / steps;
+  step *= anticlockwise ? -1 : 1;
+
+  /** @type {{ x: number, y: number }[]} */
+  const points = [];
+  let angle = startAngle;
+  for (let i = 0; i <= steps; i += 1) {
+    points.push({
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+    });
+    angle += step;
+  }
+  return points;
+}
+
+/** @param {import('pixi.js').Graphics} graphics @param {{ cx: number, cy: number, r: number, startAngle: number, endAngle?: number, anticlockwise: boolean }} segment */
+function strokeArcAsPolyline(graphics, segment, endAngle = segment.endAngle) {
+  const points = tessellateArcPoints(
+    segment.cx,
+    segment.cy,
+    segment.r,
+    segment.startAngle,
+    endAngle,
+    segment.anticlockwise,
+  );
+  for (const point of points) {
+    graphics.lineTo(point.x, point.y);
+  }
+}
+
+/**
  * @param {{ x: number, y: number }[]} points
  * @param {number} [cornerRadius]
  */
@@ -356,14 +407,15 @@ function buildRoundedLoopPath(points, cornerRadius = 0) {
  * @param {import('pixi.js').Graphics} graphics
  * @param {ReturnType<typeof buildRoundedLoopPath>} path
  * @param {number} progress — 0..1 along closed perimeter
+ * @returns {boolean}
  */
 function drawLoopPathProgress(graphics, path, progress) {
   const { segments, totalLength, startX, startY } = path;
-  if (segments.length === 0 || totalLength <= 0) return;
+  if (segments.length === 0 || totalLength <= 0) return false;
 
   let remaining = Math.max(0, Math.min(1, progress)) * totalLength;
   graphics.moveTo(startX, startY);
-  if (remaining <= 0) return;
+  if (remaining <= 0) return true;
 
   for (const segment of segments) {
     if (segment.kind === 'line') {
@@ -373,41 +425,44 @@ function drawLoopPathProgress(graphics, path, progress) {
       } else {
         const t = remaining / segment.length;
         graphics.lineTo(segment.ax + (segment.bx - segment.ax) * t, segment.ay + (segment.by - segment.ay) * t);
-        return;
+        return true;
       }
       continue;
     }
 
-    let delta = segment.delta;
+    const delta = segment.delta;
     if (remaining >= segment.length) {
-      graphics.arc(segment.cx, segment.cy, segment.r, segment.startAngle, segment.endAngle, segment.anticlockwise);
+      strokeArcAsPolyline(graphics, segment);
       remaining -= segment.length;
     } else {
       const t = remaining / segment.length;
       const partialEnd = segment.startAngle + delta * t;
-      graphics.arc(segment.cx, segment.cy, segment.r, segment.startAngle, partialEnd, segment.anticlockwise);
-      return;
+      strokeArcAsPolyline(graphics, segment, partialEnd);
+      return true;
     }
   }
+
+  return true;
 }
 
 /**
  * @param {import('pixi.js').Graphics} graphics
  * @param {ReturnType<typeof buildRoundedLoopPath>} path
+ * @returns {boolean}
  */
 function drawLoopPathClosed(graphics, path) {
   const { segments, startX, startY } = path;
-  if (segments.length === 0) return;
+  if (segments.length === 0) return false;
 
   graphics.moveTo(startX, startY);
   for (const segment of segments) {
     if (segment.kind === 'line') {
       graphics.lineTo(segment.bx, segment.by);
     } else {
-      graphics.arc(segment.cx, segment.cy, segment.r, segment.startAngle, segment.endAngle, segment.anticlockwise);
+      strokeArcAsPolyline(graphics, segment);
     }
   }
-  graphics.closePath();
+  return true;
 }
 
 /** @param {{ x: number, y: number }[]} points */
@@ -426,18 +481,20 @@ export function loopPerimeterLength(points) {
  * @param {{ x: number, y: number }[]} points
  * @param {number} progress — 0..1 along closed perimeter
  * @param {number} [cornerRadius]
+ * @returns {boolean}
  */
 export function drawLoopProgress(graphics, points, progress, cornerRadius = 0) {
-  if (points.length < 2) return;
-  drawLoopPathProgress(graphics, buildRoundedLoopPath(points, cornerRadius), progress);
+  if (points.length < 2) return false;
+  return drawLoopPathProgress(graphics, buildRoundedLoopPath(points, cornerRadius), progress);
 }
 
 /**
  * @param {import('pixi.js').Graphics} graphics
  * @param {{ x: number, y: number }[]} points
  * @param {number} [cornerRadius]
+ * @returns {boolean}
  */
 export function drawLoopClosed(graphics, points, cornerRadius = 0) {
-  if (points.length < 3) return;
-  drawLoopPathClosed(graphics, buildRoundedLoopPath(points, cornerRadius));
+  if (points.length < 3) return false;
+  return drawLoopPathClosed(graphics, buildRoundedLoopPath(points, cornerRadius));
 }

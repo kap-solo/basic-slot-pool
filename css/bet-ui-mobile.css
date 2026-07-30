@@ -352,6 +352,18 @@
   font-size: 0;
   line-height: 0;
   overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bet-ui-mobile__play.suki-bet-play:focus {
+  outline: none;
+}
+
+.bet-ui-mobile__play.suki-bet-play:focus-visible {
+  outline: 2px solid rgba(245, 245, 245, 0.45);
+  outline-offset: 2px;
 }
 
 .bet-ui-mobile__play.suki-bet-play:disabled {

@@ -536,12 +536,13 @@ export async function createPixiSlotBoard(hostEl) {
         if (loop.length < 3) continue;
 
         const strokePoints = loop.map(([gridX, gridY]) => clusterCornerStagePoint(gridX, gridY));
-        if (style.drawOn >= 1) {
-          drawLoopClosed(clusterStrokeOverlay, strokePoints, cornerRadius);
-        } else {
-          drawLoopProgress(clusterStrokeOverlay, strokePoints, style.drawOn, cornerRadius);
+        clusterStrokeOverlay.beginPath();
+        const drew = style.drawOn >= 1
+          ? drawLoopClosed(clusterStrokeOverlay, strokePoints, cornerRadius)
+          : drawLoopProgress(clusterStrokeOverlay, strokePoints, style.drawOn, cornerRadius);
+        if (drew) {
+          clusterStrokeOverlay.stroke(strokeStyle);
         }
-        clusterStrokeOverlay.stroke(strokeStyle);
       }
     }
   }
