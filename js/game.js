@@ -1166,8 +1166,9 @@ async function finishPresentation() {
   if (slotBoard?.waitUntilIdle) {
     await slotBoard.waitUntilIdle();
   }
+  // Ladder crossfade is cosmetic — run in background so quick re-spins are not gated.
   if (slotBoard?.fadeOutCascadeLadder) {
-    await slotBoard.fadeOutCascadeLadder({ speed: animationSpeed });
+    void slotBoard.fadeOutCascadeLadder({ speed: animationSpeed });
   }
   flushRoundSettledUI();
   syncControls();
