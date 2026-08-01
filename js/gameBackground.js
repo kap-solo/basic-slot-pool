@@ -1,9 +1,7 @@
 /**
- * Desktop landscape background — crossfades to bonus art during free spins.
+ * Breakpoint background art — crossfades to *_bonus art during free spins.
  * Transition timing matches character bonus mode (900ms ease).
  */
-
-import { BET_UI_VARIANT, resolveBetUiVariant } from './betUiVariant.js';
 
 /** Bonus/base crossfade duration (ms) — keep in sync with character.js. */
 const BG_CROSSFADE_MS = 900;
@@ -11,21 +9,28 @@ const BG_CROSSFADE_MS = 900;
 /** @type {Promise<void>} */
 let modeTransition = Promise.resolve();
 
-/** @type {{
+/** @type {HTMLElement | null} */
+let shellEl = null;
+
+/**
+ * @typedef {{
  *   host: HTMLElement,
- *   shell: HTMLElement,
  *   stack: HTMLElement,
  *   baseLayer: HTMLElement,
  *   bonusLayer: HTMLElement,
  *   inBonusMode: boolean,
- * } | null} */
-let hostContext = null;
+ * }} BackgroundHostContext
+ */
+
+/** @type {Map<HTMLElement, BackgroundHostContext>} */
+const hostContexts = new Map();
 
 /**
  * @param {HTMLElement} host
  */
 function ensureHostStack(host) {
-  if (hostContext?.host === host) return hostContext;
+  const existing = hostContexts.get(host);
+  if (existing) return existing;
 
   const stack = document.createElement('div');
   stack.className = 'suki-bg__stack';
@@ -41,23 +46,28 @@ function ensureHostStack(host) {
   host.replaceChildren(stack);
   host.dataset.bgMount = 'stack';
 
-  hostContext = {
+  const ctx = {
     host,
-    shell: hostContext?.shell ?? host,
     stack,
     baseLayer,
     bonusLayer,
     inBonusMode: false,
   };
-  return hostContext;
+  hostContexts.set(host, ctx);
+  return ctx;
 }
 
-function destroyBackgroundHost() {
-  hostContext?.host.replaceChildren();
-  if (hostContext?.host) {
-    delete hostContext.host.dataset.bgMount;
+/** @param {HTMLElement} host */
+function destroyBackgroundHost(host) {
+  host.replaceChildren();
+  delete host.dataset.bgMount;
+  hostContexts.delete(host);
+}
+
+function destroyAllBackgroundHosts() {
+  for (const host of [...hostContexts.keys()]) {
+    destroyBackgroundHost(host);
   }
-  hostContext = null;
 }
 
 /**
@@ -96,11 +106,11 @@ function waitForLayerFade(layer) {
 }
 
 /**
+ * @param {BackgroundHostContext} ctx
  * @param {{ animate?: boolean }} [opts]
  */
-function syncBackgroundLayers({ animate = true } = {}) {
-  if (!hostContext) return Promise.resolve();
-  const { baseLayer, bonusLayer, inBonusMode } = hostContext;
+function syncBackgroundLayers(ctx, { animate = true } = {}) {
+  const { baseLayer, bonusLayer, inBonusMode } = ctx;
   const showBonus = inBonusMode;
 
   if (!animate) {
@@ -117,18 +127,21 @@ function syncBackgroundLayers({ animate = true } = {}) {
   ]).then(() => {});
 }
 
+/** @param {{ animate?: boolean }} [opts] */
+function syncAllBackgroundLayers({ animate = true } = {}) {
+  const contexts = [...hostContexts.values()];
+  if (!contexts.length) return Promise.resolve();
+  return Promise.all(contexts.map((ctx) => syncBackgroundLayers(ctx, { animate }))).then(() => {});
+}
+
 /**
- * @param {HTMLElement} host
- * @param {HTMLElement} shell
+ * @param {HTMLElement[]} hosts
  */
-function refreshBackground(host, shell) {
-  const isDesktop = resolveBetUiVariant(shell) === BET_UI_VARIANT.DESKTOP;
-  if (!isDesktop) {
-    destroyBackgroundHost();
-    return;
+function refreshBackground(hosts) {
+  for (const host of hosts) {
+    if (host) ensureHostStack(host);
   }
-  ensureHostStack(host);
-  syncBackgroundLayers({ animate: false });
+  syncAllBackgroundLayers({ animate: false });
 }
 
 /**
@@ -136,14 +149,22 @@ function refreshBackground(host, shell) {
  * @param {{ animate?: boolean }} [opts]
  */
 async function applyBonusMode(active, { animate = true } = {}) {
-  if (!hostContext) return;
-  if (hostContext.inBonusMode === active) {
-    syncBackgroundLayers({ animate: false });
+  if (!hostContexts.size) return;
+
+  let changed = false;
+  for (const ctx of hostContexts.values()) {
+    if (ctx.inBonusMode !== active) {
+      ctx.inBonusMode = active;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    syncAllBackgroundLayers({ animate: false });
     return;
   }
 
-  hostContext.inBonusMode = active;
-  await syncBackgroundLayers({ animate });
+  await syncAllBackgroundLayers({ animate });
 }
 
 /**
@@ -161,31 +182,38 @@ export function setBackgroundBonusMode(active, { animate = true } = {}) {
 
 /**
  * @param {object} options
- * @param {HTMLElement | null | undefined} options.host
- * @param {HTMLElement | null | undefined} options.shell
+ * @param {HTMLElement | null | undefined} [options.host] Legacy desktop host.
+ * @param {HTMLElement | null | undefined} [options.shell]
  */
-export function initGameBackground({ host, shell }) {
-  if (!host || !shell) {
+export function initGameBackground({ host, shell } = {}) {
+  shellEl = shell ?? null;
+
+  const hosts = [
+    host ?? document.querySelector('.suki-bg-landscape'),
+    document.querySelector('.suki-bg-mobile-l'),
+    document.querySelector('.suki-bg-mobile-ms'),
+  ].filter((el) => el instanceof HTMLElement);
+
+  if (!hosts.length || !shellEl) {
     return {
       destroy() {},
       setBonusMode: setBackgroundBonusMode,
     };
   }
 
-  if (hostContext) hostContext.shell = shell;
+  refreshBackground(hosts);
 
-  const observer = new MutationObserver(() => refreshBackground(host, shell));
-  observer.observe(shell, {
+  const observer = new MutationObserver(() => refreshBackground(hosts));
+  observer.observe(shellEl, {
     attributes: true,
     attributeFilter: ['data-bet-ui-variant', 'data-suki-orientation', 'data-suki-screen'],
   });
 
-  refreshBackground(host, shell);
-
   return {
     destroy() {
       observer.disconnect();
-      destroyBackgroundHost();
+      destroyAllBackgroundHosts();
+      shellEl = null;
     },
     setBonusMode: setBackgroundBonusMode,
   };

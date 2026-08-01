@@ -1028,6 +1028,12 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
   background-repeat: no-repeat;
 }
 
+.suki-stake-shell[data-suki-screen='mobile-l'] .suki-bg-mobile-l[data-bg-mount='stack'],
+.suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l'] .suki-bg-mobile-l[data-bg-mount='stack'],
+.suki-stake-shell[data-suki-orientation='portrait']:not([data-suki-portrait-family]) .suki-bg-mobile-l[data-bg-mount='stack'] {
+  background-image: none;
+}
+
 .suki-stake-shell[data-suki-screen='mobile-m'] .suki-bg-mobile-ms,
 .suki-stake-shell[data-suki-screen='mobile-s'] .suki-bg-mobile-ms,
 .suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms'] .suki-bg-mobile-ms {
@@ -1035,6 +1041,12 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+.suki-stake-shell[data-suki-screen='mobile-m'] .suki-bg-mobile-ms[data-bg-mount='stack'],
+.suki-stake-shell[data-suki-screen='mobile-s'] .suki-bg-mobile-ms[data-bg-mount='stack'],
+.suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms'] .suki-bg-mobile-ms[data-bg-mount='stack'] {
+  background-image: none;
 }
 
 .suki-stake-shell[data-bet-ui-variant='desktop'] .suki-bg-landscape {
@@ -1067,11 +1079,35 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
 }
 
 .suki-bg__layer--base {
-  background-image: url('../assets/desktop_bg.jpg');
+  background-image: none;
 }
 
 .suki-bg__layer--bonus {
+  background-image: none;
+}
+
+.suki-bg-landscape .suki-bg__layer--base {
+  background-image: url('../assets/desktop_bg.jpg');
+}
+
+.suki-bg-landscape .suki-bg__layer--bonus {
   background-image: url('../assets/desktop_bg_bonus.jpg');
+}
+
+.suki-bg-mobile-l .suki-bg__layer--base {
+  background-image: url('../assets/mobile_bg_LRG.jpg');
+}
+
+.suki-bg-mobile-l .suki-bg__layer--bonus {
+  background-image: url('../assets/mobile_bg_LRG_bonus.jpg');
+}
+
+.suki-bg-mobile-ms .suki-bg__layer--base {
+  background-image: url('../assets/mobile_bg_REG.jpg');
+}
+
+.suki-bg-mobile-ms .suki-bg__layer--bonus {
+  background-image: url('../assets/mobile_bg_REG_bonus.jpg');
 }
 
 .suki-bg__layer.is-hidden {

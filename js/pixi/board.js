@@ -35,6 +35,8 @@ const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
 /** Mobile — nudge ladder + cabinet stack downward within the canvas. */
 const MOBILE_STACK_DOWN_OFFSET_PX = 45;
+/** Extra downward nudge on mobile-s only. */
+const MOBILE_S_STACK_DOWN_EXTRA_PX = 15;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
 const SYMBOL_CONTAINER_SCALE = 0.89;
 /** Experiment — 0-based reel indices for semi-transparent column backgrounds (2nd & 4th reels). */
@@ -172,6 +174,10 @@ export async function createPixiSlotBoard(hostEl) {
 
   function isMobileBetUi() {
     return hostEl.closest('.suki-stake-shell')?.dataset.betUiVariant === 'mobile';
+  }
+
+  function isMobileS() {
+    return hostEl.closest('.suki-stake-shell')?.dataset.sukiScreen === 'mobile-s';
   }
 
   /** Mobile — inset around ladder + cabinet stack (side: ~2.5% short edge; bottom clears bet chrome). */
@@ -336,7 +342,11 @@ export async function createPixiSlotBoard(hostEl) {
     const stackBottom = outerTop + outerH;
     const stackCenter = (stackTop + stackBottom) / 2;
     const availCenterY = inset.top + (canvasH - inset.top - inset.bottom) / 2;
-    const mobileDown = isMobileBetUi() ? MOBILE_STACK_DOWN_OFFSET_PX : 0;
+    let mobileDown = 0;
+    if (isMobileBetUi()) {
+      mobileDown = MOBILE_STACK_DOWN_OFFSET_PX;
+      if (isMobileS()) mobileDown += MOBILE_S_STACK_DOWN_EXTRA_PX;
+    }
     stage.y = availCenterY - stackCenter + mobileDown;
   }
 
