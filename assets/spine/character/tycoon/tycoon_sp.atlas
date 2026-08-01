@@ -1,0 +1,51 @@
+tycoon_sp.png
+size:1511,1540
+filter:Linear,Linear
+pma:true
+Layer 13
+bounds:1302,507,278,137
+offsets:362,1185,1047,1614
+rotate:90
+back of neck
+bounds:533,202,54,89
+offsets:357,1293,1047,1614
+brush-drip
+bounds:533,163,11,39
+offsets:312,1303,1047,1614
+collar hidden and tie
+bounds:1252,863,236,106
+offsets:371,1229,1047,1614
+eyebrows
+bounds:1252,969,231,245
+offsets:355,1215,1047,1614
+eyes closed
+bounds:1348,786,163,77
+offsets:415,1360,1047,1614
+eyes wide
+bounds:1302,344,163,77
+offsets:413,1360,1047,1614
+rotate:90
+head-base
+bounds:1252,1214,259,326
+offsets:352,1216,1047,1614
+left arm
+bounds:0,0,291,533
+offsets:144,712,1047,1614
+rotate:90
+legs only
+bounds:0,575,589,965
+offsets:273,43,1047,1614
+move for brush
+bounds:589,748,663,792
+offsets:258,736,1047,1614
+right of jacket
+bounds:0,291,284,566
+offsets:601,715,1047,1614
+rotate:90
+tie fix
+bounds:1252,785,78,96
+offsets:571,1176,1047,1614
+rotate:90
+torso
+bounds:589,85,713,663
+offsets:139,662,1047,1614

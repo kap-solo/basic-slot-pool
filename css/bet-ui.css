@@ -35,6 +35,26 @@
   min-width: 0;
 }
 
+.bet-ui-desktop__play.suki-bet-play,
+.bet-ui-mobile__play.suki-bet-play {
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.bet-ui-desktop__play.suki-bet-play:disabled,
+.bet-ui-mobile__play.suki-bet-play:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
 /* --- Desktop (landscape / desktop proportions) --- */
 .suki-stake-shell[data-bet-ui-variant='desktop'] .suki-controls-slot,
 .suki-bet-ui-root[data-bet-ui-variant='desktop'] {

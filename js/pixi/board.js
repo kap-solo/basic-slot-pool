@@ -33,6 +33,8 @@ const CABINET_BG_VISUAL_SCALE = 1.16;
 /** Target ~×1.3 vs legacy 0.92 canvas margin (clamped to full host size). */
 const BOARD_LAYOUT_SCALE = 1.3;
 const LEGACY_BOARD_MARGIN = 0.92;
+/** Mobile — nudge ladder + cabinet stack downward within the canvas. */
+const MOBILE_STACK_DOWN_OFFSET_PX = 45;
 /** Visible reel grid area as a fraction of the logical board (mask inset). */
 const SYMBOL_CONTAINER_SCALE = 0.89;
 /** Experiment — 0-based reel indices for semi-transparent column backgrounds (2nd & 4th reels). */
@@ -172,6 +174,27 @@ export async function createPixiSlotBoard(hostEl) {
     return hostEl.closest('.suki-stake-shell')?.dataset.betUiVariant === 'mobile';
   }
 
+  /** Mobile — inset around ladder + cabinet stack (side: ~2.5% short edge; bottom clears bet chrome). */
+  function layoutMobileStackInsets(canvasW, canvasH) {
+    if (!isMobileBetUi()) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+    const side = Math.round(Math.min(12, Math.max(6, Math.min(canvasW, canvasH) * 0.025)));
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const shell = hostEl.closest('.suki-stake-shell');
+    const chromeRaw = shell
+      ? getComputedStyle(shell).getPropertyValue('--bet-ui-mobile-chrome-height').trim()
+      : '';
+    let chromePx = (5.25 + 2.325 + 0.5) * rem;
+    if (chromeRaw.endsWith('rem')) {
+      chromePx = parseFloat(chromeRaw) * rem;
+    } else if (chromeRaw.endsWith('px')) {
+      chromePx = parseFloat(chromeRaw);
+    }
+    const bottom = Math.min(Math.round(canvasH * 0.38), side + Math.round(chromePx * 0.82));
+    return { top: side, right: side, bottom, left: side };
+  }
+
   function layoutMaxScale() {
     return Math.min(1, LEGACY_BOARD_MARGIN * BOARD_LAYOUT_SCALE);
   }
@@ -209,8 +232,9 @@ export async function createPixiSlotBoard(hostEl) {
     if (outerW <= 0 || outerH <= 0) return preferred;
 
     const maxByWidth = canvasW / outerW;
-    const topSlack = stage.y + outerTop;
-    const bottomSlack = canvasH - (stage.y + outerTop + outerH);
+    const inset = layoutMobileStackInsets(canvasW, canvasH);
+    const topSlack = stage.y + outerTop - inset.top;
+    const bottomSlack = (canvasH - inset.bottom) - (stage.y + outerTop + outerH);
     const verticalSlack = Math.min(Math.max(0, topSlack), Math.max(0, bottomSlack));
     const maxByHeight = 1 + (2 * verticalSlack) / outerH;
 
@@ -235,10 +259,23 @@ export async function createPixiSlotBoard(hostEl) {
     return isPopoutS() ? 0.92 : SYMBOL_CONTAINER_SCALE;
   }
 
+  /** Relative gap between ladder row and cabinet top (× ladder band height). */
+  function ladderGapScale() {
+    if (isPopoutS()) return 0.12;
+    if (isMobileBetUi()) return 0.06;
+    return 0.28;
+  }
+
+  /** Minimum px gap between ladder row and cabinet top. */
+  function ladderGapMinPx() {
+    if (isPopoutS()) return 3;
+    if (isMobileBetUi()) return 2;
+    return 8;
+  }
+
   /** Gap between the ladder row and the cabinet top edge. */
   function ladderGapFor(ladderBand) {
-    if (isPopoutS()) return Math.max(3, Math.round(ladderBand * 0.12));
-    return Math.max(8, Math.round(ladderBand * 0.28));
+    return Math.max(ladderGapMinPx(), Math.round(ladderBand * ladderGapScale()));
   }
 
   /** Ladder row height — matches 120×100 indicator aspect at cabinet width. */
@@ -291,13 +328,16 @@ export async function createPixiSlotBoard(hostEl) {
     };
   }
 
-  function layoutStackPosition(canvasH) {
+  function layoutStackPosition(canvasW, canvasH) {
+    const inset = layoutMobileStackInsets(canvasW, canvasH);
     const ladderGap = ladderGapFor(layout.ladderBand);
     const { outerTop, outerH } = cabinetOuterMetrics();
     const stackTop = outerTop - ladderGap - layout.ladderBand;
     const stackBottom = outerTop + outerH;
     const stackCenter = (stackTop + stackBottom) / 2;
-    stage.y = canvasH / 2 - stackCenter;
+    const availCenterY = inset.top + (canvasH - inset.top - inset.bottom) / 2;
+    const mobileDown = isMobileBetUi() ? MOBILE_STACK_DOWN_OFFSET_PX : 0;
+    stage.y = availCenterY - stackCenter + mobileDown;
   }
 
   /** Keep HTML cluster ledger aligned with the Pixi cabinet frame. */
@@ -694,8 +734,9 @@ export async function createPixiSlotBoard(hostEl) {
     app.renderer.resize(w, h);
 
     const boardAspect = GAME.reels / GAME.rows;
-    const maxW = w * layoutMaxScale();
-    const maxH = h * layoutMaxScale();
+    const inset = layoutMobileStackInsets(w, h);
+    const maxW = Math.max(1, w - inset.left - inset.right) * layoutMaxScale();
+    const maxH = Math.max(1, h - inset.top - inset.bottom) * layoutMaxScale();
     const ladderFactor = ladderStackFactor();
 
     let boardW = maxW;
@@ -704,7 +745,7 @@ export async function createPixiSlotBoard(hostEl) {
     if (layoutStackHeightForBoardH(boardH) > maxH) {
       const pad = cabinetInnerPadForBoardH(boardH);
       const bgSlack = layoutCabinetBgSlackPx(boardH / GAME.rows);
-      boardH = (maxH - bgSlack - pad * 2 - 16) / (1 + ladderFactor / GAME.rows + ladderFactor / GAME.rows * 0.28);
+      boardH = (maxH - bgSlack - pad * 2 - 16) / (1 + ladderFactor / GAME.rows + ladderFactor / GAME.rows * ladderGapScale());
       boardW = boardH * boardAspect;
     }
 
@@ -731,7 +772,7 @@ export async function createPixiSlotBoard(hostEl) {
     layout = snapped;
 
     stage.x = w / 2;
-    layoutStackPosition(h);
+    layoutStackPosition(w, h);
 
     reels.forEach((reel, index) => {
       reel.root.x = Math.round((-layout.boardW / 2 + index * layout.cellW) * 100) / 100;

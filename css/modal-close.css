@@ -1,0 +1,22 @@
+/**
+ * Modal close — × in rounded square (all modalHost dialogs).
+ */
+
+.suki-stake-shell .suki-modal-overlay .suki-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}

@@ -8,6 +8,9 @@ import {
   syncAutoplayBetControl,
 } from '@kap-solo/suki-engine/client/suki/betChromeAutoplay.js';
 import { syncAutoplayChromeHidden } from '@kap-solo/suki-engine/client/suki/autoplayVisibility.js';
+import { ensureAutoHitWrap, mountAutoButtonGraphic } from './autoButtonGraphic.js';
+import { ensureBuyHitWrap, mountBuyButtonGraphic } from './buyButtonGraphic.js';
+import { getPlayControlMount } from './spinButtonGraphic.js';
 
 /**
  * @param {object} options
@@ -97,6 +100,7 @@ export function mountDesktopBetUi({
   const autoCluster = document.createElement('div');
   autoCluster.className = 'bet-ui-desktop__auto-cluster';
   const autoBtn = createIconButton('auto', 'Autoplay', '');
+  ensureAutoHitWrap(autoBtn);
   const autoProgress = document.createElement('span');
   autoProgress.className = 'bet-ui-desktop__auto-progress';
   autoProgress.hidden = true;
@@ -109,6 +113,7 @@ export function mountDesktopBetUi({
   playGroup.append(spinSlot, autoPanel);
 
   const buyBtn = createBuyButton();
+  ensureBuyHitWrap(buyBtn);
   buyGroup.append(buyBtn);
 
   dock.append(statsBetCluster, playGroup, buyGroup);
@@ -155,12 +160,13 @@ export function mountDesktopBetUi({
   }
 
   function restorePlayButton() {
-    if (!playRow || playButton.parentNode === playRow) return;
+    const mount = getPlayControlMount(playButton);
+    if (!playRow || !mount || mount.parentNode === playRow) return;
     const upButton = playRow.querySelector('.suki-bet-step--up');
     if (upButton) {
-      playRow.insertBefore(playButton, upButton);
+      playRow.insertBefore(mount, upButton);
     } else {
-      playRow.appendChild(playButton);
+      playRow.appendChild(mount);
     }
     playButton.classList.remove('bet-ui-desktop__play');
   }
@@ -171,7 +177,8 @@ export function mountDesktopBetUi({
     root.classList.toggle('bet-ui-desktop-active', desktop);
 
     if (desktop) {
-      spinSlot.appendChild(playButton);
+      const mount = getPlayControlMount(playButton);
+      if (mount) spinSlot.appendChild(mount);
       playButton.classList.add('bet-ui-desktop__play');
       playButton.setAttribute('aria-label', 'Spin');
     } else {
@@ -288,8 +295,12 @@ export function mountDesktopBetUi({
           : (!handlers.getAutoEnabled() || busy),
     });
 
+    mountAutoButtonGraphic(ensureAutoHitWrap(autoBtn));
+
     buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
-    buyBtn.textContent = handlers.getBuyLabel?.() ?? 'Buy';
+    buyBtn.setAttribute('aria-label', handlers.getBuyLabel?.() ?? 'Buy bonus');
+
+    mountBuyButtonGraphic(ensureBuyHitWrap(buyBtn));
 
     handlers.syncStepper?.({ downButton: betDownBtn, upButton: betUpBtn });
   }
@@ -339,7 +350,7 @@ function createBuyButton() {
   button.className = 'bet-ui-desktop__buy-btn';
   button.dataset.betUiPart = 'buy';
   button.setAttribute('aria-label', 'Buy bonus');
-  button.textContent = 'Buy';
+  button.textContent = '';
   return button;
 }
 

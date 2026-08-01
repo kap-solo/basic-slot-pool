@@ -1,0 +1,36 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="244px" height="244px" viewBox="0 0 244 244">
+<defs/>
+
+<g id="Layer_1">
+<g>
+<g>
+<g>
+<path fill="#0033FF" stroke="none" d="
+M 241 9.05
+Q 241 3 234.95 3
+L 9.05 3
+Q 3 3 3 9.05
+L 3 234.95
+Q 3 241 9.05 241
+L 234.95 241
+Q 241 241 241 234.95
+L 241 9.05 Z"/>
+</g>
+</g>
+
+<g>
+<path stroke="#999999" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" fill="none" d="
+M 9.05 3
+L 234.95 3
+Q 241 3 241 9.05
+L 241 234.95
+Q 241 241 234.95 241
+L 9.05 241
+Q 3 241 3 234.95
+L 3 9.05
+Q 3 3 9.05 3 Z"/>
+</g>
+</g>
+</g>
+</svg>

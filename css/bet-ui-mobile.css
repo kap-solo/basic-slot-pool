@@ -153,28 +153,17 @@
   z-index: 1;
 }
 
+.bet-ui-mobile__actions-end .buy-hit-wrap {
+  width: var(--bet-ui-mobile-menu-size, 2.4rem);
+  height: var(--bet-ui-mobile-menu-size, 2.4rem);
+}
+
 .bet-ui-mobile__buy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.35rem;
-  height: 2.1rem;
-  padding: 0 0.38rem;
-  border: 1px solid #3d5a80;
-  border-radius: 0.5rem;
-  background: linear-gradient(180deg, rgba(28, 52, 92, 0.96), rgba(14, 28, 52, 0.96));
-  color: #d8e8ff;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  line-height: 1.1;
+  display: block;
   cursor: pointer;
-  white-space: nowrap;
-  text-transform: uppercase;
 }
 
 .bet-ui-mobile__buy-btn:disabled {
-  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -303,26 +292,17 @@
 }
 
 .bet-ui-mobile__icon-btn--auto {
+  background: transparent;
+}
+
+.bet-ui-mobile__auto-cluster .auto-hit-wrap {
   width: var(--bet-ui-mobile-auto-size, 2.35rem);
   height: var(--bet-ui-mobile-auto-size, 2.35rem);
-  flex-shrink: 0;
 }
 
 .bet-ui-mobile__icon-btn--auto:not(.suki-autoplay-btn--stop) .bet-ui-mobile__icon {
   font-size: 0;
   line-height: 0;
-}
-
-.bet-ui-mobile__icon-btn--auto:not(.suki-autoplay-btn--stop)::before {
-  content: '↻';
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #f5f5f5;
-}
-
-.bet-ui-mobile__icon-btn--auto:disabled:not(.suki-autoplay-btn--stop)::before {
-  color: #5a5a5a;
 }
 
 .bet-ui-mobile__icon-btn--auto:disabled {
@@ -347,8 +327,6 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: #0a0a0a;
-  color: #f5f5f5;
   font-size: 0;
   line-height: 0;
   overflow: hidden;
@@ -367,8 +345,6 @@
 }
 
 .bet-ui-mobile__play.suki-bet-play:disabled {
-  opacity: 1;
-  color: #5a5a5a;
   cursor: not-allowed;
 }
 

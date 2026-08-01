@@ -59,11 +59,19 @@ import {
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
+import { registerAutoplayConfirm } from './autoplayConfirm.js';
+import { applyModalCloseChrome } from './modalCloseChrome.js';
+import {
+  mountSpinButtonGraphic,
+  playSpinButtonSpin,
+  removeOrphanPlayHitWraps,
+} from './spinButtonGraphic.js';
 import { BET_UI_VARIANT, initBetUiVariant } from './betUiVariant.js';
 import { showDevTools } from '@kap-solo/suki-engine/client/suki/environment.js';
+import { DEFAULT_GAME_MENU_ITEMS } from '@kap-solo/suki-engine/client/suki/gameMenu.js';
 import { mountMobileBetUi } from './betUiMobile.js';
 import { mountDesktopBetUi } from './betUiDesktop.js';
-import { registerGameModals } from './menu.js';
+import { registerGameModals, openGameInfoModal } from './menu.js';
 import {
   buildGameSettledResult,
   bookCentiMultToDisplayWin,
@@ -100,6 +108,7 @@ mountPlayerNotice(shellEl);
 let playAffordBlocker = null;
 const brandEl = document.querySelector('.suki-brand');
 const modalHost = createModalHost({ root: shellEl });
+applyModalCloseChrome(modalHost, shellEl);
 const replayStartModal = createReplayStartModal(shellEl);
 const audioPrefs = createAudioPrefs({ storageKey: `${GAME.id}.audio` });
 const gameAudio = createGameAudio({ audioPrefs, autoUnlock: false });
@@ -148,6 +157,25 @@ const gameMenu = createGameMenu({
   shell: shellEl,
   modalHost,
   audioPrefs,
+  items: DEFAULT_GAME_MENU_ITEMS.filter(
+    (item) => item.id !== 'stats' && item.id !== 'recent-results',
+  ).map((item) => {
+    if (item.id === 'how-to-play') {
+      return {
+        ...item,
+        type: 'action',
+        action: () => openGameInfoModal(modalHost, 'how-to-play'),
+      };
+    }
+    if (item.id === 'paytable') {
+      return {
+        ...item,
+        type: 'action',
+        action: () => openGameInfoModal(modalHost, 'paytable'),
+      };
+    }
+    return item;
+  }),
 });
 
 const balanceEl = document.getElementById('balance');
@@ -503,6 +531,7 @@ function canAffordPlay() {
 function ensurePlayHitWrap() {
   const btn = betUi.elements.dropButton;
   if (!btn?.parentNode) return null;
+  removeOrphanPlayHitWraps();
   if (btn.parentElement?.classList.contains('play-hit-wrap')) {
     return btn.parentElement;
   }
@@ -510,6 +539,7 @@ function ensurePlayHitWrap() {
   wrap.className = 'play-hit-wrap';
   btn.parentNode.insertBefore(wrap, btn);
   wrap.appendChild(btn);
+  mountSpinButtonGraphic(wrap);
   return wrap;
 }
 
@@ -541,6 +571,7 @@ function syncPlayAffordBlocker() {
   } else if (playAffordBlocker) {
     playAffordBlocker.hidden = true;
   }
+  mountSpinButtonGraphic(wrap);
 }
 
 function fmtBalance(amount) {
@@ -1637,6 +1668,13 @@ betUi.bind({
   },
 });
 
+registerAutoplayConfirm(modalHost, {
+  getPlayCost: playCostDisplay,
+  getBalance: () => balance,
+  onConfirm: runAutoplay,
+  shell: shellEl,
+});
+
 betStepper = mountBetStepper(betUi.elements.dropButton, {
   onStepDown: () => stepBet(-1),
   onStepUp: () => stepBet(1),
@@ -1787,6 +1825,8 @@ async function onSpin() {
   }
 
   const resumeActiveRound = activeRoundPending;
+
+  playSpinButtonSpin(ensurePlayHitWrap());
 
   await withSpinLock(async () => {
     try {

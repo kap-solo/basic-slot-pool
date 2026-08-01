@@ -1,0 +1,149 @@
+{
+"skeleton": { "hash": "9WrMi6xZZ7o", "spine": "4.3.23", "x": -534.2, "y": -807, "width": 1057.7, "height": 1652.418 },
+"bones": [
+	{ "name": "root" },
+	{ "name": "head", "parent": "root" },
+	{ "name": "torso-and-brush", "parent": "root" },
+	{ "name": "brush", "parent": "torso-and-brush" },
+	{ "name": "torso", "parent": "torso-and-brush" },
+	{ "name": "legs", "parent": "root" },
+	{ "name": "left-arm", "parent": "root" },
+	{ "name": "droplet", "parent": "brush", "x": -10.700088, "y": 38.41806 },
+	{ "name": "misc", "parent": "root" },
+	{ "name": "eyebrows", "parent": "head" },
+	{ "name": "eyes", "parent": "head" }
+],
+"slots": [
+	{ "name": "move for brush", "bone": "brush", "attachment": "move for brush" },
+	{ "name": "brush-drip", "bone": "droplet", "attachment": "brush-drip" },
+	{ "name": "collar hidden and tie", "bone": "misc", "attachment": "collar hidden and tie" },
+	{ "name": "back of neck", "bone": "misc", "attachment": "back of neck" },
+	{ "name": "head-base", "bone": "head", "attachment": "head-base" },
+	{ "name": "eyebrows", "bone": "eyebrows", "attachment": "eyebrows" },
+	{ "name": "torso", "bone": "torso", "attachment": "torso" },
+	{ "name": "left arm", "bone": "left-arm", "attachment": "left arm" },
+	{ "name": "Layer 13", "bone": "misc", "attachment": "Layer 13" },
+	{ "name": "right of jacket", "bone": "misc", "attachment": "right of jacket" },
+	{ "name": "tie fix", "bone": "misc", "attachment": "tie fix" },
+	{ "name": "legs only", "bone": "legs", "attachment": "legs only" },
+	{ "name": "eyes-change", "bone": "eyes", "attachment": "eyes closed" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"back of neck": {
+				"back of neck": { "width": 1047, "height": 1614 }
+			},
+			"brush-drip": {
+				"brush-drip": { "width": 1047, "height": 1614 }
+			},
+			"collar hidden and tie": {
+				"collar hidden and tie": { "width": 1047, "height": 1614 }
+			},
+			"eyebrows": {
+				"eyebrows": { "width": 1047, "height": 1614 }
+			},
+			"eyes-change": {
+				"eyes closed": { "width": 1047, "height": 1614 },
+				"eyes wide": { "width": 1047, "height": 1614 }
+			},
+			"head-base": {
+				"head-base": { "width": 1047, "height": 1614 }
+			},
+			"Layer 13": {
+				"Layer 13": { "width": 1047, "height": 1614 }
+			},
+			"left arm": {
+				"left arm": { "width": 1047, "height": 1614 }
+			},
+			"legs only": {
+				"legs only": { "width": 1047, "height": 1614 }
+			},
+			"move for brush": {
+				"move for brush": { "width": 1047, "height": 1614 }
+			},
+			"right of jacket": {
+				"right of jacket": { "width": 1047, "height": 1614 }
+			},
+			"tie fix": {
+				"tie fix": { "width": 1047, "height": 1614 }
+			},
+			"torso": {
+				"torso": { "width": 1047, "height": 1614 }
+			}
+		}
+	}
+],
+"animations": {
+	"idle": {
+		"slots": {
+			"brush-drip": {
+				"rgba": [
+					{ "time": 0.5666666, "color": "ffffff00" },
+					{ "time": 1, "color": "ffffffff" }
+				]
+			},
+			"eyes-change": {
+				"attachment": [
+					{},
+					{ "time": 1.2, "name": "eyes closed" },
+					{ "time": 1.3666667 },
+					{ "time": 1.6666666, "name": "eyes closed" },
+					{ "time": 1.8333334 },
+					{ "time": 3.8, "name": "eyes wide" },
+					{ "time": 4.766667 }
+				]
+			}
+		},
+		"bones": {
+			"brush": {
+				"rotate": [
+					{},
+					{ "time": 1.8, "value": 4, "curve": "stepped" },
+					{ "time": 3.2, "value": 4 },
+					{ "time": 5.166666 }
+				]
+			},
+			"droplet": {
+				"translate": [
+					{},
+					{ "time": 0.5333333, "x": 5.087862, "y": -120.59343 },
+					{ "time": 0.5666666, "curve": "stepped" },
+					{ "time": 1 },
+					{ "time": 1.5, "x": 5.087862, "y": -120.59343 }
+				]
+			},
+			"eyebrows": {
+				"translate": [
+					{ "y": -3.8586426, "curve": "stepped" },
+					{ "time": 3.8, "y": -3.8586426 },
+					{ "time": 4.033333, "y": 5.14508 },
+					{ "time": 4.266667, "y": -3.8586426 },
+					{ "time": 4.5, "y": 5.14508 },
+					{ "time": 4.7, "y": -3.8586426 }
+				]
+			},
+			"head": {
+				"rotate": [
+					{ "time": 0.4 },
+					{ "time": 1.6, "value": 5 },
+					{ "time": 2.8 }
+				],
+				"translate": [
+					{ "time": 0.4 },
+					{ "time": 1.6, "x": 40.9461, "y": 2.3248336 },
+					{ "time": 2.8 }
+				]
+			},
+			"torso-and-brush": {
+				"scale": [
+					{},
+					{ "time": 1.2, "x": 1.03 },
+					{ "time": 2.6 }
+				]
+			}
+		}
+	}
+}
+}

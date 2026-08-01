@@ -47,6 +47,11 @@
   );
 }
 
+/* Full desktop viewport — spin button +5%. */
+.suki-stake-shell[data-suki-screen='desktop'][data-bet-ui-variant='desktop'] {
+  --bet-ui-desktop-spin-size: clamp(2.31rem, 11.025vw, 4.515rem);
+}
+
 /* Laptop — tighter chrome insets, more room for balance/win. */
 .suki-stake-shell[data-suki-screen='laptop'][data-bet-ui-variant='desktop'] {
   --bet-ui-desktop-inset-inline-start: 14%;
@@ -283,13 +288,19 @@
 
 .bet-ui-desktop__group--buy {
   justify-content: center;
-  padding-inline: 0.5rem;
+  align-items: center;
+  padding: 0;
   margin-bottom: var(--bet-ui-desktop-box-lift);
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  background: transparent;
+  overflow: visible;
 }
 
-.bet-ui-desktop__group--buy .bet-ui-desktop__buy-btn {
-  height: 100%;
-  min-height: 0;
+.bet-ui-desktop__group--buy .buy-hit-wrap {
+  width: var(--bet-ui-desktop-bar-height);
+  height: var(--bet-ui-desktop-bar-height);
 }
 
 .bet-ui-desktop__icon-btn {
@@ -400,26 +411,12 @@
 }
 
 .bet-ui-desktop__buy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   flex-shrink: 0;
-  min-width: clamp(3rem, 8vw, 4.25rem);
-  padding: 0.35rem 0.5rem;
-  border: 1px solid #3d5a80;
-  border-radius: 0.5rem;
-  background: linear-gradient(180deg, rgba(28, 52, 92, 0.96), rgba(14, 28, 52, 0.96));
-  color: #d8e8ff;
-  font-size: clamp(0.52rem, 2.2vw, 0.68rem);
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  line-height: 1.1;
   cursor: pointer;
-  white-space: nowrap;
 }
 
 .bet-ui-desktop__buy-btn:disabled {
-  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -475,30 +472,13 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: #0a0a0a;
-  color: #f5f5f5;
   font-size: 0;
   line-height: 0;
   overflow: visible;
-  box-shadow: 0 0 0 clamp(0.12rem, 0.45vw, 0.3rem) #3a3a3a;
-}
-
-.bet-ui-desktop__play.suki-bet-play::before {
-  content: '↻';
-  display: block;
-  font-size: calc(var(--bet-ui-desktop-spin-size) * 0.41);
-  font-weight: 700;
-  line-height: 1;
-  color: #f5f5f5;
 }
 
 .bet-ui-desktop__play.suki-bet-play:disabled {
-  opacity: 1;
   cursor: not-allowed;
-}
-
-.bet-ui-desktop__play.suki-bet-play:disabled::before {
-  color: #5a5a5a;
 }
 
 /* Popout S — engine betUi.css sets .suki-bet-play { font-size: 0.82rem }, exposing "Drop" text. */
@@ -520,11 +500,14 @@
 }
 
 .bet-ui-desktop__icon-btn--auto {
+  background: transparent;
+}
+
+.bet-ui-desktop__auto-cluster .auto-hit-wrap {
   width: var(--bet-ui-desktop-auto-size);
   height: var(--bet-ui-desktop-auto-size);
   max-width: var(--bet-ui-desktop-auto-size);
   max-height: var(--bet-ui-desktop-auto-size);
-  background: #0a0a0a;
 }
 
 .bet-ui-desktop__icon-btn--auto:disabled {
@@ -535,18 +518,6 @@
 .bet-ui-desktop__icon-btn--auto:not(.suki-autoplay-btn--stop) .bet-ui-desktop__icon {
   font-size: 0;
   line-height: 0;
-}
-
-.bet-ui-desktop__icon-btn--auto:not(.suki-autoplay-btn--stop)::before {
-  content: '↻';
-  font-size: var(--bet-ui-desktop-auto-icon-size);
-  font-weight: 700;
-  line-height: 1;
-  color: #f5f5f5;
-}
-
-.bet-ui-desktop__icon-btn--auto:disabled:not(.suki-autoplay-btn--stop)::before {
-  color: #5a5a5a;
 }
 
 .bet-ui-desktop__icon-btn--auto.suki-autoplay-btn--stop .bet-ui-desktop__icon {
@@ -573,7 +544,10 @@
 
 .bet-ui-desktop__spin .play-hit-wrap,
 .bet-ui-desktop__spin .play-afford-blocker {
-  border-radius: 999px;
+  width: var(--bet-ui-desktop-spin-size);
+  height: var(--bet-ui-desktop-spin-size);
+  max-width: var(--bet-ui-desktop-spin-size);
+  flex-shrink: 0;
 }
 
 @media (orientation: landscape) and (max-height: 320px) and (max-width: 640px) {
@@ -627,6 +601,14 @@
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__group {
   padding: 0.2rem 0.35rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__group--buy,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop']
+  .bet-ui-desktop__group--play {
+  padding: 0;
+  background: transparent;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s)[data-bet-ui-variant='desktop'] .bet-ui-desktop__stat {

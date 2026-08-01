@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { createSukiHost, resolveSukiPackageDir } from '@kap-solo/suki-engine/server/host.mjs';
 import { createGameMockRgs } from './server/game-rgs.mjs';
 import { attachVendorNpm } from './server/vendor.mjs';
+import { attachGameAssetMime } from './server/staticAssets.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -15,4 +16,5 @@ const host = createSukiHost({
 });
 
 attachVendorNpm(host, __dirname);
+attachGameAssetMime(host, __dirname);
 host.listen();

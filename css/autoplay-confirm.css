@@ -1,0 +1,78 @@
+/**
+ * Autoplay confirm modal — Reflecting Pool overrides.
+ */
+
+.suki-stake-shell.suki-autoplay-modal-open .suki-modal-title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-rounds {
+  margin-bottom: 1rem;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-rounds-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7d8da3;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-rounds-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-round-btn {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
+  border: 1px solid #2a3344;
+  border-radius: 8px;
+  background: #12161e;
+  color: #c5d0de;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-round-btn.active {
+  border-color: #4a9eff;
+  background: #1a2a3d;
+  color: #e8edf4;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-actions {
+  display: block;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-start {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #2f6fbf;
+  border-radius: 8px;
+  background: #1a4a8a;
+  color: #f0f6ff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-start:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.suki-autoplay-confirm-body .suki-autoplay-summary,
+.suki-autoplay-confirm-body .suki-autoplay-cost,
+.suki-autoplay-confirm-body .suki-autoplay-rounds-custom,
+.suki-autoplay-confirm-body .suki-autoplay-cancel {
+  display: none !important;
+}

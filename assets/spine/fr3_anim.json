@@ -1,0 +1,98 @@
+{
+"skeleton": { "hash": "RWReahQoyLc", "spine": "4.3.23", "x": -545.0428, "y": -550, "width": 1100, "height": 1100 },
+"bones": [
+	{ "name": "root" },
+	{ "name": "text", "parent": "root", "rotation": 78.68978 },
+	{ "name": "fence", "parent": "root" },
+	{ "name": "tape", "parent": "root" },
+	{ "name": "badge", "parent": "root" },
+	{ "name": "plate", "parent": "root" }
+],
+"slots": [
+	{ "name": "fence", "bone": "fence", "attachment": "fence" },
+	{ "name": "tape", "bone": "tape", "attachment": "tape" },
+	{ "name": "tape2", "bone": "tape", "attachment": "tape" },
+	{ "name": "badge", "bone": "badge", "attachment": "badge" },
+	{ "name": "plate", "bone": "plate", "attachment": "plate" },
+	{ "name": "text", "bone": "text", "attachment": "text" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"badge": {
+				"badge": { "width": 1000, "height": 1100 }
+			},
+			"fence": {
+				"fence": { "width": 1000, "height": 1100 }
+			},
+			"plate": {
+				"plate": { "width": 1000, "height": 1100 }
+			},
+			"tape": {
+				"tape": { "width": 1000, "height": 1100 }
+			},
+			"tape2": {
+				"tape": { "x": 4.957153, "y": 30.982437, "rotation": 90, "width": 1000, "height": 1100 }
+			},
+			"text": {
+				"text": { "rotation": -78.68978, "width": 1000, "height": 1100 }
+			}
+		}
+	}
+],
+"animations": {
+	"animation": {
+		"bones": {
+			"badge": {
+				"rotate": [
+					{},
+					{ "time": 1.6, "value": -1 },
+					{ "time": 3.333333 }
+				],
+				"scale": [
+					{},
+					{ "time": 1.6, "x": 1.03, "y": 1.03 },
+					{ "time": 3.333333 }
+				]
+			},
+			"plate": {
+				"rotate": [
+					{},
+					{ "time": 1.6, "value": -4 },
+					{ "time": 3.333333 }
+				],
+				"scale": [
+					{},
+					{ "time": 1.6, "x": 1.2, "y": 1.2 },
+					{ "time": 3.333333 }
+				]
+			},
+			"tape": {
+				"rotate": [
+					{},
+					{ "time": 1.6, "value": -2 },
+					{ "time": 3.333333 }
+				],
+				"scale": [
+					{},
+					{ "time": 1.6, "x": 1.04, "y": 1.04 },
+					{ "time": 3.333333 }
+				]
+			},
+			"text": {
+				"rotate": [
+					{},
+					{ "time": 1.6, "value": -3.689781 },
+					{ "time": 3.333333 }
+				],
+				"scale": [
+					{ "x": 0.86, "y": 0.86 },
+					{ "time": 1.6, "x": 1.2, "y": 1.2 },
+					{ "time": 3.333333, "x": 0.86, "y": 0.86 }
+				]
+			}
+		}
+	}
+}
+}

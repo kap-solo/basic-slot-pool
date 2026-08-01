@@ -1,0 +1,106 @@
+/**
+ * How to Play / Paytable — tabbed game info modal.
+ */
+
+.suki-modal-dialog:has(.suki-game-info-body) .suki-modal-header {
+  display: none;
+}
+
+.suki-modal-body.suki-game-info-body {
+  padding: 0;
+}
+
+.suki-game-info-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid #1f2733;
+  background: #12161e;
+}
+
+.suki-game-info-tab {
+  margin: 0;
+  padding: 0.72rem 0.55rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #8b97a8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.suki-game-info-tab.active {
+  border-bottom-color: #4a9eff;
+  color: #e8edf4;
+}
+
+.suki-game-info-panel {
+  padding: 0.85rem 1rem 1rem;
+  overflow: auto;
+  color: #c5d0de;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.suki-game-info-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.suki-game-info-list--compact {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.suki-game-info-subtitle {
+  margin: 0.85rem 0 0;
+  font-weight: 600;
+  color: #c5d0de;
+}
+
+.suki-game-info-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.suki-game-info-note--emphasis {
+  margin-top: 0.65rem;
+  font-size: 0.82rem;
+  color: #c5d0de;
+}
+
+.suki-game-info-footnote {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  color: #8b97a8;
+}
+
+.suki-game-info-footnote-block {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #8b97a8;
+}
+
+.suki-game-info-footnote-block p {
+  margin: 0.25rem 0;
+}
+
+.suki-game-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.suki-game-info-table th,
+.suki-game-info-table td {
+  padding: 0.35rem 0;
+  text-align: left;
+}
+
+.suki-game-info-table th {
+  border-bottom: 1px solid #1f2733;
+}
