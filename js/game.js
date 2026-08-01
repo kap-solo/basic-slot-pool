@@ -159,6 +159,7 @@ const sessionTimerStat = document.getElementById('session-timer-stat');
 const sessionTimerEl = document.getElementById('session-timer');
 const slotRoot = document.getElementById('slot-board');
 const slotStageEl = document.getElementById('slot-stage');
+const gameCoreEl = document.querySelector('.suki-game-core');
 const balanceLabelEl = document.getElementById('balance-label');
 const replayNoteEl = document.getElementById('replay-note');
 const multiplierPanel = createMultiplierPanel({
@@ -2093,9 +2094,9 @@ async function initSlotStage() {
   slotBoard.setPostSpinMotionAudio(startCascadeMotionAudio);
   slotBoard.setClusterHighlightAudio(onClusterHighlight);
   setLedgerSpineRegistry(await loadSpineSymbolRegistry());
-  if (slotStageEl && !featureChrome) {
+  if (gameCoreEl && !featureChrome) {
     featureChrome = createFeatureChrome({
-      stageEl: slotStageEl,
+      stageEl: gameCoreEl,
     });
   }
 }

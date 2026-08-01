@@ -23,14 +23,17 @@ const CHARACTER_ANIMATIONS = {
 };
 
 /** Display scale relative to height-fit baseline (1 = previous default). */
-const CHARACTER_DISPLAY_SCALE = 0.86;
+const CHARACTER_DISPLAY_SCALE = 0.946;
 
 /** Horizontal offset from the left flank anchor (px). */
-const CHARACTER_OFFSET_X = 25;
+const CHARACTER_OFFSET_X = 31;
+
+/** Vertical offset — positive moves the Spine character down (px). */
+const CHARACTER_OFFSET_Y = 46;
 
 /** Popout S (400×225) — slightly smaller than desktop; avoid stacking multiple shrink passes. */
-const POPOUT_S_CHARACTER_DISPLAY_SCALE = 0.86;
-const POPOUT_S_CHARACTER_OFFSET_X = 12;
+const POPOUT_S_CHARACTER_DISPLAY_SCALE = 0.946;
+const POPOUT_S_CHARACTER_OFFSET_X = 18;
 const POPOUT_S_CHARACTER_HEIGHT_FIT = 0.96;
 
 /** Spine playback as a fraction of authored speed (1 = default, 0.6 = 60% of default). */
@@ -96,12 +99,14 @@ function resolveCharacterLayoutProfile(shell) {
     return {
       displayScale: POPOUT_S_CHARACTER_DISPLAY_SCALE,
       offsetX: POPOUT_S_CHARACTER_OFFSET_X,
+      offsetY: CHARACTER_OFFSET_Y,
       heightFit: POPOUT_S_CHARACTER_HEIGHT_FIT,
     };
   }
   return {
     displayScale: CHARACTER_DISPLAY_SCALE,
     offsetX: CHARACTER_OFFSET_X,
+    offsetY: CHARACTER_OFFSET_Y,
     heightFit: 0.98,
   };
 }
@@ -121,16 +126,17 @@ function resolveCanvasHeight(host, shell) {
  * @param {Spine} spine
  * @param {number} canvasHeight
  * @param {{ x: number, y: number, width: number, height: number }} bounds
- * @param {{ displayScale?: number, heightFit?: number }} [profile]
+ * @param {{ displayScale?: number, heightFit?: number, offsetY?: number }} [profile]
  * @returns {number}
  */
 function applyCharacterLayout(spine, canvasHeight, bounds, profile = {}) {
   const displayScale = profile.displayScale ?? CHARACTER_DISPLAY_SCALE;
   const heightFit = profile.heightFit ?? 0.98;
+  const offsetY = profile.offsetY ?? CHARACTER_OFFSET_Y;
   const scale = (canvasHeight * heightFit * displayScale) / Math.max(bounds.height, 1);
   spine.scale.set(scale);
   spine.x = -bounds.x * scale;
-  spine.y = canvasHeight - (bounds.y + bounds.height) * scale;
+  spine.y = canvasHeight - (bounds.y + bounds.height) * scale + offsetY;
   return bounds.width * scale;
 }
 

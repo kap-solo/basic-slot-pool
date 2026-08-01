@@ -282,11 +282,14 @@ body {
   margin: 0 auto;
   padding: 0 1rem 0.5rem 0.35rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(9rem, 12rem);
+  --ledger-column-min: 9rem;
+  --ledger-column-max: 12rem;
+  grid-template-columns: minmax(0, 1fr) minmax(var(--ledger-column-min), var(--ledger-column-max));
   gap: 0.65rem;
   align-items: stretch;
   min-width: 0;
   overflow-x: hidden;
+  position: relative;
 }
 
 .suki-stake-shell[data-suki-orientation='landscape'] .game-core-stack {

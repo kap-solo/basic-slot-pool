@@ -17,6 +17,7 @@ const root = join(__dirname, '..');
 const outDir = process.argv[2] ? join(root, process.argv[2]) : join(root, 'dist');
 
 const candidates = [
+  join(root, 'scripts', 'publish-frontend-bundle.mjs'),
   join(root, 'node_modules', '@kap-solo', 'suki-engine', 'tools', 'publish-frontend.mjs'),
   join(root, '..', 'Suki-Engine', 'tools', 'publish-frontend.mjs'),
 ];

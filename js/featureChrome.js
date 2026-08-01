@@ -30,7 +30,7 @@ export function createFeatureChrome({ stageEl }) {
   counter.hidden = true;
   counter.innerHTML = `
     <span class="feature-chrome__counter-value" aria-label="Free spin 1 of 8">
-      <span class="feature-chrome__spin-current">1</span><span class="feature-chrome__spin-sep"> / </span><span class="feature-chrome__spin-total">8</span>
+      <span class="feature-chrome__spin-label">FREE SPIN&nbsp;&nbsp;</span><span class="feature-chrome__spin-current">1</span><span class="feature-chrome__spin-sep"> / </span><span class="feature-chrome__spin-total">8</span>
     </span>
   `;
 

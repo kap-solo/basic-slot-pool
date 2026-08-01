@@ -307,8 +307,27 @@ export async function createPixiSlotBoard(hostEl) {
     const { outerTop, outerH } = cabinetOuterMetrics();
     const topPx = Math.max(0, Math.round(stage.y + outerTop + cabinetBodyRoot.y));
     const heightPx = Math.max(0, Math.round(outerH));
+    const ladderGap = ladderGapFor(layout.ladderBand);
+    const ladderTopPx = Math.max(
+      0,
+      Math.round(stage.y + outerTop - ladderGap - layout.ladderBand),
+    );
     gameCore.style.setProperty('--cabinet-top-offset', `${topPx}px`);
     gameCore.style.setProperty('--cabinet-height', `${heightPx}px`);
+    gameCore.style.setProperty('--cascade-ladder-top', `${ladderTopPx}px`);
+
+    const panel = gameCore.querySelector('#multiplier-panel');
+    if (!panel || panel.offsetWidth <= 0) {
+      gameCore.style.removeProperty('--ledger-panel-left');
+      gameCore.style.removeProperty('--ledger-panel-top');
+      gameCore.style.removeProperty('--ledger-panel-width');
+      return;
+    }
+    const coreRect = gameCore.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    gameCore.style.setProperty('--ledger-panel-left', `${Math.round(panelRect.left - coreRect.left)}px`);
+    gameCore.style.setProperty('--ledger-panel-top', `${Math.round(panelRect.top - coreRect.top)}px`);
+    gameCore.style.setProperty('--ledger-panel-width', `${Math.round(panelRect.width)}px`);
   }
 
   function layoutCabinetBackground() {
