@@ -1,6 +1,6 @@
 /** Autoplay button art — shared SVG graphic on the auto hit-wrap. */
 
-const AUTO_BUTTON_GRAPHIC_SRC = '/assets/ui/auto_button.svg';
+const AUTO_BUTTON_GRAPHIC_SRC = 'assets/ui/auto_button.svg';
 
 /** @type {Promise<string> | null} */
 let graphicSrcPromise = null;

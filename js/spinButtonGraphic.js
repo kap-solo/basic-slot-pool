@@ -1,6 +1,6 @@
 /** Spin button art — shared SVG graphic on the play hit-wrap. */
 
-const SPIN_BUTTON_GRAPHIC_SRC = '/assets/ui/spin_button.svg';
+const SPIN_BUTTON_GRAPHIC_SRC = 'assets/ui/spin_button.svg';
 const SPIN_BUTTON_ROTATION_MS = 750;
 
 /** @type {Promise<string> | null} */

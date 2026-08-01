@@ -1,6 +1,6 @@
 /** Buy bonus button art — shared SVG graphic on the buy hit-wrap. */
 
-const BUY_BUTTON_GRAPHIC_SRC = '/assets/ui/buy_button.svg';
+const BUY_BUTTON_GRAPHIC_SRC = 'assets/ui/buy_button.svg';
 
 /** @type {Promise<string> | null} */
 let graphicSrcPromise = null;
