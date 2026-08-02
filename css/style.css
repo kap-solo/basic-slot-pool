@@ -1012,6 +1012,50 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
 
 /* Background art — mobile breakpoint art; desktop landscape uses authored art. */
 
+/* Mobile — pick visible bg layer from Stake screen id (preview may omit portrait-family). */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-bg-mobile-l,
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-bg-mobile-ms,
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-bg-landscape {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-l'] .suki-bg-mobile-l,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l']
+  .suki-bg-mobile-l,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait']:not([data-suki-portrait-family]):not(
+    [data-suki-screen='mobile-m']
+  ):not([data-suki-screen='mobile-s'])
+  .suki-bg-mobile-l {
+  display: block;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-m'] .suki-bg-mobile-ms,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-s'] .suki-bg-mobile-ms,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms']
+  .suki-bg-mobile-ms {
+  display: block;
+}
+
+/* iOS — bleed bg under safe areas so cover crop matches full-screen Stake shell. */
+.suki-stake-shell[data-bet-ui-variant='mobile'] .suki-bg {
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  right: calc(-1 * env(safe-area-inset-right, 0px));
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: calc(-1 * env(safe-area-inset-left, 0px));
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-l'] {
+  --mobile-bg-art-position: center 6%;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-m'] {
+  --mobile-bg-art-position: center 34%;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-s'] {
+  --mobile-bg-art-position: center 42%;
+}
+
 .suki-bg-mobile-l,
 .suki-bg-mobile-ms,
 .suki-bg-landscape {
@@ -1023,7 +1067,7 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
 .suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l'] .suki-bg-mobile-l,
 .suki-stake-shell[data-suki-orientation='portrait']:not([data-suki-portrait-family]) .suki-bg-mobile-l {
   background-image: url('../assets/mobile_bg_LRG.jpg');
-  background-position: center center;
+  background-position: var(--mobile-bg-art-position, center 6%);
   background-size: cover;
   background-repeat: no-repeat;
 }
@@ -1038,7 +1082,7 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
 .suki-stake-shell[data-suki-screen='mobile-s'] .suki-bg-mobile-ms,
 .suki-stake-shell[data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms'] .suki-bg-mobile-ms {
   background-image: url('../assets/mobile_bg_REG.jpg');
-  background-position: center center;
+  background-position: var(--mobile-bg-art-position, center 34%);
   background-size: cover;
   background-repeat: no-repeat;
 }
@@ -1096,18 +1140,22 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
 
 .suki-bg-mobile-l .suki-bg__layer--base {
   background-image: url('../assets/mobile_bg_LRG.jpg');
+  background-position: var(--mobile-bg-art-position, center 6%);
 }
 
 .suki-bg-mobile-l .suki-bg__layer--bonus {
   background-image: url('../assets/mobile_bg_LRG_bonus.jpg');
+  background-position: var(--mobile-bg-art-position, center 6%);
 }
 
 .suki-bg-mobile-ms .suki-bg__layer--base {
   background-image: url('../assets/mobile_bg_REG.jpg');
+  background-position: var(--mobile-bg-art-position, center 34%);
 }
 
 .suki-bg-mobile-ms .suki-bg__layer--bonus {
   background-image: url('../assets/mobile_bg_REG_bonus.jpg');
+  background-position: var(--mobile-bg-art-position, center 34%);
 }
 
 .suki-bg__layer.is-hidden {

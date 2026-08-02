@@ -57,7 +57,7 @@ export function mountMobileBetUi({
   const actionsStart = document.createElement('div');
   actionsStart.className = 'bet-ui-mobile__actions-start';
 
-  const menuBtn = createIconButton('menu', 'Menu', '☰');
+  const menuBtn = createIconButton('menu', 'Menu', '');
   const autoCluster = document.createElement('div');
   autoCluster.className = 'bet-ui-mobile__auto-cluster';
   const autoBtn = createIconButton('auto', 'Autoplay', '');
