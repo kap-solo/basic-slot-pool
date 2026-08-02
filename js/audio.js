@@ -11,8 +11,8 @@ export const CLUSTER_STEP_SFX = Array.from(
 );
 
 /** Looping background bed — decoded via Web Audio for gapless sample-accurate loops. */
-export const BACKGROUND_MUSIC_URL = 'assets/audio/background_music.wav';
-export const BACKGROUND_MUSIC_BONUS_URL = 'assets/audio/background_music_bonus.wav';
+export const BACKGROUND_MUSIC_URL = 'assets/audio/background_music.mp3';
+export const BACKGROUND_MUSIC_BONUS_URL = 'assets/audio/background_music_bonus.mp3';
 
 /** Crossfade duration — keep in sync with character/background bonus transitions. */
 export const BACKGROUND_MUSIC_CROSSFADE_MS = 900;

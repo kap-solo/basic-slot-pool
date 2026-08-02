@@ -8,10 +8,14 @@ import {
   CLUSTER_SIZE_MULTIPLIERS,
   MAX_CASCADE_LADDER,
   MIN_CLUSTER_SIZE,
+  basePayForSymbol,
+  cascadeMultiplier,
+  clusterSizeMultiplier,
   formatBasePayMult,
-  formatSymbolList,
 } from './cluster.js';
-import { GAME, SYMBOLS, WILD_SYMBOL } from './config.js';
+import { GAME, ORDINARY_SYMBOLS, PREMIUM_SYMBOLS, SCATTER_SYMBOL, SYMBOLS, WILD_SYMBOL } from './config.js';
+import { PERFORMANCE_BLOB_SYMBOL } from './pixi/performanceBlob.js';
+import { appendSymbolIcon, destroyLedgerSpineIcons, mountLedgerSpineIcon } from './pixi/ledgerSpineIcon.js';
 import { formatMult } from './slot.js';
 
 export const GAME_INFO_MODAL_ID = 'game-info';
@@ -68,19 +72,19 @@ function renderHowToPlayContent(target, { t, game }) {
   );
 
   const blobIntro =
-    'Sometimes a green square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green squares are not symbols and have no value. This is a visual effect only; your spin result is already decided before the reels stop.';
+    'Sometimes a green algae square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green algae squares are not symbols and have no value. This is a visual effect only; your spin result is already decided before the reels stop.';
 
   const blobBullets = pickSocialCopy(
     game,
     [
-      'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
-      'Clusters and wins are evaluated only after the green square disappears — not while it is on screen.',
-      'A green square does not change your win or round result. It can hide winning symbols for a moment, so a good spin may look like a miss until the cascade finishes.',
+      'The green algae square holds briefly, then pops. The reel then shows the symbols that apply for that spin.',
+      'Clusters and wins are evaluated only after the green algae square disappears — not while it is on screen.',
+      'A green algae square does not change your win or round result. It can hide winning symbols for a moment, so a good spin may look like a miss until the cascade finishes.',
     ],
     [
-      'The green square holds briefly, then pops. The reel strip falls to show the true symbols underneath.',
-      'Clusters are evaluated only after the green square disappears — not while it is on screen.',
-      'A green square does not change your round result. It can briefly hide matched symbols, so a successful spin may look like a miss until the cascade finishes.',
+      'The green algae square holds briefly, then pops. The reel then shows the symbols that apply for that spin.',
+      'Clusters are evaluated only after the green algae square disappears — not while it is on screen.',
+      'A green algae square does not change your round result. It can briefly hide matched symbols, so a successful spin may look like a miss until the cascade finishes.',
     ],
   );
 
@@ -105,7 +109,7 @@ function renderHowToPlayContent(target, { t, game }) {
 
   const blobTitle = document.createElement('p');
   blobTitle.className = 'suki-game-info-subtitle';
-  blobTitle.textContent = 'Green squares';
+  blobTitle.textContent = 'Green algae squares';
   target.appendChild(blobTitle);
 
   const blobIntroEl = document.createElement('p');
@@ -129,85 +133,303 @@ function renderHowToPlayContent(target, { t, game }) {
 }
 
 /**
+ * @param {HTMLElement} grid
+ * @param {typeof CLUSTER_PAYTABLE[number]} pay
+ */
+function appendPaytableCard(grid, pay) {
+  const card = document.createElement('article');
+  card.className = 'suki-game-info-paytable-card';
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'suki-game-info-paytable-card__icon';
+  appendSymbolIcon(iconWrap, pay.symbolId);
+
+  const content = document.createElement('div');
+  content.className = 'suki-game-info-paytable-card__content';
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'suki-game-info-paytable-card__name';
+  nameEl.textContent = pay.label;
+
+  const clusterEl = document.createElement('span');
+  clusterEl.className = 'suki-game-info-paytable-card__cluster';
+  clusterEl.textContent = `${pay.minSize}+ connected`;
+
+  const multEl = document.createElement('span');
+  multEl.className = 'suki-game-info-paytable-card__mult';
+  multEl.textContent = formatBasePayMult(pay.multiplier);
+
+  content.append(nameEl, clusterEl, multEl);
+  card.append(iconWrap, content);
+  grid.appendChild(card);
+}
+
+/**
+ * @param {HTMLElement} grid
+ * @param {{ symbolId: string, description: string }} feature
+ */
+function appendPaytableFeatureCard(grid, { symbolId, description }) {
+  const card = document.createElement('article');
+  card.className = 'suki-game-info-paytable-card suki-game-info-paytable-card--feature';
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'suki-game-info-paytable-card__icon';
+  appendSymbolIcon(iconWrap, symbolId);
+
+  const content = document.createElement('div');
+  content.className = 'suki-game-info-paytable-card__content';
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'suki-game-info-paytable-card__name';
+  nameEl.textContent = SYMBOLS[symbolId]?.label ?? symbolId;
+
+  const descEl = document.createElement('span');
+  descEl.className = 'suki-game-info-paytable-card__desc';
+  descEl.textContent = description;
+
+  content.append(nameEl, descEl);
+  card.append(iconWrap, content);
+  grid.appendChild(card);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {object | null | undefined} game
+ */
+function appendGreenSquarePaytableIcon(parent, game) {
+  const label = pickSocialCopy(game, 'Green Algae Square', 'Green Algae Square');
+
+  function mountBlobSpriteFallback() {
+    parent.replaceChildren();
+    const sprite = document.createElement('span');
+    sprite.className = 'suki-game-info-paytable-card__blob-sprite';
+    sprite.setAttribute('role', 'img');
+    sprite.setAttribute('aria-label', label);
+    parent.appendChild(sprite);
+  }
+
+  const host = document.createElement('span');
+  host.className = 'ledger-symbol-spine';
+  host.setAttribute('role', 'img');
+  host.setAttribute('aria-label', label);
+  parent.appendChild(host);
+
+  void mountLedgerSpineIcon(host, PERFORMANCE_BLOB_SYMBOL).then((ok) => {
+    if (ok) return;
+    mountBlobSpriteFallback();
+  });
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {string} title
+ * @param {typeof CLUSTER_PAYTABLE[number][]} pays
+ */
+function appendPaytableSection(parent, title, pays) {
+  const section = document.createElement('section');
+  section.className = 'suki-game-info-paytable-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'suki-game-info-paytable-section__title';
+  heading.textContent = title;
+
+  const grid = document.createElement('div');
+  grid.className = 'suki-game-info-paytable-grid';
+  for (const pay of pays) appendPaytableCard(grid, pay);
+
+  section.append(heading, grid);
+  parent.appendChild(section);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {object | null | undefined} game
+ */
+function appendPaytableFeatureSection(parent, game) {
+  const section = document.createElement('section');
+  section.className = 'suki-game-info-paytable-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'suki-game-info-paytable-section__title';
+  heading.textContent = pickSocialCopy(game, 'Special symbols', 'Special symbols');
+
+  const grid = document.createElement('div');
+  grid.className = 'suki-game-info-paytable-grid suki-game-info-paytable-grid--features';
+
+  appendPaytableFeatureCard(grid, {
+    symbolId: WILD_SYMBOL,
+    description: pickSocialCopy(
+      game,
+      'Substitutes for paying symbols in clusters. Does not pay on its own.',
+      'Substitutes for qualifying symbols in clusters. Cannot form a cluster on its own.',
+    ),
+  });
+  appendPaytableFeatureCard(grid, {
+    symbolId: SCATTER_SYMBOL,
+    description: pickSocialCopy(
+      game,
+      '3 or more anywhere on the board trigger free spins.',
+      '3 or more anywhere on the board trigger free spins.',
+    ),
+  });
+
+  section.append(heading, grid);
+  parent.appendChild(section);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {object | null | undefined} game
+ */
+function appendPaytableGreenSquareSection(parent, game) {
+  const section = document.createElement('section');
+  section.className = 'suki-game-info-paytable-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'suki-game-info-paytable-section__title';
+  heading.textContent = pickSocialCopy(game, 'Green algae square', 'Green algae square');
+
+  const grid = document.createElement('div');
+  grid.className = 'suki-game-info-paytable-grid suki-game-info-paytable-grid--features';
+
+  const card = document.createElement('article');
+  card.className = 'suki-game-info-paytable-card suki-game-info-paytable-card--info';
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = 'suki-game-info-paytable-card__icon';
+  appendGreenSquarePaytableIcon(iconWrap, game);
+
+  const content = document.createElement('div');
+  content.className = 'suki-game-info-paytable-card__content';
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'suki-game-info-paytable-card__name';
+  nameEl.textContent = pickSocialCopy(game, 'Green Algae Square', 'Green Algae Square');
+
+  const valueEl = document.createElement('span');
+  valueEl.className = 'suki-game-info-paytable-card__value';
+  valueEl.textContent = pickSocialCopy(game, 'No payout value', 'No payout value');
+
+  const descEl = document.createElement('span');
+  descEl.className = 'suki-game-info-paytable-card__desc';
+  descEl.textContent = pickSocialCopy(
+    game,
+    'Not a paying symbol — a visual effect only. It can land on the bottom row of a reel (sometimes two stacked in one column). The green algae square holds briefly, then pops; the reel then shows the symbols that apply for that spin. Clusters and wins are evaluated only after it disappears. It does not change your win or round result.',
+    'Not a qualifying symbol — a visual effect only. It can land on the bottom row of a reel (sometimes two stacked in one column). The green algae square holds briefly, then pops; the reel then shows the symbols that apply for that spin. Clusters are evaluated only after it disappears. It does not change your round result.',
+  );
+
+  content.append(nameEl, valueEl, descEl);
+  card.append(iconWrap, content);
+  grid.appendChild(card);
+
+  section.append(heading, grid);
+  parent.appendChild(section);
+}
+
+/**
  * @param {object} ctx
  * @param {(key: string, vars?: Record<string, string | number>) => string} ctx.t
  * @param {object | null | undefined} ctx.game
  * @param {HTMLElement} target
  */
 function renderPaytableContent(target, { t, game }) {
-  const wildLabel = SYMBOLS[WILD_SYMBOL].label;
-  const wildGlyph = SYMBOLS[WILD_SYMBOL].glyph;
+  const payById = Object.fromEntries(CLUSTER_PAYTABLE.map((pay) => [pay.symbolId, pay]));
+  /** @param {string[]} ids */
+  const paysForIds = (ids) => ids.map((id) => payById[id]).filter(Boolean);
 
-  const tableHeaders = pickSocialCopy(
+  const root = document.createElement('div');
+  root.className = 'suki-game-info-paytable';
+
+  const intro = document.createElement('p');
+  intro.className = 'suki-game-info-paytable-intro';
+  intro.textContent = pickSocialCopy(
     game,
-    ['Cluster win', 'Base multiplier'],
-    ['Symbol group', 'Base multiplier'],
+    `Base multiplier at minimum cluster size (${MIN_CLUSTER_SIZE}+ connected symbols).`,
+    `Base multiplier at minimum cluster size (${MIN_CLUSTER_SIZE}+ connected symbols).`,
   );
+  root.appendChild(intro);
 
-  const table = document.createElement('table');
-  table.className = 'suki-game-info-table';
+  appendPaytableSection(
+    root,
+    pickSocialCopy(game, 'Ordinary symbols', 'Ordinary symbols'),
+    paysForIds(ORDINARY_SYMBOLS),
+  );
+  appendPaytableSection(
+    root,
+    pickSocialCopy(game, 'Premium symbols', 'Premium symbols'),
+    paysForIds(PREMIUM_SYMBOLS),
+  );
+  appendPaytableFeatureSection(root, game);
+  appendPaytableGreenSquareSection(root, game);
 
-  const thead = document.createElement('thead');
-  const headRow = document.createElement('tr');
-  for (const label of tableHeaders) {
-    const th = document.createElement('th');
-    th.textContent = label;
-    headRow.appendChild(th);
-  }
-  thead.appendChild(headRow);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  for (const pay of CLUSTER_PAYTABLE) {
-    const tr = document.createElement('tr');
-    const label = `${pay.label} (${pay.minSize}+ connected): ${formatSymbolList(pay.symbols)}`;
-    const mult = formatBasePayMult(pay.multiplier);
-    for (const cell of [label, mult]) {
-      const td = document.createElement('td');
-      td.textContent = cell;
-      tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-  target.appendChild(table);
+  const rules = document.createElement('div');
+  rules.className = 'suki-game-info-paytable-rules';
 
   const sizeTitle = document.createElement('p');
-  sizeTitle.className = 'suki-game-info-note suki-game-info-note--emphasis';
+  sizeTitle.className = 'suki-game-info-paytable-rules__title';
   sizeTitle.textContent = pickSocialCopy(
     game,
-    'Cluster size multiplier (applied to base pay):',
-    'Cluster size multiplier (applied to the base value above):',
+    'Cluster size multiplier (applied to base pay)',
+    'Cluster size multiplier (applied to the base value above)',
   );
-  target.appendChild(sizeTitle);
+  rules.appendChild(sizeTitle);
 
-  const sizeList = document.createElement('p');
-  sizeList.className = 'suki-game-info-footnote';
-  sizeList.textContent = Object.entries(CLUSTER_SIZE_MULTIPLIERS)
-    .map(([size, mult]) => `${size} symbols = ×${mult}`)
-    .join(' · ');
-  target.appendChild(sizeList);
+  const chipRow = document.createElement('div');
+  chipRow.className = 'suki-game-info-paytable-chips';
+  for (const [size, mult] of Object.entries(CLUSTER_SIZE_MULTIPLIERS)) {
+    const chip = document.createElement('span');
+    chip.className = 'suki-game-info-paytable-chip';
+    chip.textContent = `${size} = ×${mult}`;
+    chipRow.appendChild(chip);
+  }
+  rules.appendChild(chipRow);
 
-  const ladder = document.createElement('p');
-  ladder.className = 'suki-game-info-note suki-game-info-note--emphasis';
-  ladder.textContent = pickSocialCopy(
+  const maxClusterSize = GAME.reels * GAME.rows;
+  const size12Mult = CLUSTER_SIZE_MULTIPLIERS[12];
+  const size13Mult = clusterSizeMultiplier(13);
+  const maxClusterMult = clusterSizeMultiplier(maxClusterSize);
+
+  const largeClusterNote = document.createElement('p');
+  largeClusterNote.className = 'suki-game-info-paytable-rules__note';
+  largeClusterNote.textContent = pickSocialCopy(
     game,
-    `Cascade ladder: 1st win ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step payout = base × cluster size mult × ladder. Each symbol has its own base pay (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} on a $1 bet at minimum cluster size.`,
-    `Cascade ladder: 1st qualifying cluster ×1 … ${MAX_CASCADE_LADDER}th+ ×${MAX_CASCADE_LADDER}. Step amount = base × cluster size mult × ladder. Each symbol has its own base multiplier (see table above) — e.g. cherry from ${formatBasePayMult(0.08)}, crown from ${formatBasePayMult(6)} at minimum cluster size on a $1 round.`,
+    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected paying symbols qualify; smaller groups pay nothing. The list above covers sizes ${MIN_CLUSTER_SIZE}–12. Clusters of 13–${maxClusterSize} symbols use a size multiplier of ×${size12Mult} at 12 symbols, then +×4 for each additional symbol (e.g. 13 symbols = ×${size13Mult}; a full-board cluster of ${maxClusterSize} = ×${maxClusterMult}). Step payout = base multiplier × cluster size multiplier × cascade ladder multiplier; each step and the round total are rounded to the nearest $0.01 per $1 bet. Only the amount returned by the Remote Game Server is credited.`,
+    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected qualifying symbols count; smaller groups award nothing. The list above covers sizes ${MIN_CLUSTER_SIZE}–12. Clusters of 13–${maxClusterSize} symbols use a size multiplier of ×${size12Mult} at 12 symbols, then +×4 for each additional symbol (e.g. 13 symbols = ×${size13Mult}; a full-board cluster of ${maxClusterSize} = ×${maxClusterMult}). Step amount = base multiplier × cluster size multiplier × cascade ladder multiplier; each step and the round total are rounded to the nearest 0.01× on a 1× round. Only the amount returned by the Remote Game Server applies.`,
   );
-  target.appendChild(ladder);
+  rules.appendChild(largeClusterNote);
 
-  const wildNote = document.createElement('p');
-  wildNote.className = 'suki-game-info-note suki-game-info-note--emphasis';
-  wildNote.textContent = pickSocialCopy(
+  const cascadeTitle = document.createElement('p');
+  cascadeTitle.className = 'suki-game-info-paytable-rules__title suki-game-info-paytable-rules__title--spaced';
+  cascadeTitle.textContent = pickSocialCopy(
     game,
-    `${wildGlyph} ${wildLabel} substitutes for paying symbols in clusters.`,
-    `${wildGlyph} ${wildLabel} substitutes for qualifying symbols in clusters.`,
+    'Cascade multiplier (each tumble after a win)',
+    'Cascade multiplier (each tumble after a qualifying cluster)',
   );
-  target.appendChild(wildNote);
+  rules.appendChild(cascadeTitle);
+
+  const cascadeChipRow = document.createElement('div');
+  cascadeChipRow.className = 'suki-game-info-paytable-chips';
+  for (let step = 1; step <= MAX_CASCADE_LADDER; step += 1) {
+    const chip = document.createElement('span');
+    chip.className = 'suki-game-info-paytable-chip';
+    chip.textContent = `${step} = ×${cascadeMultiplier(step)}`;
+    cascadeChipRow.appendChild(chip);
+  }
+  rules.appendChild(cascadeChipRow);
+
+  const lowPayExample = formatBasePayMult(basePayForSymbol('CH'));
+  const highPayExample = formatBasePayMult(basePayForSymbol('CR'));
+  const cascadeNote = document.createElement('p');
+  cascadeNote.className = 'suki-game-info-paytable-rules__note';
+  cascadeNote.textContent = pickSocialCopy(
+    game,
+    `Each time winning symbols are removed and new ones tumble in counts as the next cascade step — the first win in a spin uses ×1, the second ×2, and so on up to ×${MAX_CASCADE_LADDER} (further cascades stay at ×${MAX_CASCADE_LADDER}). If several clusters win on the same step, they all use that step’s multiplier together. Step payout = base multiplier × cluster size multiplier × cascade multiplier (e.g. ${SYMBOLS.CH.label} from ${lowPayExample}, ${SYMBOLS.CR.label} from ${highPayExample} at minimum cluster size on a $1 bet).`,
+    `Each time matched symbols are removed and new ones tumble in counts as the next cascade step — the first qualifying cluster in a round uses ×1, the second ×2, and so on up to ×${MAX_CASCADE_LADDER} (further cascades stay at ×${MAX_CASCADE_LADDER}). If several clusters qualify on the same step, they all use that step’s multiplier together. Step amount = base multiplier × cluster size multiplier × cascade multiplier (e.g. ${SYMBOLS.CH.label} from ${lowPayExample}, ${SYMBOLS.CR.label} from ${highPayExample} at minimum cluster size on a $1 round).`,
+  );
+  rules.appendChild(cascadeNote);
 
   const info = document.createElement('div');
-  info.className = 'suki-game-info-footnote-block';
+  info.className = 'suki-game-info-footnote-block suki-game-info-paytable-rules__footnotes';
   if (game?.controls?.showRtp) {
     const rtp = document.createElement('p');
     rtp.textContent = `Target RTP ${GAME.targetRtpPercent}%`;
@@ -225,7 +447,9 @@ function renderPaytableContent(target, { t, game }) {
   );
   info.appendChild(clusterRounding);
   appendGeneralDisclaimer(info, t);
-  target.appendChild(info);
+  rules.appendChild(info);
+  root.appendChild(rules);
+  target.appendChild(root);
 }
 
 /**
@@ -273,6 +497,8 @@ function renderGameInfoModal(body, ctx, initialTab) {
     payTab.setAttribute('aria-selected', !isHow ? 'true' : 'false');
     panel.id = isHow ? 'suki-game-info-panel-how' : 'suki-game-info-panel-pay';
     panel.setAttribute('aria-labelledby', isHow ? howTab.id : payTab.id);
+    panel.classList.toggle('suki-game-info-panel--paytable', !isHow);
+    destroyLedgerSpineIcons(panel);
     panel.innerHTML = '';
     if (isHow) renderHowToPlayContent(panel, ctx);
     else renderPaytableContent(panel, ctx);

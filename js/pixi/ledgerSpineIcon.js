@@ -100,17 +100,11 @@ export function destroyLedgerSpineIcons(root = document) {
 }
 
 /**
- * Append "size × symbol" into a ledger cluster cell (Spine when available, else image/glyph).
+ * Append a single symbol icon (Spine when available, else image/glyph).
  * @param {HTMLElement} parent
- * @param {number} size
  * @param {string} symbolId
  */
-export function appendLedgerClusterLabel(parent, size, symbolId) {
-  const count = document.createElement('span');
-  count.className = 'ledger-entry-count';
-  count.textContent = `${size} ×`;
-  parent.appendChild(count);
-
+export function appendSymbolIcon(parent, symbolId) {
   if (registry?.has(symbolId)) {
     const host = document.createElement('span');
     host.className = 'ledger-symbol-spine';
@@ -120,24 +114,19 @@ export function appendLedgerClusterLabel(parent, size, symbolId) {
     void mountLedgerSpineIcon(host, symbolId).then((ok) => {
       if (ok) return;
       host.remove();
-      const iconSrc = symbolLedgerIcon(symbolId);
-      if (iconSrc) {
-        const img = document.createElement('img');
-        img.className = 'ledger-symbol-icon';
-        img.src = iconSrc;
-        img.alt = symbolLabel(symbolId);
-        img.decoding = 'async';
-        parent.appendChild(img);
-        return;
-      }
-      const glyph = document.createElement('span');
-      glyph.className = 'ledger-symbol-glyph';
-      glyph.textContent = symbolGlyph(symbolId);
-      parent.appendChild(glyph);
+      appendSymbolIconFallback(parent, symbolId);
     });
     return;
   }
 
+  appendSymbolIconFallback(parent, symbolId);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {string} symbolId
+ */
+function appendSymbolIconFallback(parent, symbolId) {
   const iconSrc = symbolLedgerIcon(symbolId);
   if (iconSrc) {
     const img = document.createElement('img');
@@ -153,4 +142,18 @@ export function appendLedgerClusterLabel(parent, size, symbolId) {
   glyph.className = 'ledger-symbol-glyph';
   glyph.textContent = symbolGlyph(symbolId);
   parent.appendChild(glyph);
+}
+
+/**
+ * Append "size × symbol" into a ledger cluster cell (Spine when available, else image/glyph).
+ * @param {HTMLElement} parent
+ * @param {number} size
+ * @param {string} symbolId
+ */
+export function appendLedgerClusterLabel(parent, size, symbolId) {
+  const count = document.createElement('span');
+  count.className = 'ledger-entry-count';
+  count.textContent = `${size} ×`;
+  parent.appendChild(count);
+  appendSymbolIcon(parent, symbolId);
 }

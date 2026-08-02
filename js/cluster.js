@@ -95,6 +95,11 @@ export function clusterSizeMultiplier(size) {
   return 1;
 }
 
+/** @param {number} cascadeIndex 1-based cascade step — matches math/paytable.mjs */
+export function cascadeMultiplier(cascadeIndex) {
+  return Math.min(Math.max(1, cascadeIndex), MAX_CASCADE_LADDER);
+}
+
 /** @param {string} symbolId @param {number} size */
 export function clusterBaseMultiplier(symbolId, size) {
   const base = basePayForSymbol(symbolId);
@@ -136,5 +141,5 @@ export function symbolTierLabel(symbolId) {
 
 /** @param {string[]} symbolIds */
 export function formatSymbolList(symbolIds) {
-  return symbolIds.map((id) => `${SYMBOLS[id]?.glyph ?? id} ${SYMBOLS[id]?.label ?? id}`).join(', ');
+  return symbolIds.map((id) => SYMBOLS[id]?.label ?? id).join(', ');
 }

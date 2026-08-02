@@ -3,7 +3,13 @@
  */
 
 import { Container, Text } from 'pixi.js';
-import { easeOutCubic, sleep } from './easing.js';
+import { easeOutCubic } from './easing.js';
+
+const POPUP_FADE_IN_RATIO = 0.12;
+const POPUP_FADE_OUT_START_RATIO = 0.72;
+const POPUP_SCALE_IN_RATIO = 0.18;
+const POPUP_DRIFT_RATIO = 0.85;
+const POPUP_COUNT_UP_RATIO = 0.45;
 
 /**
  * @typedef {object} WinPopupContent
@@ -137,35 +143,46 @@ export async function playWinPopups(layer, popups, { cellW, cellH, durationMs })
     return built;
   });
 
-  const steps = 14;
-  const stepMs = Math.max(16, Math.round(durationMs / steps));
-  const countMs = Math.min(Math.round(durationMs * 0.58), 380);
+  const countMs = Math.round(durationMs * POPUP_COUNT_UP_RATIO);
 
-  for (let i = 0; i <= steps; i += 1) {
-    const t = i / steps;
-    const elapsedMs = t * durationMs;
-    let alpha = 1;
-    if (t < 0.12) alpha = t / 0.12;
-    else if (t > 0.72) alpha = Math.max(0, (1 - t) / 0.28);
+  await new Promise((resolve) => {
+    const start = performance.now();
 
-    const drift = driftY * Math.min(1, t / 0.85);
-    const scale = 0.8 + 0.2 * Math.min(1, t / 0.18);
-
-    for (const entry of entries) {
-      if (entry.animateCount) {
-        const countT = countMs > 0 ? easeOutCubic(Math.min(1, elapsedMs / countMs)) : 1;
-        const cents = Math.round(entry.centsFrom + (entry.centsTo - entry.centsFrom) * countT);
-        entry.amountText.text = entry.formatTick(cents / 100);
+    function frame(now) {
+      const elapsedMs = now - start;
+      const t = Math.min(1, elapsedMs / durationMs);
+      let alpha = 1;
+      if (t < POPUP_FADE_IN_RATIO) {
+        alpha = easeOutCubic(t / POPUP_FADE_IN_RATIO);
+      } else if (t > POPUP_FADE_OUT_START_RATIO) {
+        alpha = easeOutCubic(Math.max(0, (1 - t) / (1 - POPUP_FADE_OUT_START_RATIO)));
       }
 
-      entry.stack.alpha = alpha;
-      entry.stack.x = entry.baseX;
-      entry.stack.y = entry.baseY + drift;
-      entry.stack.scale.set(scale);
+      const drift = driftY * easeOutCubic(Math.min(1, t / POPUP_DRIFT_RATIO));
+      const scale = 0.8 + 0.2 * easeOutCubic(Math.min(1, t / POPUP_SCALE_IN_RATIO));
+
+      for (const entry of entries) {
+        if (entry.animateCount) {
+          const countT = countMs > 0 ? easeOutCubic(Math.min(1, elapsedMs / countMs)) : 1;
+          const cents = Math.round(entry.centsFrom + (entry.centsTo - entry.centsFrom) * countT);
+          entry.amountText.text = entry.formatTick(cents / 100);
+        }
+
+        entry.stack.alpha = alpha;
+        entry.stack.x = entry.baseX;
+        entry.stack.y = entry.baseY + drift;
+        entry.stack.scale.set(scale);
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        resolve();
+      }
     }
 
-    if (i < steps) await sleep(stepMs);
-  }
+    requestAnimationFrame(frame);
+  });
 
   for (const entry of entries) {
     if (entry.animateCount) {

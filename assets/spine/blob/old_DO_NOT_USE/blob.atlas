@@ -1,7 +1,0 @@
-blob.png
-size:256,256
-filter:Linear,Linear
-pma:true
-blob
-bounds:2,2,252,252
-offsets:2,2,256,256

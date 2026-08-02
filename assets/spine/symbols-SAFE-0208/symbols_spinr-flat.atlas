@@ -1,6 +1,7 @@
-symbols_spinr-flat.webp
+symbols_spinr-flat.png
 size:1970,690
 filter:Linear,Linear
+pma:true
 A
 bounds:0,435,255,256
 offsets:1,0,256,256

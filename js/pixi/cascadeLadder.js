@@ -11,6 +11,9 @@ import { sleep } from './easing.js';
 /** Live/active → default crossfade at cascade end (ms). */
 export const CASCADE_LADDER_DEFAULT_CROSSFADE_MS = 1500;
 
+/** idle/default → alert when a cascade step lights up (ms). */
+export const CASCADE_LADDER_ACTIVE_CROSSFADE_MS = 220;
+
 /** Extra cover so flush neighbours don't show 1px gaps at fractional scale. */
 const CASCADE_LADDER_SEAM_BLEED_PX = 1;
 
@@ -104,17 +107,24 @@ function spineAnimHasKeyframes(data, name) {
   return Boolean(data.findAnimation(name));
 }
 
-/** Alert/live snaps use 0 mix; live → default uses a long blend at cascade end. */
+/** Live snaps use 0 mix; step alert + round-end use eased blends. */
 /** @param {Spine} spine @param {number} step */
 function configureLadderSpineMix(spine, step) {
   const tracks = cascadeLadderStepTracks(step);
   const data = spine.state.data;
   const skeletonData = spine.skeleton.data;
   const defaultMixSec = CASCADE_LADDER_DEFAULT_CROSSFADE_MS / 1000;
+  const activeMixSec = CASCADE_LADDER_ACTIVE_CROSSFADE_MS / 1000;
   for (const from of [tracks.live, tracks.active]) {
     if (!from || from === tracks.idle) continue;
     if (spineAnimHasKeyframes(skeletonData, from) && spineAnimHasKeyframes(skeletonData, tracks.idle)) {
       data.setMix(from, tracks.idle, defaultMixSec);
+    }
+  }
+  for (const from of [tracks.idle, tracks.live]) {
+    if (!from || !tracks.active || from === tracks.active) continue;
+    if (spineAnimHasKeyframes(skeletonData, from) && spineAnimHasKeyframes(skeletonData, tracks.active)) {
+      data.setMix(from, tracks.active, activeMixSec);
     }
   }
   if (

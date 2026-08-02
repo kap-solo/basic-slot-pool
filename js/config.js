@@ -47,14 +47,14 @@ export const BUY_MODE_COST = GAME_MODES.find((mode) => mode.name === BB_MODE)?.c
  * @type {Record<string, { label: string, glyph: string, tier: 'ordinary' | 'premium' | 'wild' | 'scatter' }>}
  */
 export const SYMBOLS = {
-  CH: { label: 'Cherry', glyph: '🍒', tier: 'ordinary' },
-  LM: { label: 'Lemon', glyph: '🍋', tier: 'ordinary' },
-  OR: { label: 'Orange', glyph: '🍊', tier: 'ordinary' },
-  GR: { label: 'Grape', glyph: '🍇', tier: 'ordinary' },
-  ST: { label: 'Star', glyph: '⭐', tier: 'premium' },
-  S7: { label: 'Seven', glyph: '7️⃣', tier: 'premium' },
-  DM: { label: 'Diamond', glyph: '💎', tier: 'premium' },
-  CR: { label: 'Crown', glyph: '👑', tier: 'premium' },
+  CH: { label: 'Paint Chip', glyph: '🍒', tier: 'ordinary' },
+  LM: { label: 'No Entry Sign', glyph: '🍋', tier: 'ordinary' },
+  OR: { label: 'Algae Bottle', glyph: '🍊', tier: 'ordinary' },
+  GR: { label: 'Safety Vest', glyph: '🍇', tier: 'ordinary' },
+  ST: { label: 'Handcuffs', glyph: '⭐', tier: 'premium' },
+  S7: { label: 'Paintbrush', glyph: '7️⃣', tier: 'premium' },
+  DM: { label: 'Box Cutter', glyph: '💎', tier: 'premium' },
+  CR: { label: 'Contract', glyph: '👑', tier: 'premium' },
   WD: { label: 'Wild', glyph: '✦', tier: 'wild' },
   SC: { label: 'Scatter', glyph: '☆', tier: 'scatter' },
 };

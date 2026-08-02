@@ -14,6 +14,7 @@
   --bet-ui-mobile-spin-step-gap: 0.3rem;
   --bet-ui-mobile-auto-spin-gap: 0.35rem;
   --bet-ui-mobile-menu-size: 2.4rem;
+  --bet-ui-mobile-burger-size: 1.92rem;
   --bet-ui-mobile-actions-height: 5.25rem;
   --bet-ui-mobile-info-height: 2.325rem;
   --bet-ui-mobile-info-gap: 0.4rem;
@@ -32,6 +33,7 @@
   --bet-ui-mobile-action-step-size: 2.05rem;
   --bet-ui-mobile-auto-size: 2.05rem;
   --bet-ui-mobile-menu-size: 2.2rem;
+  --bet-ui-mobile-burger-size: 1.76rem;
   --bet-ui-mobile-info-gap: 0.28rem;
 }
 
@@ -40,6 +42,7 @@
   --bet-ui-mobile-action-step-size: 1.85rem;
   --bet-ui-mobile-auto-size: 1.85rem;
   --bet-ui-mobile-menu-size: 2rem;
+  --bet-ui-mobile-burger-size: 1.6rem;
   --bet-ui-mobile-spin-step-gap: 0.22rem;
   --bet-ui-mobile-auto-spin-gap: 0.28rem;
 }
@@ -286,16 +289,20 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.bet-ui-mobile__icon-btn--menu {
-  width: var(--bet-ui-mobile-menu-size, 2.4rem);
-  height: var(--bet-ui-mobile-menu-size, 2.4rem);
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__icon-btn--menu {
+  width: var(--bet-ui-mobile-burger-size, 1.92rem);
+  height: var(--bet-ui-mobile-burger-size, 1.92rem);
+  min-width: var(--bet-ui-mobile-burger-size, 1.92rem);
+  min-height: var(--bet-ui-mobile-burger-size, 1.92rem);
+  max-width: var(--bet-ui-mobile-burger-size, 1.92rem);
+  max-height: var(--bet-ui-mobile-burger-size, 1.92rem);
   flex-shrink: 0;
 }
 
 /* CSS bars — unicode ☰ renders tiny/off-center in iOS Stake webview. */
-.bet-ui-mobile__icon-btn--menu .bet-ui-mobile__icon {
+.suki-stake-shell[data-bet-ui-variant='mobile'] .bet-ui-mobile__icon-btn--menu .bet-ui-mobile__icon {
   display: block;
-  width: 54%;
+  width: 50%;
   height: 2px;
   font-size: 0;
   line-height: 0;
@@ -304,8 +311,8 @@
   background: currentColor;
   border-radius: 1px;
   box-shadow:
-    0 calc(var(--bet-ui-mobile-menu-size, 2.4rem) * -0.22) 0 currentColor,
-    0 calc(var(--bet-ui-mobile-menu-size, 2.4rem) * 0.22) 0 currentColor;
+    0 calc(var(--bet-ui-mobile-burger-size, 1.92rem) * -0.2) 0 currentColor,
+    0 calc(var(--bet-ui-mobile-burger-size, 1.92rem) * 0.2) 0 currentColor;
 }
 
 .bet-ui-mobile__icon-btn--auto {

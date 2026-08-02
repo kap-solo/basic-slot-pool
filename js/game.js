@@ -430,11 +430,12 @@ async function runClusterWinIncrements(amounts, { delayMs = 0 } = {}) {
   }
 }
 
-/** Wait until board win popups are visible before ticking the HUD win stat. */
+/** Wait until board win popups finish fade-in before ticking the HUD win stat. */
 function clusterHudWinDelayMs({ firstCascade, speed = 1 }) {
   const leadMs = firstCascade ? TIMING.firstCascadeLeadMs : TIMING.cascadeLeadMs;
-  const popupRevealMs = TIMING.cascadeDimInMs + TIMING.cascadeWinPopupMs * 0.12;
-  return Math.round((leadMs + popupRevealMs) / speed);
+  const popupStartMs = TIMING.cascadeDimInMs * 0.5;
+  const popupFadeInMs = TIMING.cascadeWinPopupMs * 0.12;
+  return Math.round((leadMs + popupStartMs + popupFadeInMs) / speed);
 }
 
 function finalizeWinDisplay(payout) {
