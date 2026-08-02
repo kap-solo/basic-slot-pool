@@ -27,6 +27,7 @@ import {
   endRound,
   requestReplay,
   roundPayoutMultiplier,
+  resolveReplayBaseBetDisplay,
   registerBuyBonusConfirm,
   startNewRgsSession,
   createAutoplayController,
@@ -1957,8 +1958,8 @@ function syncReplayBetChrome(active = replayMode) {
 }
 
 function applyReplayRoundBet(round) {
-  const baseBetApi = game.betModes.baseBetApiFromPlayAmount(round.amount, round.mode);
-  bet = snapBetToLevel(apiToDisplay(baseBetApi));
+  // Exact replay wager — do not snapBetToLevel; Stake replays may exceed auth bet ladder.
+  bet = resolveReplayBaseBetDisplay(round, game.betModes);
 }
 
 function replayModeLabelForRound(round) {
@@ -2035,6 +2036,7 @@ function setReplayModeUi() {
 }
 
 async function playReplayAnimation(round) {
+  applyReplayRoundBet(round);
   if (!slotBoard) {
     await initSlotStage();
     characterUi?.relayout?.();
