@@ -45,8 +45,8 @@ export const TIMING = {
   /** Non-win symbols dim/undim during cluster highlight. */
   cascadeDimInMs: 300,
   cascadeDimOutMs: 240,
-  /** Win amount label — lingers a little longer than the highlight flash. */
-  cascadeWinPopupMs: 560,
+  /** Win amount + cascade multiplier labels on the board after a cluster win. */
+  cascadeWinPopupMs: 1120,
   /** Cascade ladder live → default crossfade after the round settles. */
   cascadeLadderFadeMs: 1500,
   cascadePopMs: 195,
