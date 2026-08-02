@@ -125,32 +125,32 @@
 .suki-game-info-paytable-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.7rem;
-  padding: 0.65rem 0.7rem;
+  gap: 0.4rem;
+  padding: 0.55rem 0.5rem;
   border: 1px solid #243041;
   border-radius: 0.55rem;
   background: linear-gradient(180deg, #171c26 0%, #12161e 100%);
 }
 
 .suki-game-info-paytable-card__icon {
-  flex: 0 0 4rem;
+  flex: 0 0 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: 3rem;
+  height: 3rem;
 }
 
 .suki-game-info-paytable-card__icon .ledger-symbol-spine,
 .suki-game-info-paytable-card__icon .ledger-symbol-icon {
-  width: 4rem !important;
-  height: 4rem !important;
-  min-width: 4rem !important;
-  max-height: 4rem !important;
+  width: 3rem !important;
+  height: 3rem !important;
+  min-width: 3rem !important;
+  max-height: 3rem !important;
 }
 
 .suki-game-info-paytable-card__icon .ledger-symbol-glyph {
-  font-size: 2.4rem;
+  font-size: 1.85rem;
   line-height: 1;
 }
 
@@ -172,6 +172,7 @@
 .suki-game-info-paytable-card__cluster {
   font-size: 0.72rem;
   color: #8b97a8;
+  white-space: nowrap;
 }
 
 .suki-game-info-paytable-card__mult {
@@ -196,8 +197,8 @@
 
 .suki-game-info-paytable-card__image,
 .suki-game-info-paytable-card__blob-sprite {
-  width: 4rem;
-  height: 4rem;
+  width: 3rem;
+  height: 3rem;
 }
 
 .suki-game-info-paytable-card__image {
@@ -208,8 +209,8 @@
 .suki-game-info-paytable-card__blob-sprite {
   display: block;
   background: url('../assets/spine/blob/blob.png') no-repeat;
-  background-size: calc(1024 / 238 * 4rem) calc(529 / 251 * 4rem);
-  background-position: 0 calc(-278 / 251 * 4rem);
+  background-size: calc(1024 / 238 * 3rem) calc(529 / 251 * 3rem);
+  background-position: 0 calc(-278 / 251 * 3rem);
 }
 
 .suki-game-info-paytable-card__value {

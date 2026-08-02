@@ -160,6 +160,50 @@ function renderHowToPlayContent(target, { t, game }) {
     freeSpinsUl.appendChild(li);
   }
   target.appendChild(freeSpinsUl);
+
+  const controlsTitle = document.createElement('p');
+  controlsTitle.className = 'suki-game-info-subtitle';
+  controlsTitle.textContent = 'Controls';
+  target.appendChild(controlsTitle);
+
+  const buyControlLabel = pickSocialCopy(
+    game,
+    `Buy ${BUY_MODE_COST}×`,
+    'Get Bonus',
+  );
+
+  const paytableLabel = t('paytableTitle');
+
+  const controlsBullets = pickSocialCopy(
+    game,
+    [
+      `Use + / − or tap the ${t('bet').toLowerCase()} amount to change your ${t('bet').toLowerCase()} before spinning.`,
+      `Press Spin to play one round at your selected ${t('bet').toLowerCase()} and active game mode cost (see ${paytableLabel} → Game modes).`,
+      `${buyControlLabel} starts the bonus feature immediately at ${BUY_MODE_COST}× your selected ${t('bet').toLowerCase()} (see ${paytableLabel}).`,
+      `Open the menu (☰) for How to Play, ${paytableLabel}, and Music / Sound effects volume.`,
+      'Spacebar triggers Spin when keyboard play is enabled for your region.',
+      'Autoplay (Auto): where available, tap Auto, choose a number of rounds, then START AUTOPLAY. Each round uses your current bet and mode cost.',
+      'To stop autoplay, tap Auto again. The session finishes the current spin and any cascades on that spin before stopping. Autoplay also ends when all chosen rounds complete or your balance is too low for the next round. Bet, mode, and manual spin are disabled while autoplay is running.',
+    ],
+    [
+      `Use + / − or tap the ${t('betAmount').toLowerCase()} to change your amount before spinning.`,
+      `Press Spin to play one round at your selected amount and active game mode cost (see ${paytableLabel} → Game modes).`,
+      `${buyControlLabel} starts the free spins feature immediately at ${BUY_MODE_COST}× your selected amount (see ${paytableLabel}).`,
+      `Open the menu (☰) for How to Play, ${paytableLabel}, and Music / Sound effects volume.`,
+      'Spacebar triggers Spin when keyboard play is enabled for your region.',
+      'Autoplay (Auto): where available, tap Auto, choose a number of rounds, then START AUTOPLAY. Each round uses your current play amount and mode cost.',
+      'To stop autoplay, tap Auto again. The session finishes the current spin and any cascades on that spin before stopping. Autoplay also ends when all chosen rounds complete or your balance is too low for the next round. Play amount, mode, and manual spin are disabled while autoplay is running.',
+    ],
+  );
+
+  const controlsUl = document.createElement('ul');
+  controlsUl.className = 'suki-game-info-list suki-game-info-list--compact';
+  for (const line of controlsBullets) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    controlsUl.appendChild(li);
+  }
+  target.appendChild(controlsUl);
 }
 
 /**
