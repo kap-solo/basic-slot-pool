@@ -222,15 +222,16 @@ export function createFeatureChrome({ stageEl }) {
 
   /**
    * @param {object} event
-   * @param {{ animate?: boolean, formatBookWin?: (amountCentiMult: number) => string }} [opts]
+   * @param {{ animate?: boolean, socialCasino?: boolean, formatBookWin?: (amountCentiMult: number) => string }} [opts]
    */
-  async function onFreeSpinEnd(event, { animate = true, formatBookWin = null } = {}) {
+  async function onFreeSpinEnd(event, { animate = true, socialCasino = false, formatBookWin = null } = {}) {
     counter.hidden = true;
     endBanner.hidden = false;
     const amountDisplay =
       event.amount != null && formatBookWin ? formatBookWin(event.amount) : '';
+    const featureResultLabel = socialCasino ? 'Feature Earn' : 'Feature Win';
     endBanner.textContent = amountDisplay
-      ? `Feature win ${amountDisplay}`
+      ? `${featureResultLabel} ${amountDisplay}`
       : 'Free spins complete';
 
     if (!animate) return;

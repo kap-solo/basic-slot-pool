@@ -42,6 +42,16 @@ export const BB_MODE = 'bb';
 /** Bonus-buy debit multiplier — keep in sync with data/index.json bb mode cost. */
 export const BUY_MODE_COST = GAME_MODES.find((mode) => mode.name === BB_MODE)?.cost ?? 20;
 
+/** Keep in sync with math/feature.mjs */
+export const SCATTER_TRIGGER_COUNT = 3;
+export const FREE_SPINS_AWARDED = 8;
+
+/** Published book pool max return as multiples of base bet (see scripts/analyze-math.mjs). */
+export const MODE_MAX_WIN_MULT = {
+  base: 172.3,
+  [BB_MODE]: 60.16,
+};
+
 /**
  * Symbol ids used in book JSON and paytable copy.
  * @type {Record<string, { label: string, glyph: string, tier: 'ordinary' | 'premium' | 'wild' | 'scatter' }>}

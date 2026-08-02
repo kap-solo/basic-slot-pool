@@ -13,7 +13,7 @@ import {
   clusterSizeMultiplier,
   formatBasePayMult,
 } from './cluster.js';
-import { GAME, ORDINARY_SYMBOLS, PREMIUM_SYMBOLS, SCATTER_SYMBOL, SYMBOLS, WILD_SYMBOL } from './config.js';
+import { GAME, ORDINARY_SYMBOLS, PREMIUM_SYMBOLS, SCATTER_SYMBOL, SYMBOLS, WILD_SYMBOL, BB_MODE, BUY_MODE_COST, FREE_SPINS_AWARDED, MODE_MAX_WIN_MULT, SCATTER_TRIGGER_COUNT } from './config.js';
 import { PERFORMANCE_BLOB_SYMBOL } from './pixi/performanceBlob.js';
 import { appendSymbolIcon, destroyLedgerSpineIcons, mountLedgerSpineIcon } from './pixi/ledgerSpineIcon.js';
 import { formatMult } from './slot.js';
@@ -130,6 +130,36 @@ function renderHowToPlayContent(target, { t, game }) {
   displayNoteEl.className = 'suki-game-info-footnote';
   displayNoteEl.textContent = displayNote;
   target.appendChild(displayNoteEl);
+
+  const freeSpinsTitle = document.createElement('p');
+  freeSpinsTitle.className = 'suki-game-info-subtitle';
+  freeSpinsTitle.textContent = pickSocialCopy(game, 'Free spins', 'Free spins');
+  target.appendChild(freeSpinsTitle);
+
+  const freeSpinsBullets = pickSocialCopy(
+    game,
+    [
+      `${SCATTER_TRIGGER_COUNT} or more Scatter symbols anywhere on the board at the end of the base-game cascade award ${FREE_SPINS_AWARDED} free spins.`,
+      'Additional scatters do not award extra spins. Free spins cannot be re-triggered.',
+      `Each free spin uses the same cluster and cascade rules as the base game. The total feature win is the sum of all wins across the ${FREE_SPINS_AWARDED} spins.`,
+      'Scatter symbols do not pay on their own — they only trigger the feature.',
+    ],
+    [
+      `${SCATTER_TRIGGER_COUNT} or more Scatter symbols anywhere on the board at the end of the base-game cascade award ${FREE_SPINS_AWARDED} free spins.`,
+      'Additional scatters do not award extra spins. Free spins cannot be re-triggered.',
+      `Each free spin uses the same cluster and cascade rules as the base game. The total feature earn is the sum of all amounts across the ${FREE_SPINS_AWARDED} spins.`,
+      'Scatter symbols do not form clusters on their own — they only trigger the feature.',
+    ],
+  );
+
+  const freeSpinsUl = document.createElement('ul');
+  freeSpinsUl.className = 'suki-game-info-list suki-game-info-list--compact';
+  for (const line of freeSpinsBullets) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    freeSpinsUl.appendChild(li);
+  }
+  target.appendChild(freeSpinsUl);
 }
 
 /**
@@ -268,12 +298,109 @@ function appendPaytableFeatureSection(parent, game) {
     symbolId: SCATTER_SYMBOL,
     description: pickSocialCopy(
       game,
-      '3 or more anywhere on the board trigger free spins.',
-      '3 or more anywhere on the board trigger free spins.',
+      `${SCATTER_TRIGGER_COUNT} or more anywhere on the board award ${FREE_SPINS_AWARDED} free spins (see Free spins below).`,
+      `${SCATTER_TRIGGER_COUNT} or more anywhere on the board award ${FREE_SPINS_AWARDED} free spins (see Free spins below).`,
     ),
   });
 
   section.append(heading, grid);
+  parent.appendChild(section);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {object | null | undefined} game
+ */
+function appendFreeSpinsRulesSection(parent, game) {
+  const section = document.createElement('section');
+  section.className = 'suki-game-info-paytable-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'suki-game-info-paytable-section__title';
+  heading.textContent = pickSocialCopy(game, 'Free spins', 'Free spins');
+
+  const list = document.createElement('ul');
+  list.className = 'suki-game-info-list suki-game-info-list--compact';
+
+  const lines = pickSocialCopy(
+    game,
+    [
+      `${SCATTER_TRIGGER_COUNT} or more Scatter symbols anywhere on the board at the end of the base-game cascade award ${FREE_SPINS_AWARDED} free spins.`,
+      'Additional scatters do not award extra spins. Free spins cannot be re-triggered.',
+      `Each free spin uses the same cluster and cascade rules as the base game. Wins during free spins are added to a running total shown as “Total Win”.`,
+      `The total feature win is the sum of all wins across the ${FREE_SPINS_AWARDED} spins and is shown when the feature ends.`,
+      'Scatter symbols do not pay on their own — they only trigger the feature.',
+    ],
+    [
+      `${SCATTER_TRIGGER_COUNT} or more Scatter symbols anywhere on the board at the end of the base-game cascade award ${FREE_SPINS_AWARDED} free spins.`,
+      'Additional scatters do not award extra spins. Free spins cannot be re-triggered.',
+      `Each free spin uses the same cluster and cascade rules as the base game. Amounts during free spins are added to a running total shown as “Total Earn”.`,
+      `The total feature earn is the sum of all amounts across the ${FREE_SPINS_AWARDED} spins and is shown when the feature ends.`,
+      'Scatter symbols do not form clusters on their own — they only trigger the feature.',
+    ],
+  );
+
+  for (const line of lines) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    list.appendChild(li);
+  }
+
+  section.append(heading, list);
+  parent.appendChild(section);
+}
+
+/**
+ * @param {HTMLElement} parent
+ * @param {object | null | undefined} game
+ * @param {{ showRtp?: boolean }} [opts]
+ */
+function appendGameModesSection(parent, game, { showRtp = false } = {}) {
+  const section = document.createElement('section');
+  section.className = 'suki-game-info-paytable-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'suki-game-info-paytable-section__title';
+  heading.textContent = pickSocialCopy(game, 'Game modes', 'Game modes');
+
+  const list = document.createElement('ul');
+  list.className = 'suki-game-info-list suki-game-info-list--compact';
+
+  const baseMax = formatMult(MODE_MAX_WIN_MULT.base);
+  const buyMax = formatMult(MODE_MAX_WIN_MULT[BB_MODE]);
+  const bonusModeLabel = pickSocialCopy(game, `Bonus feature (${BUY_MODE_COST}×)`, `Get Bonus (${BUY_MODE_COST}×)`);
+
+  const lines = pickSocialCopy(
+    game,
+    [
+      `Base game — costs 1× your selected bet per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins (~1 in 200 base rounds). Maximum win ${baseMax} bet.`,
+      `${bonusModeLabel} — costs ${BUY_MODE_COST}× your selected bet and immediately awards ${FREE_SPINS_AWARDED} free spins (same feature as a natural scatter trigger). Maximum win ${buyMax} bet.`,
+    ],
+    [
+      `Base game — costs 1× your selected amount per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins (~1 in 200 base rounds). Maximum earn ${baseMax} on a 1× round.`,
+      `${bonusModeLabel} — costs ${BUY_MODE_COST}× your selected amount and immediately awards ${FREE_SPINS_AWARDED} free spins (same feature as a natural scatter trigger). Maximum earn ${buyMax} on a 1× round.`,
+    ],
+  );
+
+  for (const line of lines) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    list.appendChild(li);
+  }
+
+  section.append(heading, list);
+
+  if (showRtp) {
+    const rtpNote = document.createElement('p');
+    rtpNote.className = 'suki-game-info-paytable-rules__note';
+    rtpNote.textContent = pickSocialCopy(
+      game,
+      `Target RTP ${GAME.targetRtpPercent}% for base game and bonus feature modes.`,
+      `Target RTP ${GAME.targetRtpPercent}% for base game and Get Bonus modes.`,
+    );
+    section.appendChild(rtpNote);
+  }
+
   parent.appendChild(section);
 }
 
@@ -308,7 +435,7 @@ function appendPaytableGreenSquareSection(parent, game) {
 
   const valueEl = document.createElement('span');
   valueEl.className = 'suki-game-info-paytable-card__value';
-  valueEl.textContent = pickSocialCopy(game, 'No payout value', 'No payout value');
+  valueEl.textContent = pickSocialCopy(game, 'No payout value', 'No Earn Value');
 
   const descEl = document.createElement('span');
   descEl.className = 'suki-game-info-paytable-card__desc';
@@ -361,6 +488,7 @@ function renderPaytableContent(target, { t, game }) {
   );
   appendPaytableFeatureSection(root, game);
   appendPaytableGreenSquareSection(root, game);
+  appendFreeSpinsRulesSection(root, game);
 
   const rules = document.createElement('div');
   rules.className = 'suki-game-info-paytable-rules';
@@ -428,13 +556,10 @@ function renderPaytableContent(target, { t, game }) {
   );
   rules.appendChild(cascadeNote);
 
+  appendGameModesSection(rules, game, { showRtp: Boolean(game?.controls?.showRtp) });
+
   const info = document.createElement('div');
   info.className = 'suki-game-info-footnote-block suki-game-info-paytable-rules__footnotes';
-  if (game?.controls?.showRtp) {
-    const rtp = document.createElement('p');
-    rtp.textContent = `Target RTP ${GAME.targetRtpPercent}%`;
-    info.appendChild(rtp);
-  }
   const rounding = document.createElement('p');
   rounding.textContent = t('roundingNote');
   info.appendChild(rounding);

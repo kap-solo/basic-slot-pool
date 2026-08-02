@@ -300,7 +300,9 @@ export function mountDesktopBetUi({
     buyBtn.disabled = busy || !(handlers.getBuyEnabled?.() ?? false);
     buyBtn.setAttribute('aria-label', handlers.getBuyLabel?.() ?? 'Buy bonus');
 
-    mountBuyButtonGraphic(ensureBuyHitWrap(buyBtn));
+    mountBuyButtonGraphic(ensureBuyHitWrap(buyBtn), {
+      socialCasino: handlers.getSocialCasino?.() ?? false,
+    });
 
     handlers.syncStepper?.({ downButton: betDownBtn, upButton: betUpBtn });
   }

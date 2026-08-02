@@ -55,6 +55,7 @@ import {
   GAME_MODES,
   BUY_MODE_COST,
   BB_MODE,
+  FREE_SPINS_AWARDED,
 } from './config.js';
 import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
@@ -495,15 +496,8 @@ const devStatsOverlay = createDevStatsOverlay({
   enabled: isDevMode() && !replayMode,
 });
 
-const devToolbar = createDevToolbar({
-  shellEl,
-  onFeature: () => {
-    playDevFeatureSample();
-  },
-  onReplay: () => {
-    onCopyReplayLink();
-  },
-});
+/** @type {ReturnType<typeof createDevToolbar> | null} */
+let devToolbar = null;
 
 /** @type {object | null} */
 let replayRound = null;
@@ -674,7 +668,13 @@ function clusterHudWinAmounts(event) {
 }
 
 function copyTerm(key, vars) {
-  return game.copy.t(key, vars);
+  if (game?.copy?.socialCasino) {
+    if (key === 'buyConfirmTitle' || key === 'buyPlayButton') return 'Get Bonus';
+    if (key === 'buyConfirmFeatureDetail') {
+      return `${FREE_SPINS_AWARDED} free spins are awarded. Earnings during the feature are awarded to your balance when the round ends.`;
+    }
+  }
+  return game?.copy?.t(key, vars) ?? key;
 }
 
 /** HUD win stat — Win (real) / Earn (social); Total Win during free spins. */
@@ -724,6 +724,7 @@ function canBuyBonus() {
 }
 
 function buyButtonLabel() {
+  if (game.copy.socialCasino) return 'Get Bonus';
   return `Buy ${BUY_MODE_COST}×`;
 }
 
@@ -818,12 +819,23 @@ function mountHudDevControls() {
 
 function syncDevToolbar() {
   const show = isDevMode() && !replayMode;
-  devToolbar.sync({
+  devToolbar?.sync({
     visible: show,
     disabled: spinning || isAutoplaying() || isBoardPresenting(),
     replayReady: Boolean(lastReplayUrl),
     spinId: lastReplayEventId,
+    socialCasino: game?.copy?.socialCasino ?? false,
   });
+}
+
+function applySocialModeRefresh() {
+  game.syncCopy();
+  syncHud();
+  mobileBetUi?.sync();
+  desktopBetUi?.sync();
+  refreshWinStatLabel();
+  gameMenu.refresh();
+  syncDevToolbar();
 }
 
 function seedInitialBoard() {
@@ -1047,6 +1059,7 @@ async function presentFeatureEvent(event, { animate = true } = {}) {
   if (event.type === 'freeSpinEnd') {
     await featureChrome.onFreeSpinEnd(event, {
       animate,
+      socialCasino: game.copy.socialCasino,
       formatBookWin: (amountCentiMult) => fmtWin(bookCentiMultToDisplayWin(amountCentiMult, bet)),
     });
     await Promise.all([
@@ -1226,7 +1239,8 @@ async function withSpinLock(fn, { resetFeature = false, preserveWinDisplay = fal
   }
 }
 
-const game = createGameBootstrap({
+let game;
+game = createGameBootstrap({
   suki: {
     gameId: GAME.id,
     replayVersion: GAME.replayVersion,
@@ -1362,7 +1376,7 @@ const game = createGameBootstrap({
     },
   },
   onJurisdictionChange: () => {
-    disableTurboForGame(game.jurisdiction);
+    disableTurboForGame(game?.jurisdiction);
     autoplayPanelPolicy?.sync();
     gameMenu.refresh();
     syncControls();
@@ -1372,6 +1386,22 @@ const game = createGameBootstrap({
 });
 
 const { controls, lifecycle, applyAuthConfig, syncDevTools } = game;
+
+devToolbar = createDevToolbar({
+  shellEl,
+  onFeature: () => {
+    playDevFeatureSample();
+  },
+  onReplay: () => {
+    onCopyReplayLink();
+  },
+  getSocialCasino: () => game.copy.socialCasino,
+  getJurisdictionState: () => game.jurisdiction.state,
+  onSocialCasinoChange: () => {
+    applySocialModeRefresh();
+  },
+});
+syncDevToolbar();
 
 autoplayPanelPolicy = createAutoplayPanelPolicy({
   getCanAutoplay: () => controls.canAutoplay,
@@ -1720,6 +1750,7 @@ const betChromeHandlers = {
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus(),
   getBuyLabel: () => buyButtonLabel(),
+  getSocialCasino: () => game.copy.socialCasino,
   syncStepper: syncBetStepperState,
 };
 
