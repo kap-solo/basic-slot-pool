@@ -6,7 +6,7 @@ const STYLE_ID = 'replay-start-modal-styles';
 
 const MODAL_CSS = `
 .replay-start-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 9100;
   display: flex;
@@ -167,6 +167,20 @@ const MODAL_CSS = `
   color: rgba(232, 237, 244, 0.82);
   font-size: clamp(0.54rem, 2.1vw, 0.64rem);
   line-height: 1.35;
+  text-align: center;
+}
+
+.replay-start-error {
+  margin: 0 0 0.75rem;
+  max-width: 20rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 120, 120, 0.45);
+  background: rgba(24, 10, 12, 0.94);
+  color: #ffb4b4;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
   text-align: center;
 }
 
@@ -403,12 +417,33 @@ export function createReplayStartModal(shell) {
   scaler.className = 'replay-start-scaler';
   scaler.append(panel);
 
+  const errorEl = document.createElement('p');
+  errorEl.className = 'replay-start-error';
+  errorEl.hidden = true;
+  panel.insertBefore(errorEl, footnote);
+
   overlay.append(scaler);
-  shell.appendChild(overlay);
+  (document.body ?? shell).appendChild(overlay);
 
   /** @type {(() => void) | null} */
   let onStart = null;
+  /** @type {(() => void) | null} */
+  let onDismiss = null;
   let fitRaf = 0;
+
+  function resetPanelLayout() {
+    card.hidden = false;
+    actions.hidden = false;
+    errorEl.hidden = true;
+    errorEl.textContent = '';
+    startBtn.disabled = false;
+  }
+
+  function revealOverlay() {
+    overlay.hidden = false;
+    scheduleFitPanel();
+    requestAnimationFrame(scheduleFitPanel);
+  }
 
   function fitPanelToOverlay() {
     if (overlay.hidden) return;
@@ -451,9 +486,17 @@ export function createReplayStartModal(shell) {
   window.visualViewport?.addEventListener('resize', onViewportChange);
 
   startBtn.addEventListener('click', () => {
+    if (startBtn.disabled) return;
     overlay.hidden = true;
-    onStart?.();
+    const dismiss = onDismiss;
+    const start = onStart;
+    onDismiss = null;
     onStart = null;
+    if (errorEl.hidden === false) {
+      dismiss?.();
+      return;
+    }
+    start?.();
   });
 
   return {
@@ -471,7 +514,46 @@ export function createReplayStartModal(shell) {
      * @param {string} [details.startLabel]
      * @returns {Promise<void>}
      */
+    openLoading({ badgeLabel = 'Replay', footnote: footnoteText = '' } = {}) {
+      resetPanelLayout();
+      badge.textContent = badgeLabel;
+      modeLabel.textContent = 'Status';
+      modeValue.textContent = 'Loading replay…';
+      for (const row of [baseBetRow, costMultRow, totalCostRow, payoutMultRow, totalWinRow]) {
+        row.valueEl.textContent = '—';
+      }
+      if (footnoteText) footnote.textContent = footnoteText;
+      startBtn.textContent = 'Loading…';
+      startBtn.disabled = true;
+      onStart = null;
+      onDismiss = null;
+      revealOverlay();
+    },
+    /**
+     * @param {object} details
+     * @param {string} details.badgeLabel
+     * @param {string} details.message
+     * @param {string} [details.footnote]
+     * @param {string} [details.dismissLabel]
+     * @returns {Promise<void>}
+     */
+    openError(details) {
+      resetPanelLayout();
+      badge.textContent = details.badgeLabel ?? 'Replay';
+      card.hidden = true;
+      errorEl.hidden = false;
+      errorEl.textContent = details.message ?? 'Replay unavailable.';
+      if (details.footnote) footnote.textContent = details.footnote;
+      startBtn.textContent = details.dismissLabel ?? 'Close';
+      startBtn.disabled = false;
+      onStart = null;
+      revealOverlay();
+      return new Promise((resolve) => {
+        onDismiss = resolve;
+      });
+    },
     open(details) {
+      resetPanelLayout();
       badge.textContent = details.badgeLabel ?? 'Replay';
       modeLabel.textContent = details.rowLabels?.mode ?? 'Mode';
       modeValue.textContent = details.modeLabel ?? '—';
@@ -489,20 +571,19 @@ export function createReplayStartModal(shell) {
       if (details.footnote) footnote.textContent = details.footnote;
       if (details.startLabel) startBtn.textContent = details.startLabel;
 
-      overlay.hidden = false;
-      scheduleFitPanel();
-      requestAnimationFrame(() => {
-        scheduleFitPanel();
-        startBtn.focus();
-      });
+      revealOverlay();
+      requestAnimationFrame(() => startBtn.focus());
 
       return new Promise((resolve) => {
         onStart = resolve;
+        onDismiss = null;
       });
     },
     close() {
       overlay.hidden = true;
       onStart = null;
+      onDismiss = null;
+      resetPanelLayout();
       panel.style.transform = 'none';
       scaler.style.width = '';
       scaler.style.height = '';

@@ -2,7 +2,7 @@
  * Basic Slot — 5×5 cluster base mode on Suki Engine.
  */
 
-import { apiToDisplay, displayToApi } from '@kap-solo/suki-engine/client/money.js';
+import { apiToDisplay, displayToApi, API_AMOUNT_MULTIPLIER } from '@kap-solo/suki-engine/client/money.js';
 import {
   authenticate,
   applyAuthBetConfig,
@@ -16,12 +16,13 @@ import {
   createGamePreloader,
   createModalHost,
   createRecentResultsStore,
-  getReplayParams,
   getSessionID,
+  getReplayParams,
   isReplayMode,
   isDevMode,
   messageForRgsCode,
   modeButtonLabel,
+  normalizeReplayRound,
   play,
   endRound,
   requestReplay,
@@ -1261,6 +1262,7 @@ game = createGameBootstrap({
       sessionTimer: sessionTimerEl,
       sessionTimerContainer: sessionTimerStat,
       balanceLabel: balanceLabelEl,
+      replayBanner,
       replayNote: replayNoteEl,
       dropButton: betUi.elements.dropButton,
     },
@@ -2019,6 +2021,9 @@ async function runReplayLoop(round) {
 }
 
 function setReplayModeUi() {
+  if (shellEl) {
+    shellEl.dataset.sukiReplay = 'true';
+  }
   replayBanner.hidden = false;
   if (replayNoteEl) {
     replayNoteEl.textContent = copyTerm('replayDisclaimer');
@@ -2030,6 +2035,10 @@ function setReplayModeUi() {
 }
 
 async function playReplayAnimation(round) {
+  if (!slotBoard) {
+    await initSlotStage();
+    characterUi?.relayout?.();
+  }
   resetFeaturePresentation();
   characterUi?.relayout?.();
   spinning = true;
@@ -2054,9 +2063,19 @@ async function playReplayAnimation(round) {
 
 async function bootstrapReplay() {
   setReplayModeUi();
+  replayStartModal.openLoading({
+    badgeLabel: copyTerm('replayModeTitle'),
+    footnote: copyTerm('replayDisclaimer'),
+  });
   const params = getReplayParams();
   if (!params.event) {
-    setMessage('Replay URL missing event parameter.');
+    const msg = 'Replay URL missing event parameter.';
+    setMessage(msg);
+    await replayStartModal.openError({
+      badgeLabel: copyTerm('replayModeTitle'),
+      message: msg,
+      footnote: copyTerm('replayDisclaimer'),
+    });
     return;
   }
   setMessage(copyTerm('loadingReplay'));
@@ -2068,7 +2087,10 @@ async function bootstrapReplay() {
       event: params.event,
       amountApi: params.amountApi,
     });
-    replayRound = data.round;
+    replayRound = normalizeReplayRound(data, params, {
+      resolvePayout: (amountApi, payoutMultiplier, mode) =>
+        Math.round(game.betModes.baseBetApiFromPlayAmount(amountApi, mode) * payoutMultiplier),
+    });
     applyReplayRoundBet(replayRound);
     game.setRgsReady(true);
     syncControls();
@@ -2076,7 +2098,14 @@ async function bootstrapReplay() {
     await runReplayLoop(replayRound);
   } catch (err) {
     console.error(err);
-    setMessage(messageForRgsCode(String(err.message)));
+    const msg = messageForRgsCode(String(err.message));
+    setMessage(msg);
+    showPlayerNotice(msg, { durationMs: 8000 });
+    await replayStartModal.openError({
+      badgeLabel: copyTerm('replayModeTitle'),
+      message: msg,
+      footnote: copyTerm('replayDisclaimer'),
+    });
   }
 }
 
@@ -2188,6 +2217,22 @@ async function initSlotStage() {
 }
 
 async function startGame() {
+  if (replayMode) {
+    try {
+      await bootstrapReplay();
+    } catch (err) {
+      console.error(err);
+      const msg = messageForRgsCode(String(err?.message ?? err));
+      setMessage(msg);
+      showPlayerNotice(msg, { durationMs: 8000 });
+      await replayStartModal.openError({
+        badgeLabel: copyTerm('replayModeTitle'),
+        message: msg,
+        footnote: copyTerm('replayDisclaimer'),
+      });
+    }
+    return;
+  }
   await initSlotStage();
   characterUi?.relayout?.();
   await game.start();
