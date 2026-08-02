@@ -35,7 +35,7 @@ const TOOLBAR_CSS = `
   position: fixed;
   top: max(0.5rem, env(safe-area-inset-top, 0px));
   left: max(0.5rem, env(safe-area-inset-left, 0px));
-  z-index: 11;
+  z-index: 100;
   display: flex;
   gap: 0.35rem;
   pointer-events: none;
@@ -138,7 +138,7 @@ export function createDevToolbar({
   toolbar.className = 'dev-toolbar';
   toolbar.dataset.sukiDev = '';
   toolbar.hidden = true;
-  shellEl.appendChild(toolbar);
+  document.body.appendChild(toolbar);
 
   const featureBtn = document.createElement('button');
   featureBtn.type = 'button';

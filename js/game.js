@@ -35,10 +35,12 @@ import {
   patchStakeLayoutForProduction,
 } from '@kap-solo/suki-engine/client/rgs.js';
 import {
+  BACKGROUND_MUSIC_CROSSFADE_MS,
   buildPreloadAssets,
   createBackgroundMusicLoop,
   createCascadeAudio,
   createClusterStepAudio,
+  createFreeSpinsNotificationAudio,
   createGreenSquareAudio,
   createReelSpinAudio,
   createSpinClickAudio,
@@ -121,6 +123,7 @@ const spinClickAudio = createSpinClickAudio(audioPrefs);
 const greenSquareAudio = createGreenSquareAudio(audioPrefs);
 const cascadeAudio = createCascadeAudio(audioPrefs);
 const clusterStepAudio = createClusterStepAudio(audioPrefs);
+const freeSpinsNotificationAudio = createFreeSpinsNotificationAudio(audioPrefs);
 
 function primeGameSfx() {
   spinClickAudio.prime();
@@ -128,6 +131,7 @@ function primeGameSfx() {
   greenSquareAudio.prime();
   cascadeAudio.prime();
   clusterStepAudio.prime();
+  freeSpinsNotificationAudio.prime();
 }
 
 let gameSfxPrimed = false;
@@ -909,6 +913,7 @@ async function showStaticRound(round, completed = null) {
     await restoreFeatureFromCompleted(events, round);
     restoreFeatureWinDisplay(events, round);
     if (freeSpinsHaveStarted(events)) {
+      freeSpinsNotificationAudio.stop();
       await Promise.all([
         characterUi?.setBonusMode(true, { animate: false }),
         gameBackground?.setBonusMode(true, { animate: false }),
@@ -948,6 +953,7 @@ async function presentGameReveal(event, { animate = true, round = null } = {}) {
       animate,
     });
     if (event.freeSpin === 1) {
+      freeSpinsNotificationAudio.stop();
       await Promise.all([
         characterUi?.setBonusMode(true, { animate }),
         gameBackground?.setBonusMode(true, { animate }),
@@ -2166,9 +2172,17 @@ async function initSlotStage() {
   slotBoard.setPostSpinMotionAudio(startCascadeMotionAudio);
   slotBoard.setClusterHighlightAudio(onClusterHighlight);
   setLedgerSpineRegistry(await loadSpineSymbolRegistry());
-  if (gameCoreEl && !featureChrome) {
+  if (shellEl && slotStageEl && !featureChrome) {
     featureChrome = createFeatureChrome({
-      stageEl: gameCoreEl,
+      shellEl,
+      stageEl: slotStageEl,
+      onIntroSpineStart: () => {
+        freeSpinsNotificationAudio.play(unlockGameAudio);
+        void backgroundMusic.fadeBaseOut({ fadeMs: BACKGROUND_MUSIC_CROSSFADE_MS });
+      },
+      onBonusRoundStart: () => {
+        freeSpinsNotificationAudio.stop();
+      },
     });
   }
 }

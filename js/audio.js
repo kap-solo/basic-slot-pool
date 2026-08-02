@@ -14,6 +14,9 @@ export const CLUSTER_STEP_SFX = Array.from(
 export const BACKGROUND_MUSIC_URL = 'assets/audio/background_music.mp3';
 export const BACKGROUND_MUSIC_BONUS_URL = 'assets/audio/background_music_bonus.mp3';
 
+/** One-shot free-spins intro stinger — synced to feature Spine; SFX channel (not music bed). */
+export const FREE_SPINS_NOTIFICATION_URL = 'assets/audio/free_spins_notification.mp3';
+
 /** Crossfade duration — keep in sync with character/background bonus transitions. */
 export const BACKGROUND_MUSIC_CROSSFADE_MS = 900;
 
@@ -26,6 +29,7 @@ export const GAME_AUDIO_ASSETS = {
     greenSquare: 'assets/audio/green_square.wav',
     cascade: 'assets/audio/cascade.wav',
     whoosh: 'assets/audio/whoosh.wav',
+    freeSpinsNotification: FREE_SPINS_NOTIFICATION_URL,
   },
 };
 
@@ -244,6 +248,9 @@ export function buildPreloadAssets() {
   for (const src of CLUSTER_STEP_SFX) {
     assets.push({ src, type: 'audio' });
   }
+  if (FREE_SPINS_NOTIFICATION_URL) {
+    assets.push({ src: FREE_SPINS_NOTIFICATION_URL, type: 'audio' });
+  }
   return assets;
 }
 
@@ -449,6 +456,30 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
     void sync();
   });
 
+  /** Fade base bed out before bonus music — e.g. free-spins intro overlay. */
+  async function fadeBaseOut({ fadeMs = crossfadeMs } = {}) {
+    if (inBonusMode) return;
+    ensureContext();
+    if (!ctx || !tracks.base.gain) return;
+    await loadTrack('base');
+    if (ctx.state === 'suspended') {
+      await ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    const durationSec = Math.max(0, fadeMs) / 1000;
+    tracks.base.gain.gain.cancelScheduledValues(now);
+    tracks.base.gain.gain.setValueAtTime(tracks.base.gain.gain.value, now);
+    if (durationSec <= 0) {
+      tracks.base.gain.gain.value = 0;
+      stopSource('base');
+      return;
+    }
+    tracks.base.gain.gain.linearRampToValueAtTime(0, now + durationSec);
+    window.setTimeout(() => {
+      if (!inBonusMode) stopSource('base');
+    }, fadeMs + 50);
+  }
+
   return {
     prime() {
       void loadTrack('base');
@@ -464,6 +495,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
       await sync();
     },
     setBonusMode,
+    fadeBaseOut,
     sync,
     destroy() {
       fadeToken += 1;
@@ -597,6 +629,30 @@ export function createClusterStepAudio(audioPrefs) {
     play(step, unlock) {
       const url = CLUSTER_STEP_SFX[clampStep(step) - 1];
       bus.playOneShot(url, unlock);
+    },
+  };
+}
+
+/**
+ * Free-spins intro stinger — one-shot on the SFX bus (Sound effects slider).
+ * Not music: it is an event cue like whoosh/cluster, not a looping bed.
+ *
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createAudioPrefs>} audioPrefs
+ */
+export function createFreeSpinsNotificationAudio(audioPrefs) {
+  const bus = getSharedSfxBus(audioPrefs);
+  const url = GAME_AUDIO_ASSETS.sfx?.freeSpinsNotification;
+  const key = 'freeSpinsNotification';
+
+  return {
+    prime() {
+      if (url) bus.primeUrls([url]);
+    },
+    play(unlock) {
+      bus.startBed(url, key, unlock);
+    },
+    stop({ fadeMs = 0 } = {}) {
+      bus.stopBed(key, { fadeMs });
     },
   };
 }

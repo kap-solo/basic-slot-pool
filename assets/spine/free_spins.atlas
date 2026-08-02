@@ -1,0 +1,16 @@
+free_spins.webp
+size:1883,1156
+filter:Linear,Linear
+Layer 1
+bounds:0,0,878,162
+offsets:70,437,1000,1100
+badge
+bounds:960,367,789,920
+offsets:107,109,1000,1100
+rotate:90
+plate
+bounds:960,41,923,326
+offsets:49,349,1000,1100
+tape
+bounds:0,162,960,994
+offsets:18,68,1000,1100
