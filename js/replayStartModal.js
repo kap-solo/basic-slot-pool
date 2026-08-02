@@ -2,6 +2,8 @@
  * Pre-replay summary overlay — round details and explicit Start Replay action.
  */
 
+import { formatReplaySummaryMultiplier } from '@kap-solo/suki-engine/client/rgs.js';
+
 const STYLE_ID = 'replay-start-modal-styles';
 
 const MODAL_CSS = `
@@ -336,13 +338,7 @@ function ensureStyles() {
  * @param {number} mult
  */
 function formatReplayMult(mult) {
-  if (!Number.isFinite(mult)) return '—';
-  const abs = Math.abs(mult);
-  const digits = abs >= 100 ? 2 : abs >= 10 ? 2 : 2;
-  return `${mult.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: digits,
-  })}x`;
+  return formatReplaySummaryMultiplier(mult).replace('×', 'x');
 }
 
 /**

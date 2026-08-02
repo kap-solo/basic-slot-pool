@@ -28,6 +28,7 @@ import {
   requestReplay,
   roundPayoutMultiplier,
   resolveReplayBaseBetDisplay,
+  formatReplayPayoutMultiplier,
   registerBuyBonusConfirm,
   startNewRgsSession,
   createAutoplayController,
@@ -1984,7 +1985,6 @@ function replayStartButtonLabel(again) {
 function buildReplayStartDetails(round, { again = false } = {}) {
   const baseBetApi = game.betModes.baseBetApiFromPlayAmount(round.amount, round.mode);
   const costMultiplier = Math.max(1, round.amount / Math.max(1, baseBetApi));
-  const payoutMultiplier = roundPayoutMultiplier(round);
   return {
     badgeLabel: copyTerm('replayModeTitle'),
     modeLabel: replayModeLabelForRound(round),
@@ -1999,7 +1999,7 @@ function buildReplayStartDetails(round, { again = false } = {}) {
     baseBet: fmtBalance(apiToDisplay(baseBetApi)),
     costMultiplier: replayStartModal.formatCostMultiplier(costMultiplier),
     totalBetCost: fmtBalance(apiToDisplay(round.amount)),
-    payoutMultiplier: formatMult(payoutMultiplier),
+    payoutMultiplier: formatReplayPayoutMultiplier(round),
     totalWin: fmtWin(apiToDisplay(round.payout ?? 0)),
     footnote: copyTerm('replayDisclaimer'),
     startLabel: replayStartButtonLabel(again),
