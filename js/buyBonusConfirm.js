@@ -68,12 +68,92 @@ export function registerBuyBonusConfirm(modalHost, options) {
 
   /** @type {(() => void) | null} */
   let syncUi = null;
+  /** @type {HTMLElement | null} */
+  let finalConfirmEl = null;
+  /** @type {((event: KeyboardEvent) => void) | null} */
+  let finalConfirmEscapeHandler = null;
 
   function clearSyncUi() {
     syncUi = null;
   }
 
+  function finalConfirmTitleText() {
+    return getSocialCasino() ? 'GET BONUS' : 'BUY BONUS';
+  }
+
+  function finalConfirmMessageText() {
+    const spins = getFreeSpinsAwarded();
+    const price = formatCurrency(getBuyCost());
+    return getSocialCasino()
+      ? `Get ${spins} Free Spins for ${price}`
+      : `Buy ${spins} Free Spins for ${price}`;
+  }
+
+  function hideFinalConfirm() {
+    finalConfirmEl?.remove();
+    finalConfirmEl = null;
+    shell?.classList.remove('suki-buy-bonus-final-confirm-open');
+    if (finalConfirmEscapeHandler) {
+      document.removeEventListener('keydown', finalConfirmEscapeHandler, true);
+      finalConfirmEscapeHandler = null;
+    }
+  }
+
+  function showFinalConfirm(anchor) {
+    hideFinalConfirm();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'suki-buy-bonus-final-confirm';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'suki-buy-bonus-final-confirm-title');
+
+    const card = document.createElement('div');
+    card.className = 'suki-buy-bonus-final-confirm__card';
+
+    const title = document.createElement('h2');
+    title.id = 'suki-buy-bonus-final-confirm-title';
+    title.className = 'suki-buy-bonus-final-confirm__title';
+    title.textContent = finalConfirmTitleText();
+
+    const message = document.createElement('p');
+    message.className = 'suki-buy-bonus-final-confirm__message';
+    message.textContent = finalConfirmMessageText();
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'suki-buy-bonus-final-confirm__confirm';
+    confirmBtn.textContent = 'CONFIRM';
+    confirmBtn.addEventListener('click', () => {
+      if (!getCanConfirm()) return;
+      hideFinalConfirm();
+      modalHost.close();
+      onConfirm();
+    });
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'suki-buy-bonus-final-confirm__cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => hideFinalConfirm());
+
+    card.append(title, message, cancelBtn, confirmBtn);
+    overlay.append(card);
+    anchor.append(overlay);
+
+    finalConfirmEl = overlay;
+    shell?.classList.add('suki-buy-bonus-final-confirm-open');
+
+    finalConfirmEscapeHandler = (event) => {
+      if (event.key !== 'Escape' || !finalConfirmEl) return;
+      event.stopImmediatePropagation();
+      hideFinalConfirm();
+    };
+    document.addEventListener('keydown', finalConfirmEscapeHandler, true);
+  }
+
   function teardownModalChrome() {
+    hideFinalConfirm();
     shell?.classList.remove('suki-buy-bonus-modal-open');
     removeModalBackdrop(shell);
     clearSyncUi();
@@ -99,7 +179,11 @@ export function registerBuyBonusConfirm(modalHost, options) {
   }
 
   function costLabelText() {
-    return `Cost: ${getCostMultiplier()}x Bet`;
+    const mult = getCostMultiplier();
+    const amountTerm = getSocialCasino()
+      ? t('betAmount').toLowerCase()
+      : t('bet');
+    return `Cost: ${mult}x ${amountTerm}`;
   }
 
   function footnoteText() {
@@ -107,6 +191,7 @@ export function registerBuyBonusConfirm(modalHost, options) {
   }
 
   function renderBody(body) {
+    hideFinalConfirm();
     shell?.classList.add('suki-buy-bonus-modal-open');
     mountModalBackdrop(shell);
 
@@ -146,8 +231,7 @@ export function registerBuyBonusConfirm(modalHost, options) {
     confirmBtn.textContent = t('buyPlayButton');
     confirmBtn.addEventListener('click', () => {
       if (!getCanConfirm()) return;
-      modalHost.close();
-      onConfirm();
+      showFinalConfirm(stack);
     });
 
     const footnote = document.createElement('p');
@@ -162,6 +246,14 @@ export function registerBuyBonusConfirm(modalHost, options) {
     syncUi = () => {
       price.textContent = formatCurrency(getBuyCost());
       confirmBtn.disabled = !getCanConfirm();
+      const finalMessage = finalConfirmEl?.querySelector('.suki-buy-bonus-final-confirm__message');
+      const finalTitle = finalConfirmEl?.querySelector('.suki-buy-bonus-final-confirm__title');
+      const finalConfirmBtn = finalConfirmEl?.querySelector('.suki-buy-bonus-final-confirm__confirm');
+      if (finalMessage) finalMessage.textContent = finalConfirmMessageText();
+      if (finalTitle) finalTitle.textContent = finalConfirmTitleText();
+      if (finalConfirmBtn) {
+        finalConfirmBtn.disabled = !getCanConfirm();
+      }
     };
     syncUi();
   }

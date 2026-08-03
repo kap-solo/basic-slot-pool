@@ -163,6 +163,7 @@
 }
 
 .suki-buy-bonus-stack {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -299,4 +300,123 @@
 
 .suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-footnote {
   font-size: 0.56rem;
+}
+
+/* Final purchase confirm — plain overlay on top of buy bonus dialog */
+.suki-buy-bonus-final-confirm {
+  position: absolute;
+  inset: -0.5rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border-radius: 0.85rem;
+  background: rgba(4, 6, 10, 0.78);
+}
+
+.suki-buy-bonus-final-confirm__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 1.15rem 1rem 1rem;
+  border: 2px solid #c8f04a;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 52, 24, 0.92) 0%,
+      rgba(10, 34, 16, 0.94) 48%,
+      rgba(8, 28, 13, 0.96) 100%
+    );
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.suki-buy-bonus-final-confirm__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.suki-buy-bonus-final-confirm__message {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #f5f7fa;
+}
+
+.suki-buy-bonus-final-confirm__confirm {
+  width: 100%;
+  margin-top: 0.55rem;
+  padding: 0.62rem 0.75rem;
+  border: 2px solid #c8fc7e;
+  border-radius: 0.55rem;
+  background: linear-gradient(180deg, #cfe41a 0%, #a6c83b 100%);
+  color: #003c1d;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, filter 0.15s ease, transform 0.15s ease;
+}
+
+.suki-buy-bonus-final-confirm__confirm:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d8ec28 0%, #b0d444 100%);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.suki-buy-bonus-final-confirm__confirm:active:not(:disabled) {
+  background: linear-gradient(180deg, #b8cc18 0%, #96b434 100%);
+  filter: none;
+  transform: translateY(0);
+}
+
+.suki-buy-bonus-final-confirm__confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.suki-buy-bonus-final-confirm__cancel {
+  width: 100%;
+  padding: 0.58rem 0.75rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: #37483b;
+  color: #f5f7fa;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+
+.suki-buy-bonus-final-confirm__cancel:hover {
+  background: #425543;
+  filter: brightness(1.06);
+}
+
+.suki-buy-bonus-final-confirm__cancel:active {
+  background: #2f3d32;
+  filter: none;
+}
+
+.suki-stake-shell.suki-buy-bonus-final-confirm-open .suki-modal-close {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-final-confirm__title {
+  font-size: 1.05rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-final-confirm__message {
+  font-size: 0.82rem;
 }

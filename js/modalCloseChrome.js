@@ -30,6 +30,7 @@ export function applyModalCloseChrome(modalHost, shell) {
   modalHost.close = () => {
     shell?.classList.remove('suki-autoplay-modal-open');
     shell?.classList.remove('suki-buy-bonus-modal-open');
+    shell?.classList.remove('suki-buy-bonus-final-confirm-open');
     shell?.querySelector('.suki-buy-bonus-backdrop')?.remove();
     baseClose();
   };
@@ -55,7 +56,10 @@ export function bindModalDismissToHost(modalHost, shell) {
   const stage = overlay.querySelector('.suki-modal-stage');
   const closeBtn = overlay.querySelector('.suki-modal-close');
 
-  const dismiss = () => modalHost.close();
+  const dismiss = () => {
+    if (shell?.classList.contains('suki-buy-bonus-final-confirm-open')) return;
+    modalHost.close();
+  };
 
   const intercept = (event) => {
     event.stopImmediatePropagation();
@@ -71,6 +75,7 @@ export function bindModalDismissToHost(modalHost, shell) {
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || !modalHost.getOpenId?.()) return;
+    if (shell?.classList.contains('suki-buy-bonus-final-confirm-open')) return;
     event.stopImmediatePropagation();
     dismiss();
   }, true);
