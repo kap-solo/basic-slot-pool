@@ -33,6 +33,13 @@ export function registerAutoplayConfirm(modalHost, options) {
     body.innerHTML = '';
     body.classList.add('suki-autoplay-confirm-body');
 
+    const card = document.createElement('div');
+    card.className = 'suki-autoplay-card';
+
+    const title = document.createElement('h2');
+    title.className = 'suki-autoplay-title';
+    title.textContent = 'AUTOPLAY';
+
     const roundsBlock = document.createElement('div');
     roundsBlock.className = 'suki-autoplay-rounds';
 
@@ -88,7 +95,8 @@ export function registerAutoplayConfirm(modalHost, options) {
 
     roundsBlock.append(roundsLabel, roundsRow);
     actions.append(startBtn);
-    body.append(roundsBlock, actions);
+    card.append(title, roundsBlock, actions);
+    body.append(card);
 
     selectPresetRounds(
       AUTOPLAY_ROUND_OPTIONS.includes(defaultRounds) ? defaultRounds : 100,
@@ -96,7 +104,7 @@ export function registerAutoplayConfirm(modalHost, options) {
   }
 
   modalHost.register(AUTOPLAY_CONFIRM_MODAL_ID, {
-    title: 'AUTOPLAY',
+    title: '',
     render: renderBody,
   });
 
