@@ -1,0 +1,302 @@
+/**
+ * Buy Bonus confirm modal — Reflecting Pool overrides.
+ */
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-dialog,
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-dialog * {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-overlay {
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-scrim {
+  z-index: 0;
+  pointer-events: auto;
+  background: rgba(4, 6, 10, 0.84);
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-buy-bonus-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-buy-bonus-backdrop__img {
+  display: block;
+  width: min(92vw, 26rem);
+  height: auto;
+  max-height: min(78vh, 26rem);
+  object-fit: contain;
+  user-select: none;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-stage {
+  z-index: 2;
+  pointer-events: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-dialog {
+  position: relative;
+  width: min(100%, 16.25rem);
+  max-width: min(100%, 16.25rem);
+  overflow: visible;
+  pointer-events: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-20px);
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='mobile-s'] .suki-modal-dialog {
+  transform: translateY(-20px) scale(0.85);
+  transform-origin: center center;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-header {
+  position: absolute;
+  top: 0.35rem;
+  right: -0.15rem;
+  z-index: 4;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-title {
+  display: none;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(42, 42, 42, 0.92);
+  color: #f5f5f5;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-body {
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-stage {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-dialog {
+  width: min(100%, 14.25rem);
+  max-width: min(100%, 14.25rem);
+  height: auto;
+  max-height: min(85%, 32rem);
+  margin: 0 auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transform: scale(0.75);
+  transform-origin: center center;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-body {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-desktop-chrome,
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile-chrome {
+  z-index: 9200;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-desktop__group--menu-stats,
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-desktop__group--bet {
+  position: relative;
+  z-index: 9201;
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__actions,
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__info {
+  position: relative;
+  z-index: 9201;
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__play-cluster,
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__spin-cluster {
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__action-step {
+  z-index: 9202;
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-mobile__info-bar {
+  position: relative;
+  z-index: 9201;
+  pointer-events: auto;
+}
+
+.suki-buy-bonus-confirm-body {
+  color: #f5f7fa;
+}
+
+.suki-buy-bonus-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.suki-buy-bonus-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 2.5rem 1rem 1rem;
+  border: 2px solid #c8f04a;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 52, 24, 0.92) 0%,
+      rgba(10, 34, 16, 0.94) 48%,
+      rgba(8, 28, 13, 0.96) 100%
+    );
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.suki-buy-bonus-badge {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(64%, 7.75rem);
+  height: auto;
+  margin: 10px 0 -2.25rem;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+}
+
+.suki-buy-bonus-headline {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.suki-buy-bonus-cost-label {
+  margin: 0 0 1.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #c8f04a;
+}
+
+.suki-buy-bonus-purchase {
+  width: 100%;
+  padding: 0.55rem 0.55rem 0.45rem;
+  border-radius: 0.65rem;
+  background: #37483b;
+}
+
+.suki-buy-bonus-price {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #c8f04a;
+}
+
+.suki-buy-bonus-confirm-body .suki-buy-confirm {
+  width: 100%;
+  padding: 0.62rem 0.75rem;
+  border: 2px solid #c8fc7e;
+  border-radius: 0.55rem;
+  background: linear-gradient(180deg, #cfe41a 0%, #a6c83b 100%);
+  color: #003c1d;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, filter 0.15s ease, transform 0.15s ease;
+}
+
+.suki-buy-bonus-confirm-body .suki-buy-confirm:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d8ec28 0%, #b0d444 100%);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.suki-buy-bonus-confirm-body .suki-buy-confirm:active:not(:disabled) {
+  background: linear-gradient(180deg, #b8cc18 0%, #96b434 100%);
+  filter: none;
+  transform: translateY(0);
+}
+
+.suki-buy-bonus-confirm-body .suki-buy-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.suki-buy-bonus-footnote {
+  margin: 0.85rem 0 0;
+  max-width: 14rem;
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgba(245, 247, 250, 0.92);
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-backdrop {
+  display: none !important;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-badge {
+  display: none !important;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-headline {
+  font-size: 1.15rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-cost-label {
+  margin-bottom: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-card {
+  padding-top: 1rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-footnote {
+  font-size: 0.56rem;
+}

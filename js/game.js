@@ -26,7 +26,6 @@ import {
   endRound,
   requestReplay,
   roundPayoutMultiplier,
-  registerBuyBonusConfirm,
   startNewRgsSession,
   createAutoplayController,
   createAutoplayPanelPolicy,
@@ -63,7 +62,8 @@ import { BUILD_COMMIT } from './build-info.js';
 import { winCellsFromClusters, basePayForSymbol, clusterBaseMultiplier, quantizeWinMult } from './cluster.js';
 import { mountBetStepper } from './betStepper.js';
 import { registerAutoplayConfirm } from './autoplayConfirm.js';
-import { applyModalCloseChrome } from './modalCloseChrome.js';
+import { registerBuyBonusConfirm } from './buyBonusConfirm.js';
+import { applyModalCloseChrome, bindModalDismissToHost } from './modalCloseChrome.js';
 import {
   mountSpinButtonGraphic,
   playSpinButtonSpin,
@@ -674,10 +674,18 @@ function clusterHudWinAmounts(event) {
 
 function copyTerm(key, vars) {
   if (game?.copy?.socialCasino) {
-    if (key === 'buyConfirmTitle' || key === 'buyPlayButton') return 'Get Bonus';
+    if (key === 'buyConfirmTitle') return 'Get Bonus';
+    if (key === 'buyPlayButton') return 'GET';
     if (key === 'buyConfirmFeatureDetail') {
       return `${FREE_SPINS_AWARDED} free spins are awarded. Earnings during the feature are awarded to your balance when the round ends.`;
     }
+    if (key === 'buyConfirmFootnote') {
+      return 'Earnings during the feature are awarded to your balance when the round ends';
+    }
+  }
+  if (key === 'buyPlayButton') return 'BUY';
+  if (key === 'buyConfirmFootnote') {
+    return 'Wins during the feature are added to your balance when the round ends.';
   }
   return game?.copy?.t(key, vars) ?? key;
 }
@@ -1161,6 +1169,9 @@ function syncControls() {
   updateWinUi();
   syncPlayAffordBlocker();
   syncDevToolbar();
+  if (buyBonusConfirm.isOpen()) {
+    buyBonusConfirm.sync();
+  }
   if (!canPickBet()) {
     betPicker.closeIfOpen();
   }
@@ -1554,15 +1565,42 @@ const betPicker = createBetPicker({
   getCanOpen: canPickBet,
 });
 
+let buyBonusDialogActive = false;
+
 const buyBonusConfirm = registerBuyBonusConfirm(modalHost, {
   t: copyTerm,
   getBuyCost: buyCostDisplay,
-  getBaseBet: () => bet,
   getCostMultiplier: () => BUY_MODE_COST,
+  getFreeSpinsAwarded: () => FREE_SPINS_AWARDED,
+  getSocialCasino: () => game.copy.socialCasino,
   formatCurrency: (amount) => game.formatCurrency(amount),
   getCanConfirm: () => canBuyBonus(),
   onConfirm: () => executeBuyBonus(),
+  onDismiss: () => {
+    buyBonusDialogActive = false;
+    syncControls();
+  },
+  shell: shellEl,
 });
+
+const modalHostCloseAfterBuyBonus = modalHost.close.bind(modalHost);
+modalHost.close = () => {
+  const wasBuyDialog = buyBonusDialogActive;
+  modalHostCloseAfterBuyBonus();
+  if (wasBuyDialog) {
+    buyBonusDialogActive = false;
+    syncControls();
+  }
+};
+
+const buyBonusOpenBase = buyBonusConfirm.open.bind(buyBonusConfirm);
+buyBonusConfirm.open = () => {
+  buyBonusOpenBase();
+  buyBonusDialogActive = true;
+  syncControls();
+};
+
+bindModalDismissToHost(modalHost, shellEl);
 
 function clearPopupPositionStyles(popup) {
   if (!popup) return;
@@ -1756,7 +1794,7 @@ const betChromeHandlers = {
     replayMode,
   }) ?? true,
   onBuy: () => onBuyBonus(),
-  getBuyEnabled: () => canBuyBonus(),
+  getBuyEnabled: () => canBuyBonus() && !buyBonusDialogActive,
   getBuyLabel: () => buyButtonLabel(),
   getSocialCasino: () => game.copy.socialCasino,
   syncStepper: syncBetStepperState,
