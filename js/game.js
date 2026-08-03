@@ -27,8 +27,6 @@ import {
   endRound,
   requestReplay,
   roundPayoutMultiplier,
-  resolveReplayBaseBetDisplay,
-  formatReplayPayoutMultiplier,
   registerBuyBonusConfirm,
   startNewRgsSession,
   createAutoplayController,
@@ -105,6 +103,7 @@ import { createBetPicker } from './betPicker.js';
 import { createDevToolbar } from './devToolbar.js';
 import { createFeatureChrome } from './featureChrome.js';
 import { createReplayStartModal } from './replayStartModal.js';
+import { formatReplayPayoutMultiplier, resolveReplayBaseBetDisplay } from './replayFormat.js';
 import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
 const shellEl = document.querySelector('.suki-stake-shell');

@@ -2,7 +2,7 @@
  * Pre-replay summary overlay — round details and explicit Start Replay action.
  */
 
-import { formatReplaySummaryMultiplier } from '@kap-solo/suki-engine/client/rgs.js';
+import { formatReplaySummaryMultiplier } from './replayFormat.js';
 
 const STYLE_ID = 'replay-start-modal-styles';
 
