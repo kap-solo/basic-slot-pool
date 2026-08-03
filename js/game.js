@@ -13,7 +13,6 @@ import {
   createGameAudio,
   createGameBootstrap,
   createGameMenu,
-  createGamePreloader,
   createModalHost,
   createRecentResultsStore,
   getSessionID,
@@ -35,7 +34,6 @@ import {
 } from '@kap-solo/suki-engine/client/rgs.js';
 import {
   BACKGROUND_MUSIC_CROSSFADE_MS,
-  buildPreloadAssets,
   createBackgroundMusicLoop,
   createCascadeAudio,
   createClusterStepAudio,
@@ -102,6 +100,8 @@ import { createBetPicker } from './betPicker.js';
 import { createDevToolbar } from './devToolbar.js';
 import { createFeatureChrome } from './featureChrome.js';
 import { createReplayStartModal } from './replayStartModal.js';
+import { runSessionPreload, warmGameRuntime } from './gamePreload.js';
+import { createReflectingPoolPreloader } from './reflectingPoolPreloader.js';
 import { formatReplayPayoutMultiplier, normalizeReplayRound, resolveReplayBaseBetDisplay } from './replayFormat.js';
 import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
@@ -2234,6 +2234,7 @@ function onClusterHighlight(event) {
 }
 
 async function initSlotStage() {
+  if (slotBoard) return;
   applyInferredStakeScreen(shellEl, onStakeScreenInferred);
   slotBoard = await createSlotBoard(slotRoot);
   slotBoard.setPostSpinMotionAudio(startCascadeMotionAudio);
@@ -2252,6 +2253,11 @@ async function initSlotStage() {
       },
     });
   }
+}
+
+async function connectGameSession() {
+  characterUi?.relayout?.();
+  await game.start();
 }
 
 async function startGame() {
@@ -2309,14 +2315,17 @@ if (replayMode) {
   document.addEventListener('pointerdown', () => unlockGameAudio(), { once: true });
 } else {
   setPlayModeUi();
-  createGamePreloader({
+  createReflectingPoolPreloader({
     shell: shellEl,
     subtitle: GAME.title,
     hint: 'Tap anywhere to play',
     connectingHint: copyTerm('connectingRgs'),
-    assets: buildPreloadAssets(),
     gate: () => game.checkRgsGate(),
-    bootstrap: () => startGame(),
+    sessionLoad: (setProgress) => runSessionPreload({
+      onProgress: setProgress,
+      warmRuntime: () => warmGameRuntime(initSlotStage),
+      connect: connectGameSession,
+    }),
     onContinue: onPreloaderContinue,
   });
   attachPreloaderCommitLabel();

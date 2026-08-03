@@ -818,7 +818,7 @@ export async function createPixiSlotBoard(hostEl) {
   }
 
   await ensureCabinetBackground();
-  void ensureBlobPopSpriteFrames().catch((err) => {
+  await ensureBlobPopSpriteFrames().catch((err) => {
     console.warn('[Basic Slot] Blob pop sprite unavailable.', err);
   });
 

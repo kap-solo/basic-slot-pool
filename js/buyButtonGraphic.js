@@ -36,6 +36,14 @@ function resolveBuyButtonGraphicSrc(socialCasino = false) {
   return graphicSrcPromises.get(socialCasino);
 }
 
+/** Front-load buy button SVG blobs during the session preloader. */
+export function primeBuyButtonGraphics() {
+  return Promise.all([
+    resolveBuyButtonGraphicSrc(false),
+    resolveBuyButtonGraphicSrc(true),
+  ]);
+}
+
 /**
  * @param {HTMLElement | null | undefined} wrap
  * @param {{ socialCasino?: boolean }} [opts]

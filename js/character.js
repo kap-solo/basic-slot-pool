@@ -206,6 +206,15 @@ function ensureHostStack(host) {
   return hostContext;
 }
 
+/** Warm character Spine during session preloader (desktop breakpoints only). */
+export function ensureCharacterSpineReady() {
+  if (!hostContext) return Promise.resolve();
+  if (resolveBetUiVariant(hostContext.shell) !== BET_UI_VARIANT.DESKTOP) {
+    return Promise.resolve();
+  }
+  return ensureSkeletonData();
+}
+
 async function ensureSkeletonData() {
   if (skeletonData) return skeletonData;
   if (!skeletonLoad) {

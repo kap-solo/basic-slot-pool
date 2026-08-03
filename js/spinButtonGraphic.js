@@ -28,6 +28,11 @@ function resolveSpinButtonGraphicSrc() {
   return graphicSrcPromise;
 }
 
+/** Front-load spin button SVG during the session preloader. */
+export function primeSpinButtonGraphic() {
+  return resolveSpinButtonGraphicSrc();
+}
+
 /**
  * Play control node moved between legacy row and chrome spin slot.
  * @param {HTMLButtonElement | null | undefined} playButton

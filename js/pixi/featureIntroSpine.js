@@ -12,6 +12,11 @@ export const FEATURE_INTRO_SPINE = {
   atlas: 'assets/spine/free_spins.atlas',
 };
 
+/** Decode feature intro/end Spine during session preloader. */
+export function warmFeatureIntroSpine() {
+  return loadSpineAsset(FEATURE_INTRO_SPINE);
+}
+
 const INTRO_ANIM = 'intro';
 const LOOP_ANIM = 'loop';
 const END_ANIM = 'end';

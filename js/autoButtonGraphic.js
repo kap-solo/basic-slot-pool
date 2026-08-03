@@ -27,6 +27,11 @@ function resolveAutoButtonGraphicSrc() {
   return graphicSrcPromise;
 }
 
+/** Front-load autoplay button SVG during the session preloader. */
+export function primeAutoButtonGraphic() {
+  return resolveAutoButtonGraphicSrc();
+}
+
 /**
  * @param {HTMLElement | null | undefined} wrap
  */
