@@ -52,6 +52,49 @@
   padding-bottom: 0;
 }
 
+.game-logo-mobile {
+  display: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .game-logo-mobile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: max(0px, var(--game-logo-slot-height, var(--cascade-ladder-top, 0px)));
+  padding: 0 0.75rem;
+  box-sizing: border-box;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .game-logo-mobile__img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(72%, 12.5rem);
+  max-height: calc(100% + var(--game-logo-ladder-overlap, 0.45rem));
+  object-fit: contain;
+  object-position: center bottom;
+  transform-origin: center bottom;
+  transform: translateY(var(--game-logo-ladder-overlap, 0.45rem)) scale(0.9);
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .slot-canvas-host {
+  position: relative;
+  z-index: 1;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'] .game-core-stack {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'stage';
+}
+
 .suki-stake-shell[data-bet-ui-variant='mobile'] .stage {
   border: none;
 }
@@ -80,11 +123,6 @@
 
 .suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='landscape'] .multiplier-panel {
   display: none !important;
-}
-
-.suki-stake-shell[data-bet-ui-variant='mobile'] .game-core-stack {
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: 'stage';
 }
 
 .suki-stake-shell[data-bet-ui-variant='mobile'] .suki-controls-slot {

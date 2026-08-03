@@ -366,6 +366,17 @@ export async function createPixiSlotBoard(hostEl) {
     gameCore.style.setProperty('--cabinet-height', `${heightPx}px`);
     gameCore.style.setProperty('--cascade-ladder-top', `${ladderTopPx}px`);
 
+    const stageEl = hostEl.closest('.stage');
+    if (stageEl && isMobileBetUi()) {
+      const logoSlotHeight = Math.max(0, Math.round(hostEl.offsetTop + ladderTopPx));
+      const logoLadderOverlap = Math.max(6, Math.round(layout.ladderBand * 0.24));
+      stageEl.style.setProperty('--game-logo-slot-height', `${logoSlotHeight}px`);
+      stageEl.style.setProperty('--game-logo-ladder-overlap', `${logoLadderOverlap}px`);
+    } else if (stageEl) {
+      stageEl.style.removeProperty('--game-logo-slot-height');
+      stageEl.style.removeProperty('--game-logo-ladder-overlap');
+    }
+
     const panel = gameCore.querySelector('#multiplier-panel');
     if (!panel || panel.offsetWidth <= 0) {
       gameCore.style.removeProperty('--ledger-panel-left');

@@ -1,14 +1,20 @@
 /** Spin button art — shared SVG graphic on the play hit-wrap. */
 
 const SPIN_BUTTON_GRAPHIC_SRC = 'assets/ui/spin_button.svg';
+const SPIN_BUTTON_MOBILE_GRAPHIC_SRC = 'assets/ui/spin_button_mobile.svg';
 const SPIN_BUTTON_ROTATION_MS = 750;
 
-/** @type {Promise<string> | null} */
-let graphicSrcPromise = null;
+/** @type {Map<string, Promise<string>>} */
+const graphicSrcPromises = new Map();
 
-function resolveSpinButtonGraphicSrc() {
-  if (!graphicSrcPromise) {
-    graphicSrcPromise = fetch(SPIN_BUTTON_GRAPHIC_SRC)
+/**
+ * @param {string} assetPath
+ * @returns {Promise<string>}
+ */
+function resolveSpinButtonGraphicSrc(assetPath) {
+  let promise = graphicSrcPromises.get(assetPath);
+  if (!promise) {
+    promise = fetch(assetPath)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.blob();
@@ -20,17 +26,27 @@ function resolveSpinButtonGraphicSrc() {
         return URL.createObjectURL(typed);
       })
       .catch((err) => {
-        graphicSrcPromise = null;
+        graphicSrcPromises.delete(assetPath);
         console.warn('[Basic Slot] Spin button graphic unavailable.', err);
         return '';
       });
+    graphicSrcPromises.set(assetPath, promise);
   }
-  return graphicSrcPromise;
+  return promise;
 }
 
-/** Front-load spin button SVG during the session preloader. */
+/** @param {HTMLElement | null | undefined} wrap */
+function spinButtonGraphicAssetPath(wrap) {
+  const isMobile = wrap?.closest('.suki-stake-shell')?.dataset.betUiVariant === 'mobile';
+  return isMobile ? SPIN_BUTTON_MOBILE_GRAPHIC_SRC : SPIN_BUTTON_GRAPHIC_SRC;
+}
+
+/** Front-load spin button SVGs during the session preloader. */
 export function primeSpinButtonGraphic() {
-  return resolveSpinButtonGraphicSrc();
+  return Promise.all([
+    resolveSpinButtonGraphicSrc(SPIN_BUTTON_GRAPHIC_SRC),
+    resolveSpinButtonGraphicSrc(SPIN_BUTTON_MOBILE_GRAPHIC_SRC),
+  ]);
 }
 
 /**
@@ -57,8 +73,10 @@ export function removeOrphanPlayHitWraps() {
 export function mountSpinButtonGraphic(wrap) {
   if (!wrap?.classList.contains('play-hit-wrap')) return;
 
-  void resolveSpinButtonGraphicSrc().then((src) => {
+  const assetPath = spinButtonGraphicAssetPath(wrap);
+  void resolveSpinButtonGraphicSrc(assetPath).then((src) => {
     if (!src || !wrap.isConnected) return;
+    if (spinButtonGraphicAssetPath(wrap) !== assetPath) return;
 
     let img = wrap.querySelector('.bet-ui-spin-graphic');
     if (!img) {
