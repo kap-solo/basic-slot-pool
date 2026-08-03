@@ -30,6 +30,7 @@ export const ONBOARDING_SPINE = ONBOARDING_SPINE_FR1;
 
 const LOOP_ANIM = 'animation';
 const SPINE_FIT = 0.88;
+const MAX_SPINE_TICK_SEC = 1 / 30;
 /**
  * fr1_anim is a one-shot feature reveal (~3.4s): looping the full clip flashes white,
  * and loop=true with animationStart/end freezes on the first frame in spine-pixi-v8.
@@ -37,16 +38,20 @@ const SPINE_FIT = 0.88;
  */
 const FR1_LOOP_START_SEC = 0.35;
 const FR1_LOOP_END_SEC = 1.85;
+/** fr3_anim holds on the last frame until ~4.33s — trim the loop to the active motion. */
+const FR3_LOOP_END_SEC = 3.7;
 
 /**
  * @param {Spine} spine
  * @param {string} anim
+ * @param {number} startSec
+ * @param {number} endSec
  */
-function playFr1StableLoop(spine, anim) {
+function playStableSegmentLoop(spine, anim, startSec, endSec) {
   const restart = () => {
     const entry = spine.state.setAnimation(0, anim, false);
-    entry.animationStart = FR1_LOOP_START_SEC;
-    entry.animationEnd = FR1_LOOP_END_SEC;
+    entry.animationStart = startSec;
+    entry.animationEnd = endSec;
     entry.mixDuration = 0;
     entry.trackTime = 0;
   };
@@ -61,6 +66,22 @@ function playFr1StableLoop(spine, anim) {
   };
   spine.state.addListener(listener);
   return listener;
+}
+
+/**
+ * @param {Spine} spine
+ * @param {string} anim
+ */
+function playFr1StableLoop(spine, anim) {
+  return playStableSegmentLoop(spine, anim, FR1_LOOP_START_SEC, FR1_LOOP_END_SEC);
+}
+
+/**
+ * @param {Spine} spine
+ * @param {string} anim
+ */
+function playFr3StableLoop(spine, anim) {
+  return playStableSegmentLoop(spine, anim, 0, FR3_LOOP_END_SEC);
 }
 
 /** Decode onboarding Spine assets during session preloader. */
@@ -104,8 +125,9 @@ async function measureHost(hostEl, attempts = 6) {
  * @param {Spine} spine
  * @param {Application} app
  * @param {HTMLElement} hostEl
+ * @param {{ x: number, y: number, width: number, height: number }} bounds
  */
-function layoutSpineInHost(spine, app, hostEl) {
+function layoutSpineInHost(spine, app, hostEl, bounds) {
   const rect = hostEl.getBoundingClientRect();
   const width = Math.max(48, Math.round(rect.width) || 48);
   const height = Math.max(48, Math.round(rect.height) || 48);
@@ -113,7 +135,6 @@ function layoutSpineInHost(spine, app, hostEl) {
     app.renderer.resize(width, height);
   }
 
-  const bounds = spine.getLocalBounds();
   const skeletonW = bounds.width || 1000;
   const skeletonH = bounds.height || 1100;
   const scale = Math.min(width / skeletonW, height / skeletonH) * SPINE_FIT;
@@ -148,43 +169,50 @@ export async function mountOnboardingSpine(hostEl, { spine: spineId = 'fr1' } = 
   const spine = new Spine(data);
   spine.autoUpdate = false;
   spine.eventMode = 'none';
+  spine.skeleton.setToSetupPose();
+  spine.update(0);
+  const layoutBounds = spine.getLocalBounds();
 
   const anim = hasAnim(data, LOOP_ANIM)
     ? LOOP_ANIM
     : data.animations[0]?.name;
   /** @type {import('@esotericsoftware/spine-core').AnimationStateListener | null} */
-  let fr1LoopListener = null;
+  let loopListener = null;
   if (anim) {
     if (spineId === 'fr1') {
-      fr1LoopListener = playFr1StableLoop(spine, anim);
+      loopListener = playFr1StableLoop(spine, anim);
+    } else if (spineId === 'fr3') {
+      loopListener = playFr3StableLoop(spine, anim);
     } else {
       const entry = spine.state.setAnimation(0, anim, true);
+      entry.mixDuration = 0;
       entry.timeScale = 1;
     }
   }
 
-  layoutSpineInHost(spine, app, hostEl);
+  layoutSpineInHost(spine, app, hostEl, layoutBounds);
   app.stage.addChild(spine);
   hostEl.replaceChildren(app.canvas);
 
-  spine.ticker = app.ticker;
-  spine.autoUpdate = true;
-  app.ticker.start();
-  spine.update(0);
+  /** @param {import('pixi.js').Ticker} ticker */
+  const onTick = (ticker) => {
+    const delta = Math.min(ticker.deltaMS / 1000, MAX_SPINE_TICK_SEC);
+    spine.update(delta);
+  };
+  app.ticker.add(onTick);
 
   return {
     host: hostEl,
-    relayout: () => layoutSpineInHost(spine, app, hostEl),
+    relayout: () => layoutSpineInHost(spine, app, hostEl, layoutBounds),
     settleLayout: async () => {
       await measureHost(hostEl, 4);
-      layoutSpineInHost(spine, app, hostEl);
+      layoutSpineInHost(spine, app, hostEl, layoutBounds);
     },
     destroy() {
-      if (fr1LoopListener) {
-        spine.state.removeListener(fr1LoopListener);
+      if (loopListener) {
+        spine.state.removeListener(loopListener);
       }
-      spine.autoUpdate = false;
-      app.ticker.stop();
+      app.ticker.remove(onTick);
       app.destroy(true, { children: true });
       hostEl.replaceChildren();
     },

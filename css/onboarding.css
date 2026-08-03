@@ -26,13 +26,13 @@
 }
 
 .suki-stake-shell[data-bet-ui-variant='desktop'] .suki-game-onboarding-bg {
-  background-image: url('../assets/desktop_bg.jpg');
+  background-image: url('../assets/desktop_bg_onboarding.jpg');
 }
 
 .suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-l'] .suki-game-onboarding-bg,
 .suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l']
   .suki-game-onboarding-bg {
-  background-image: url('../assets/mobile_bg_LRG.jpg');
+  background-image: url('../assets/mobile_bg_LRG_onboarding.jpg');
   background-position: center 6%;
 }
 
@@ -43,25 +43,12 @@
   .suki-game-onboarding-bg,
 .suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms']
   .suki-game-onboarding-bg {
-  background-image: url('../assets/mobile_bg_REG.jpg');
+  background-image: url('../assets/mobile_bg_REG_onboarding.jpg');
   background-position: center 34%;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-bg {
-  background-image: url('../assets/desktop_bg.jpg');
-}
-
-.suki-game-onboarding-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(4, 18, 48, 0.15) 0%,
-    rgba(4, 18, 48, 0.55) 55%,
-    rgba(4, 18, 48, 0.82) 100%
-  );
-  pointer-events: none;
+  background-image: url('../assets/desktop_bg_onboarding.jpg');
 }
 
 .suki-game-onboarding-content {
@@ -99,8 +86,24 @@
   max-height: min(42vh, 22rem);
 }
 
-.suki-game-onboarding-text {
+.suki-game-onboarding-copy {
+  text-align: center;
+  max-width: 22rem;
+}
+
+.suki-game-onboarding-header {
   margin: 0.65rem 0 0;
+  color: #f4f7ff;
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.suki-game-onboarding-text {
+  margin: 0.35rem 0 0;
   color: #f4f7ff;
   font-size: clamp(0.78rem, 1.35vw, 0.95rem);
   font-weight: 600;
@@ -125,8 +128,12 @@
   flex-shrink: 0;
 }
 
-.suki-game-onboarding-carousel-text {
+.suki-game-onboarding-carousel-copy {
   margin: 0.85rem 0 0;
+}
+
+.suki-game-onboarding-carousel-text {
+  margin: 0.35rem 0 0;
   max-width: 22rem;
   text-align: center;
 }
@@ -232,9 +239,15 @@
   aspect-ratio: auto;
 }
 
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-header {
+  margin: 0.25rem 0 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-text,
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel-text {
-  margin: 0.25rem 0 0;
+  margin: 0.15rem 0 0;
   font-size: 0.58rem;
   line-height: 1.28;
   max-width: 13.5rem;

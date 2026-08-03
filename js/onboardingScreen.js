@@ -5,23 +5,23 @@
 import { MOBILE_SCREEN_IDS } from './betUiVariant.js';
 import { mountOnboardingSpine } from './pixi/onboardingSpine.js';
 
-/** @typedef {{ body: string, spine?: import('./pixi/onboardingSpine.js').OnboardingSpineId }} OnboardingFrame */
+/** @typedef {{ header: string, body: string, spine?: import('./pixi/onboardingSpine.js').OnboardingSpineId }} OnboardingFrame */
 
-/** Placeholder copy (~20 words per panel) — real-money / Stake. */
+/** Placeholder copy — real-money / Stake. */
 export const ONBOARDING_FRAMES = [
   {
-    body:
-      'Match clusters of five or more symbols on the Reflecting Pool grid. Winning symbols cascade away and new ones fall into place for consecutive wins.',
+    header: 'CLUSTER CASCADES',
+    body: 'Match five or more symbols. Winners cascade away for consecutive wins.',
     spine: 'fr1',
   },
   {
-    body:
-      'Each cascade increases your win multiplier on the ladder above the reels. Chain multiple cascades in a single spin to climb higher and boost your payout.',
+    header: 'MULTIPLIER LADDER',
+    body: 'Each cascade climbs the multiplier ladder and boosts your payout.',
     spine: 'fr1',
   },
   {
-    body:
-      'Land scatter symbols to trigger the free spins bonus round with enhanced multipliers. Adjust your bet and press spin when you are ready to play.',
+    header: 'FREE SPINS',
+    body: 'Land scatters for free spins with enhanced multipliers. Set your bet and spin.',
     spine: 'fr3',
   },
 ];
@@ -29,18 +29,18 @@ export const ONBOARDING_FRAMES = [
 /** Social casino copy — Win → Earn, bet → play amount. */
 export const ONBOARDING_FRAMES_SOCIAL = [
   {
-    body:
-      'Match clusters of five or more symbols on the Reflecting Pool grid. Matching symbols cascade away and new ones fall into place for consecutive earns.',
+    header: 'CLUSTER CASCADES',
+    body: 'Match five or more symbols. Winners cascade for consecutive earns.',
     spine: 'fr1',
   },
   {
-    body:
-      'Each cascade increases your earn multiplier on the ladder above the reels. Chain multiple cascades in a single spin to climb higher and boost your earn.',
+    header: 'MULTIPLIER LADDER',
+    body: 'Each cascade climbs the multiplier ladder and boosts your earn.',
     spine: 'fr1',
   },
   {
-    body:
-      'Land scatter symbols to trigger the free spins bonus round with enhanced multipliers. Adjust your play amount and press spin when you are ready to play.',
+    header: 'FREE SPINS',
+    body: 'Land scatters for free spins with enhanced multipliers. Set your play amount and spin.',
     spine: 'fr3',
   },
 ];
@@ -122,10 +122,6 @@ export function createOnboardingScreen(options) {
   bg.className = 'suki-game-onboarding-bg';
   bg.setAttribute('aria-hidden', 'true');
 
-  const scrim = document.createElement('div');
-  scrim.className = 'suki-game-onboarding-scrim';
-  scrim.setAttribute('aria-hidden', 'true');
-
   const content = document.createElement('div');
   content.className = 'suki-game-onboarding-content';
 
@@ -140,8 +136,16 @@ export function createOnboardingScreen(options) {
   const carouselSpineHost = document.createElement('div');
   carouselSpineHost.className = 'suki-game-onboarding-spine-host';
 
+  const carouselCopy = document.createElement('div');
+  carouselCopy.className = 'suki-game-onboarding-copy suki-game-onboarding-carousel-copy';
+
+  const carouselHeader = document.createElement('h2');
+  carouselHeader.className = 'suki-game-onboarding-header';
+
   const carouselText = document.createElement('p');
   carouselText.className = 'suki-game-onboarding-text suki-game-onboarding-carousel-text';
+
+  carouselCopy.append(carouselHeader, carouselText);
 
   const nav = document.createElement('div');
   nav.className = 'suki-game-onboarding-nav';
@@ -163,12 +167,10 @@ export function createOnboardingScreen(options) {
   nextBtn.textContent = '›';
 
   nav.append(prevBtn, dotsEl, nextBtn);
-  carousel.append(carouselSpineHost, carouselText, nav);
+  carousel.append(carouselSpineHost, carouselCopy, nav);
 
   /** @type {HTMLElement[]} */
   const gridSpineHosts = [];
-  /** @type {HTMLElement[]} */
-  const gridTextEls = [];
 
   for (const frame of frames) {
     const panel = document.createElement('article');
@@ -178,12 +180,19 @@ export function createOnboardingScreen(options) {
     spineHost.className = 'suki-game-onboarding-spine-host';
     gridSpineHosts.push(spineHost);
 
+    const copy = document.createElement('div');
+    copy.className = 'suki-game-onboarding-copy';
+
+    const header = document.createElement('h2');
+    header.className = 'suki-game-onboarding-header';
+    header.textContent = frame.header;
+
     const text = document.createElement('p');
     text.className = 'suki-game-onboarding-text';
     text.textContent = frame.body;
-    gridTextEls.push(text);
 
-    panel.append(spineHost, text);
+    copy.append(header, text);
+    panel.append(spineHost, copy);
     grid.appendChild(panel);
   }
 
@@ -200,7 +209,7 @@ export function createOnboardingScreen(options) {
   hint.textContent = continueHint;
 
   content.append(grid, carousel);
-  overlay.append(bg, scrim, content, hint);
+  overlay.append(bg, content, hint);
   shell.appendChild(overlay);
   shell.classList.add('suki-onboarding-active');
 
@@ -209,7 +218,9 @@ export function createOnboardingScreen(options) {
   }
 
   function syncCarouselUi() {
-    carouselText.textContent = frames[carouselIndex]?.body ?? '';
+    const frame = frames[carouselIndex];
+    carouselHeader.textContent = frame?.header ?? '';
+    carouselText.textContent = frame?.body ?? '';
     prevBtn.disabled = carouselIndex <= 0;
     nextBtn.disabled = carouselIndex >= frames.length - 1;
     const dots = dotsEl.querySelectorAll('.suki-game-onboarding-dot');
