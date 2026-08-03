@@ -8,6 +8,7 @@ import { primeAutoButtonGraphic } from './autoButtonGraphic.js';
 import { primeBuyButtonGraphics } from './buyButtonGraphic.js';
 import { ensureCharacterSpineReady } from './character.js';
 import { warmFeatureIntroSpine } from './pixi/featureIntroSpine.js';
+import { warmOnboardingSpine } from './pixi/onboardingSpine.js';
 import { ensureBlobPopSpriteFrames } from './pixi/blobSpriteOverlay.js';
 import { primeSpinButtonGraphic } from './spinButtonGraphic.js';
 
@@ -34,6 +35,8 @@ export const PRELOAD_IMAGE_ASSETS = [
   'assets/spine/blob/blob.png',
   'assets/spine/character/character.webp',
   'assets/spine/free_spins.webp',
+  'assets/spine/fr1_anim.webp',
+  'assets/spine/fr3_anim.webp',
 ];
 
 /** @returns {import('@kap-solo/suki-engine/client/suki/assetLoader.js').PreloadAsset[]} */
@@ -93,6 +96,9 @@ export async function warmGameRuntime(initSlotStage) {
     }),
     warmFeatureIntroSpine().catch((err) => {
       console.warn('[Basic Slot] Feature Spine preload failed.', err);
+    }),
+    warmOnboardingSpine().catch((err) => {
+      console.warn('[Basic Slot] Onboarding Spine preload failed.', err);
     }),
     ensureCharacterSpineReady().catch((err) => {
       console.warn('[Basic Slot] Character Spine preload failed.', err);

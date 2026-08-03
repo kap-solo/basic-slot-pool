@@ -112,6 +112,7 @@ const NOOP_PRELOADER = {
  * @param {() => { ok: boolean, message?: string }} [options.gate]
  * @param {(setProgress: (percent: number) => void) => void | Promise<void>} [options.sessionLoad]
  * @param {() => void} [options.onContinue]
+ * @param {boolean} [options.autoContinue] — dismiss without user interaction when load completes
  * @param {boolean} [options.skip]
  */
 export function createReflectingPoolPreloader(options) {
@@ -126,6 +127,7 @@ export function createReflectingPoolPreloader(options) {
     gate,
     sessionLoad,
     onContinue,
+    autoContinue = false,
     skip = false,
   } = options;
 
@@ -202,9 +204,14 @@ export function createReflectingPoolPreloader(options) {
   function markReady() {
     loaded = true;
     setProgress(100);
-    hintEl.textContent = hint;
-    overlay.setAttribute('aria-label', hint);
-    overlay.classList.add('suki-game-preloader--ready');
+    if (autoContinue) {
+      hintEl.hidden = true;
+      overlay.setAttribute('aria-label', 'Loading complete');
+    } else {
+      hintEl.textContent = hint;
+      overlay.setAttribute('aria-label', hint);
+      overlay.classList.add('suki-game-preloader--ready');
+    }
   }
 
   function dismiss() {
@@ -268,6 +275,9 @@ export function createReflectingPoolPreloader(options) {
       await sleep(minDisplayMs - elapsed);
     }
     markReady();
+    if (autoContinue && loaded && !fatal) {
+      dismiss();
+    }
   })();
 
   ready.catch((err) => {

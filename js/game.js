@@ -17,6 +17,7 @@ import {
   createRecentResultsStore,
   getSessionID,
   getReplayParams,
+  getRgsParams,
   isReplayMode,
   isDevMode,
   messageForRgsCode,
@@ -102,6 +103,7 @@ import { createFeatureChrome } from './featureChrome.js';
 import { createReplayStartModal } from './replayStartModal.js';
 import { runSessionPreload, warmGameRuntime } from './gamePreload.js';
 import { createReflectingPoolPreloader } from './reflectingPoolPreloader.js';
+import { createOnboardingScreen } from './onboardingScreen.js';
 import { formatReplayPayoutMultiplier, normalizeReplayRound, resolveReplayBaseBetDisplay } from './replayFormat.js';
 import { SAMPLE_FEATURE_BOOK } from './featureSampleBook.js';
 
@@ -521,7 +523,15 @@ function setMessage(text) {
 }
 
 function showInsufficientBalance() {
-  showPlayerNotice(copyTerm('insufficientBalance'));
+  showPlayerNotice(rgsErrorMessage('ERR_IPB'));
+}
+
+function rgsErrorPolicy(code) {
+  return classifyRgsError(String(code), { copy: game?.copy });
+}
+
+function rgsErrorMessage(code) {
+  return messageForRgsCode(String(code), { copy: game?.copy });
 }
 
 function canAffordPlay() {
@@ -672,8 +682,21 @@ function clusterHudWinAmounts(event) {
   return amounts;
 }
 
+const SOCIAL_CURRENCY_CODES = new Set(['XGC', 'XSC', 'XEC']);
+
+function usesSocialCopy() {
+  if (game?.copy?.socialCasino) return true;
+  const code = String(game?.currency?.currency ?? getRgsParams()?.currency ?? '').toUpperCase();
+  return SOCIAL_CURRENCY_CODES.has(code);
+}
+
 function copyTerm(key, vars) {
-  if (game?.copy?.socialCasino) {
+  if (usesSocialCopy()) {
+    if (key === 'replayDisclaimer') {
+      return 'Recorded round for review only. No live play is made and your balance will not change.';
+    }
+    if (key === 'baseBetLabel') return 'Base Play';
+    if (key === 'buyConfirmTotalLabel') return 'Total play amount';
     if (key === 'buyConfirmTitle') return 'Get Bonus';
     if (key === 'buyPlayButton') return 'GET';
     if (key === 'buyConfirmFeatureDetail') {
@@ -1506,7 +1529,7 @@ async function resumeActiveRoundFromAuth(authOutcome) {
       await resumeOpenRoundFromAuth(data);
     } catch (err) {
       console.error(err);
-      const policy = classifyRgsError(String(err.message));
+      const policy = rgsErrorPolicy(err.message);
       setMessage(policy.message);
       try {
         await ensureActiveRoundClosed();
@@ -1881,7 +1904,7 @@ async function executeBuyBonus() {
       await lifecycle.completeRound(playRes.round, { animate: true });
     } catch (err) {
       console.error(err);
-      const policy = classifyRgsError(String(err.message));
+      const policy = rgsErrorPolicy(err.message);
       setMessage(policy.message);
       if (String(err.message) === 'ERR_IPB') {
         showPlayerNotice(policy.message);
@@ -1917,7 +1940,7 @@ async function onSpin() {
       await lifecycle.executeDrop({ animate: true });
     } catch (err) {
       console.error(err);
-      const policy = classifyRgsError(String(err.message));
+      const policy = rgsErrorPolicy(err.message);
       if (policy.shouldResumeRound) {
         try {
           const data = await syncActiveRoundFromAuth();
@@ -1978,7 +2001,7 @@ async function runAutoplay(roundCount) {
     await autoplaySession?.run(roundCount);
   } catch (err) {
     console.error(err);
-    setMessage(messageForRgsCode(String(err.message)));
+    setMessage(rgsErrorMessage(err.message));
   }
 }
 
@@ -2136,7 +2159,7 @@ async function bootstrapReplay() {
     await runReplayLoop(replayRound);
   } catch (err) {
     console.error(err);
-    const msg = messageForRgsCode(String(err.message));
+    const msg = rgsErrorMessage(err.message);
     setMessage(msg);
     showPlayerNotice(msg, { durationMs: 8000 });
     await replayStartModal.openError({
@@ -2160,7 +2183,15 @@ function handleAuthRoundOutcome(authOutcome) {
   }
 }
 
-function onPreloaderContinue() {
+function onPreloaderComplete() {
+  createOnboardingScreen({
+    shell: shellEl,
+    socialCasino: usesSocialCopy(),
+    onContinue: onOnboardingContinue,
+  });
+}
+
+function onOnboardingContinue() {
   revealGameShell();
   unlockGameAudio();
   if (!pendingAuthResume) return;
@@ -2266,7 +2297,7 @@ async function startGame() {
       await bootstrapReplay();
     } catch (err) {
       console.error(err);
-      const msg = messageForRgsCode(String(err?.message ?? err));
+      const msg = rgsErrorMessage(err?.message ?? err);
       setMessage(msg);
       showPlayerNotice(msg, { durationMs: 8000 });
       await replayStartModal.openError({
@@ -2318,15 +2349,15 @@ if (replayMode) {
   createReflectingPoolPreloader({
     shell: shellEl,
     subtitle: GAME.title,
-    hint: 'Tap anywhere to play',
     connectingHint: copyTerm('connectingRgs'),
     gate: () => game.checkRgsGate(),
+    autoContinue: true,
     sessionLoad: (setProgress) => runSessionPreload({
       onProgress: setProgress,
       warmRuntime: () => warmGameRuntime(initSlotStage),
       connect: connectGameSession,
     }),
-    onContinue: onPreloaderContinue,
+    onContinue: onPreloaderComplete,
   });
   attachPreloaderCommitLabel();
 }

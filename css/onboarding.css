@@ -1,0 +1,270 @@
+.suki-game-onboarding {
+  position: absolute;
+  inset: 0;
+  z-index: 9100;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: hidden;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.suki-game-onboarding[hidden] {
+  display: none !important;
+}
+
+.suki-game-onboarding-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #083797;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'] .suki-game-onboarding-bg {
+  background-image: url('../assets/desktop_bg.jpg');
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-l'] .suki-game-onboarding-bg,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-l']
+  .suki-game-onboarding-bg {
+  background-image: url('../assets/mobile_bg_LRG.jpg');
+  background-position: center 6%;
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile']:is(
+    [data-suki-screen='mobile-m'],
+    [data-suki-screen='mobile-s']
+  )
+  .suki-game-onboarding-bg,
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-orientation='portrait'][data-suki-portrait-family='mobile-ms']
+  .suki-game-onboarding-bg {
+  background-image: url('../assets/mobile_bg_REG.jpg');
+  background-position: center 34%;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-bg {
+  background-image: url('../assets/desktop_bg.jpg');
+}
+
+.suki-game-onboarding-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(4, 18, 48, 0.15) 0%,
+    rgba(4, 18, 48, 0.55) 55%,
+    rgba(4, 18, 48, 0.82) 100%
+  );
+  pointer-events: none;
+}
+
+.suki-game-onboarding-content {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: clamp(0.75rem, 2.5vw, 1.75rem) clamp(0.75rem, 3vw, 2rem)
+    calc(clamp(2.75rem, 8vw, 4rem) + 2.5rem);
+}
+
+.suki-game-onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.75rem, 2vw, 1.75rem);
+  width: min(72rem, 100%);
+  margin: 0 auto;
+}
+
+.suki-game-onboarding-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.suki-game-onboarding-spine-host {
+  width: 100%;
+  aspect-ratio: 1 / 1.05;
+  max-height: min(42vh, 22rem);
+}
+
+.suki-game-onboarding-text {
+  margin: 0.65rem 0 0;
+  color: #f4f7ff;
+  font-size: clamp(0.78rem, 1.35vw, 0.95rem);
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  max-width: 22rem;
+}
+
+.suki-game-onboarding-carousel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(26rem, 100%);
+  margin: 0 auto;
+}
+
+.suki-game-onboarding-carousel .suki-game-onboarding-spine-host {
+  width: min(100%, 20rem);
+  min-height: min(38vh, 18rem);
+  max-height: min(38vh, 18rem);
+  flex-shrink: 0;
+}
+
+.suki-game-onboarding-carousel-text {
+  margin: 0.85rem 0 0;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.suki-game-onboarding-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  cursor: default;
+}
+
+.suki-game-onboarding-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #f4f7ff;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.suki-game-onboarding-nav-btn:hover:not(:disabled) {
+  color: #ffffff;
+}
+
+.suki-game-onboarding-nav-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.suki-game-onboarding-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.suki-game-onboarding-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.suki-game-onboarding-dot.is-active {
+  transform: scale(1.25);
+  background: #f0f4ff;
+}
+
+.suki-game-onboarding-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(0.85rem, 3vw, 1.35rem);
+  z-index: 3;
+  transform: translateX(-50%);
+  margin: 0;
+  color: rgba(244, 247, 255, 0.92);
+  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  pointer-events: none;
+  animation: suki-onboarding-hint-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes suki-onboarding-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-content {
+  justify-content: flex-start;
+  padding: 0.25rem 0.45rem 2.55rem;
+  overflow: hidden;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel {
+  width: min(15rem, 92%);
+  flex: 0 1 auto;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  --onboarding-popout-spine-size: min(5.75rem, 32vw, 24vh);
+  width: var(--onboarding-popout-spine-size);
+  height: var(--onboarding-popout-spine-size);
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-text,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel-text {
+  margin: 0.25rem 0 0;
+  font-size: 0.58rem;
+  line-height: 1.28;
+  max-width: 13.5rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-nav {
+  position: absolute;
+  left: 50%;
+  bottom: 1.2rem;
+  transform: translateX(-50%);
+  margin-top: 0;
+  padding: 0;
+  gap: 0.45rem;
+  z-index: 4;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-nav-btn {
+  width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.95rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-hint {
+  bottom: 0.3rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  max-width: calc(100% - 1rem);
+}
