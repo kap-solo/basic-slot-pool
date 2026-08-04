@@ -1,0 +1,151 @@
+{
+"skeleton": { "hash": "Gb8bzi7sEv8", "spine": "4.3.23", "x": -489.5, "y": -504.7565, "width": 1221.1746, "height": 783.5141 },
+"bones": [
+	{ "name": "root" },
+	{ "name": "Xes", "parent": "root" },
+	{ "name": "fade in BO", "parent": "root" },
+	{ "name": "O only", "parent": "root" },
+	{ "name": "OBS", "parent": "root", "x": 9.080872, "y": -96.25646 },
+	{ "name": "reference", "parent": "root" },
+	{ "name": "NCE only", "parent": "root" },
+	{ "name": "BLINK only", "parent": "root" }
+],
+"slots": [
+	{ "name": "OPEN BRAND STUDIO", "bone": "OBS", "attachment": "OPEN BRAND STUDIO" },
+	{ "name": "blink-once-no-x", "bone": "reference", "attachment": "blink-once-no-x" },
+	{ "name": "pink X", "bone": "Xes", "attachment": "pink X" },
+	{ "name": "white X", "bone": "Xes", "attachment": "white X" },
+	{ "name": "blink-once-O-only", "bone": "O only", "attachment": "blink-once-O-only" },
+	{ "name": "blink_-nce-for-loader", "bone": "fade in BO", "attachment": "blink_-nce-for-loader" },
+	{ "name": "blink_once_logo_Aug2026", "bone": "reference", "attachment": "blink_once_logo_Aug2026" },
+	{ "name": "blink ONLY", "bone": "BLINK only", "attachment": "blink ONLY" },
+	{ "name": "NCE - only", "bone": "NCE only", "attachment": "NCE - only" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"blink-once-no-x": {
+				"blink-once-no-x": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"blink-once-O-only": {
+				"blink-once-O-only": { "y": -31.480164, "width": 979, "height": 612 }
+			},
+			"blink ONLY": {
+				"blink ONLY": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"blink_-nce-for-loader": {
+				"blink_-nce-for-loader": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"blink_once_logo_Aug2026": {
+				"blink_once_logo_Aug2026": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"NCE - only": {
+				"NCE - only": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"OPEN BRAND STUDIO": {
+				"OPEN BRAND STUDIO": { "x": 233.09375, "y": -102.5, "width": 979, "height": 612 }
+			},
+			"pink X": {
+				"pink X": { "x": 0.01989746, "y": -27.529526, "width": 979, "height": 612 }
+			},
+			"white X": {
+				"white X": { "y": -27.24235, "width": 979, "height": 612 }
+			}
+		}
+	}
+],
+"animations": {
+	"loader": {
+		"slots": {
+			"blink-once-no-x": {
+				"attachment": [
+					{}
+				]
+			},
+			"blink-once-O-only": {
+				"rgba": [
+					{ "color": "ffffff00" },
+					{ "time": 0.3666667, "color": "ffffffff" }
+				]
+			},
+			"blink ONLY": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.9333333, "color": "ffffff00" },
+					{ "time": 2.2, "color": "ffffffff" }
+				]
+			},
+			"blink_-nce-for-loader": {
+				"attachment": [
+					{}
+				]
+			},
+			"blink_once_logo_Aug2026": {
+				"attachment": [
+					{}
+				]
+			},
+			"NCE - only": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 2.2, "color": "ffffff00" },
+					{ "time": 3.6, "color": "ffffffff" }
+				]
+			},
+			"OPEN BRAND STUDIO": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 2.8, "color": "ffffff00" },
+					{ "time": 3.9333334, "color": "ffffffff" }
+				]
+			},
+			"pink X": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 1.8666667, "color": "ffffff00" },
+					{ "time": 3.6, "color": "ffffffff" }
+				]
+			},
+			"white X": {
+				"rgba": [
+					{ "color": "ffffff00" },
+					{ "time": 0.3666667, "color": "ffffffff", "curve": "stepped" },
+					{ "time": 1.8666667, "color": "ffffffff" },
+					{ "time": 3.6, "color": "ffffff00" }
+				]
+			}
+		},
+		"bones": {
+			"OBS": {
+				"translate": [
+					{ "y": -39.64094, "curve": "stepped" },
+					{ "time": 2.5, "y": -39.64094 },
+					{ "time": 3.9333334 }
+				]
+			},
+			"O only": {
+				"translate": [
+					{ "x": 355.9674, "y": 18.161495, "curve": "stepped" },
+					{ "time": 0.4, "x": 355.9674, "y": 18.161495 },
+					{ "time": 1.0666667, "x": 354.75665, "y": -68.40872 }
+				],
+				"scale": [
+					{ "x": 0.8, "y": 0.8 },
+					{ "time": 1.0666667 }
+				]
+			},
+			"Xes": {
+				"rotate": [
+					{ "value": 12, "curve": "stepped" },
+					{ "time": 0.3666667, "value": 12 },
+					{ "time": 1.0666667 }
+				],
+				"translate": [
+					{ "x": 11.50244, "y": 14.529327 }
+				]
+			}
+		}
+	}
+}
+}

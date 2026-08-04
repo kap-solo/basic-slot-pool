@@ -2191,13 +2191,14 @@ function handleAuthRoundOutcome(authOutcome) {
   }
 }
 
-function onPreloaderComplete() {
-  createOnboardingScreen({
+async function onPreloaderComplete() {
+  const onboarding = createOnboardingScreen({
     shell: shellEl,
     socialCasino: usesSocialCopy(),
     onGestureUnlock: unlockGameAudioFromGesture,
     onContinue: onOnboardingContinue,
   });
+  await onboarding.ready;
 }
 
 function onOnboardingContinue() {
@@ -2356,8 +2357,6 @@ if (replayMode) {
   setPlayModeUi();
   createReflectingPoolPreloader({
     shell: shellEl,
-    subtitle: GAME.title,
-    connectingHint: copyTerm('connectingRgs'),
     gate: () => game.checkRgsGate(),
     autoContinue: true,
     sessionLoad: (setProgress) => runSessionPreload({

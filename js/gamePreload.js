@@ -9,6 +9,7 @@ import { primeBuyButtonGraphics } from './buyButtonGraphic.js';
 import { ensureCharacterSpineReady } from './character.js';
 import { warmFeatureIntroSpine } from './pixi/featureIntroSpine.js';
 import { warmOnboardingSpine, ONBOARDING_SPINE_TEXTURE_ASSETS } from './pixi/onboardingSpine.js';
+import { warmPreloaderSpine, PRELOADER_SPINE_TEXTURE_ASSETS } from './pixi/preloaderSpine.js';
 import { ONBOARDING_PRELOAD_IMAGE_ASSETS } from './onboardingScreen.js';
 import { ensureBlobPopSpriteFrames } from './pixi/blobSpriteOverlay.js';
 import { primeSpinButtonGraphic } from './spinButtonGraphic.js';
@@ -33,6 +34,7 @@ export const PRELOAD_IMAGE_ASSETS = [
   'assets/mobile_bg_REG_bonus.jpg',
   ...ONBOARDING_PRELOAD_IMAGE_ASSETS,
   ...ONBOARDING_SPINE_TEXTURE_ASSETS,
+  ...PRELOADER_SPINE_TEXTURE_ASSETS,
   'assets/character.png',
   'assets/blobsprite.png',
   'assets/spine/symbols_spinr-flat.webp',
@@ -104,6 +106,9 @@ export async function warmGameRuntime(initSlotStage) {
     }),
     warmOnboardingSpine().catch((err) => {
       console.warn('[Basic Slot] Onboarding Spine preload failed.', err);
+    }),
+    warmPreloaderSpine().catch((err) => {
+      console.warn('[Basic Slot] Preloader Spine preload failed.', err);
     }),
     ensureCharacterSpineReady().catch((err) => {
       console.warn('[Basic Slot] Character Spine preload failed.', err);

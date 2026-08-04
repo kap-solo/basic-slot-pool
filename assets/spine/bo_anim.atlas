@@ -1,0 +1,34 @@
+bo_anim.webp
+size:1181,513
+filter:Linear,Linear
+NCE - only
+bounds:1019,238,275,125
+offsets:646,274,979,612
+rotate:90
+OPEN BRAND STUDIO
+bounds:0,0,820,28
+offsets:78,323,979,612
+blink ONLY
+bounds:879,56,457,140
+offsets:48,267,979,612
+rotate:90
+blink-once-O-only
+bounds:1019,96,142,105
+offsets:417,285,979,612
+rotate:90
+blink-once-no-x
+bounds:0,170,879,140
+offsets:48,267,979,612
+blink_-nce-for-loader
+bounds:0,28,866,142
+offsets:55,266,979,612
+blink_once_logo_Aug2026
+bounds:0,310,879,203
+offsets:48,236,979,612
+pink X
+bounds:1019,18,78,84
+offsets:449,295,979,612
+rotate:90
+white X
+bounds:1103,12,78,84
+offsets:449,295,979,612

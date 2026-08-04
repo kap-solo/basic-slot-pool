@@ -4,6 +4,7 @@
 
 import { sleep } from '@kap-solo/suki-engine/client/suki/assetLoader.js';
 import { isFatalRgsError } from '@kap-solo/suki-engine/client/suki/rgsGate.js';
+import { mountPreloaderSpine } from './pixi/preloaderSpine.js';
 
 const STYLE_ID = 'suki-game-preloader-styles';
 
@@ -16,7 +17,7 @@ const PRELOADER_CSS = `
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: #1a1a1a;
+  background: #201d1d;
   touch-action: manipulation;
 }
 .suki-game-preloader[hidden] {
@@ -27,17 +28,10 @@ const PRELOADER_CSS = `
   text-align: center;
   pointer-events: none;
 }
-.suki-game-preloader-brand {
-  margin: 0 0 0.35rem;
-  font: 700 clamp(1.35rem, 6vw, 2rem) / 1.1 system-ui, sans-serif;
-  color: #f0f0f0;
-  letter-spacing: 0.08em;
-}
-.suki-game-preloader-subtitle {
-  margin: 0 0 1.35rem;
-  color: #8a8a8a;
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+.suki-game-preloader-spine {
+  width: 100%;
+  height: clamp(4.5rem, 28vw, 7.5rem);
+  margin: 0 0 1.25rem;
 }
 .suki-game-preloader-track {
   height: 0.45rem;
@@ -49,15 +43,8 @@ const PRELOADER_CSS = `
   height: 100%;
   width: 0%;
   border-radius: inherit;
-  background: #e85d04;
+  background: #ff006d;
   transition: width 0.18s ease-out;
-}
-.suki-game-preloader-hint {
-  margin: 0.85rem 0 0;
-  color: #7a7a7a;
-  font-size: 0.78rem;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
 }
 .suki-game-preloader--ready {
   cursor: pointer;
@@ -103,26 +90,18 @@ const NOOP_PRELOADER = {
 /**
  * @param {object} options
  * @param {HTMLElement} options.shell
- * @param {string} [options.brand]
- * @param {string} [options.subtitle]
- * @param {string} [options.hint]
- * @param {string} [options.loadingHint]
+ * @param {string} [options.loadingHint] — screen-reader label while loading
  * @param {number} [options.minDisplayMs]
- * @param {string} [options.connectingHint]
  * @param {() => { ok: boolean, message?: string }} [options.gate]
  * @param {(setProgress: (percent: number) => void) => void | Promise<void>} [options.sessionLoad]
- * @param {() => void} [options.onContinue]
+ * @param {() => void | Promise<void>} [options.onContinue]
  * @param {boolean} [options.autoContinue] — dismiss without user interaction when load completes
  * @param {boolean} [options.skip]
  */
 export function createReflectingPoolPreloader(options) {
   const {
     shell,
-    brand = 'S U K I',
-    subtitle = '',
-    hint = 'Tap anywhere to play',
     loadingHint = 'Loading…',
-    connectingHint = 'Connecting…',
     minDisplayMs = 400,
     gate,
     sessionLoad,
@@ -140,6 +119,8 @@ export function createReflectingPoolPreloader(options) {
   let dismissed = false;
   let loaded = false;
   let fatal = false;
+  /** @type {{ destroy?: () => void, relayout?: () => void } | null} */
+  let spineMount = null;
 
   const overlay = document.createElement('div');
   overlay.className = 'suki-game-preloader';
@@ -148,14 +129,9 @@ export function createReflectingPoolPreloader(options) {
   const panel = document.createElement('div');
   panel.className = 'suki-game-preloader-panel';
 
-  const brandEl = document.createElement('h1');
-  brandEl.className = 'suki-game-preloader-brand';
-  brandEl.textContent = brand;
-
-  const subtitleEl = document.createElement('p');
-  subtitleEl.className = 'suki-game-preloader-subtitle';
-  subtitleEl.textContent = subtitle;
-  subtitleEl.hidden = !subtitle;
+  const spineHost = document.createElement('div');
+  spineHost.className = 'suki-game-preloader-spine';
+  spineHost.setAttribute('aria-hidden', 'true');
 
   const track = document.createElement('div');
   track.className = 'suki-game-preloader-track';
@@ -168,19 +144,27 @@ export function createReflectingPoolPreloader(options) {
   fill.className = 'suki-game-preloader-fill';
   track.appendChild(fill);
 
-  const hintEl = document.createElement('p');
-  hintEl.className = 'suki-game-preloader-hint';
-  hintEl.textContent = loadingHint;
-
   const errorEl = document.createElement('p');
   errorEl.className = 'suki-game-preloader-error';
   errorEl.hidden = true;
 
-  panel.append(brandEl, subtitleEl, track, hintEl, errorEl);
+  panel.append(spineHost, track, errorEl);
   overlay.appendChild(panel);
   shell.appendChild(overlay);
   shell.classList.add('suki-preloader-active');
   overlay.setAttribute('aria-label', loadingHint);
+
+  mountPreloaderSpine(spineHost)
+    .then((mount) => {
+      if (dismissed) {
+        mount.destroy();
+        return;
+      }
+      spineMount = mount;
+    })
+    .catch((err) => {
+      console.warn('[Basic Slot] Preloader Spine unavailable.', err);
+    });
 
   function setProgress(percent) {
     const clamped = Math.max(0, Math.min(100, percent));
@@ -192,7 +176,6 @@ export function createReflectingPoolPreloader(options) {
     fatal = true;
     loaded = false;
     setProgress(0);
-    hintEl.hidden = true;
     errorEl.hidden = false;
     errorEl.textContent = message;
     overlay.setAttribute('aria-label', message);
@@ -204,23 +187,25 @@ export function createReflectingPoolPreloader(options) {
   function markReady() {
     loaded = true;
     setProgress(100);
-    if (autoContinue) {
-      hintEl.hidden = true;
-      overlay.setAttribute('aria-label', 'Loading complete');
-    } else {
-      hintEl.textContent = hint;
-      overlay.setAttribute('aria-label', hint);
+    overlay.setAttribute('aria-label', autoContinue ? 'Loading complete' : 'Tap to play');
+    if (!autoContinue) {
       overlay.classList.add('suki-game-preloader--ready');
     }
   }
 
-  function dismiss() {
+  async function dismiss() {
     if (dismissed || !loaded || fatal) return;
     dismissed = true;
-    overlay.hidden = true;
-    shell.classList.remove('suki-preloader-active');
-    shell.classList.remove('suki-preloader-fatal');
-    onContinue?.();
+    try {
+      const cont = onContinue?.();
+      if (cont && typeof cont.then === 'function') {
+        await cont;
+      }
+    } finally {
+      overlay.hidden = true;
+      shell.classList.remove('suki-preloader-active');
+      shell.classList.remove('suki-preloader-fatal');
+    }
   }
 
   function onPointerDown(event) {
@@ -253,8 +238,6 @@ export function createReflectingPoolPreloader(options) {
     }
 
     try {
-      hintEl.textContent = connectingHint;
-      overlay.setAttribute('aria-label', connectingHint);
       if (sessionLoad) {
         await sessionLoad(setProgress);
       }
@@ -276,7 +259,7 @@ export function createReflectingPoolPreloader(options) {
     }
     markReady();
     if (autoContinue && loaded && !fatal) {
-      dismiss();
+      await dismiss();
     }
   })();
 
@@ -302,6 +285,8 @@ export function createReflectingPoolPreloader(options) {
     destroy() {
       overlay.removeEventListener('pointerdown', onPointerDown);
       overlay.removeEventListener('keydown', onKeyDown);
+      spineMount?.destroy?.();
+      spineMount = null;
       overlay.remove();
       shell.classList.remove('suki-preloader-active');
       shell.classList.remove('suki-preloader-fatal');
