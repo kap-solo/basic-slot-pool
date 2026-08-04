@@ -31,7 +31,7 @@ Sometimes a green algae square lands on the bottom row of a reel — occasionall
 
 DISPLAY NOTE
 
-When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.
+When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop earn ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a tiny fraction). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.
 
 FREE SPINS
 

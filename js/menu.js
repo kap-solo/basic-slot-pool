@@ -20,6 +20,34 @@ import { formatMult } from './slot.js';
 
 export const GAME_INFO_MODAL_ID = 'game-info';
 
+/** Stake.US paytable footer — avoids wins / winnings / credit from real-money disclaimer. */
+const SOCIAL_GENERAL_DISCLAIMER =
+  'Malfunction voids all play results. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Amounts are settled according to the value received from the Remote Game Server and not from events within the web browser. TM and © 2026 Stake Engine.';
+
+/**
+ * @param {HTMLElement} parent
+ * @param {{ t: (key: string) => string, game?: { copy?: { socialCasino?: boolean } } | null }} ctx
+ */
+function appendGameDisclaimer(parent, { t, game }) {
+  if (game?.copy?.socialCasino) {
+    const block = document.createElement('div');
+    block.className = 'suki-game-info-disclaimer';
+
+    const title = document.createElement('p');
+    title.className = 'suki-game-info-disclaimer-title';
+    title.textContent = t('generalDisclaimerTitle');
+
+    const text = document.createElement('p');
+    text.className = 'suki-game-info-disclaimer-text';
+    text.textContent = SOCIAL_GENERAL_DISCLAIMER;
+
+    block.append(title, text);
+    parent.appendChild(block);
+    return block;
+  }
+  return appendGeneralDisclaimer(parent, t);
+}
+
 /** @type {'how-to-play' | 'paytable'} */
 let activeGameInfoTab = 'how-to-play';
 
@@ -105,7 +133,7 @@ function renderHowToPlayContent(target, { t, game }) {
   const displayNote = pickSocialCopy(
     game,
     'When several clusters win on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
-    'When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
+    'When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop earn ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a tiny fraction). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.',
   );
 
   const p = document.createElement('p');
@@ -544,7 +572,7 @@ function renderPaytableContent(target, { t, game }) {
   intro.textContent = pickSocialCopy(
     game,
     `Payout multipliers per cluster size at cascade step ×1 (first win in a spin). Values are per $1 bet before the cascade ladder.`,
-    `Payout multipliers per cluster size at cascade step ×1 (first qualifying cluster in a round). Values are on a 1× round before the cascade ladder.`,
+    `Amount multipliers per cluster size at cascade step ×1 (first qualifying cluster in a round). Values are on a 1× round before the cascade ladder.`,
   );
   root.appendChild(intro);
 
@@ -592,7 +620,7 @@ function renderPaytableContent(target, { t, game }) {
   largeClusterNote.textContent = pickSocialCopy(
     game,
     `Only clusters of ${MIN_CLUSTER_SIZE} or more connected paying symbols qualify; smaller groups pay nothing. Symbol cards show payout at cascade step ×1; multiply by the cascade ladder below for later wins in the same spin. Clusters of 13+ continue to increase (+×4 size multiplier per extra symbol — shown on each card). Example: ${SYMBOLS.CR.label} full-board cluster (${maxClusterSize} symbols) at step ×1 = ${fullBoardExample} per $1 bet. Each step and the round total are rounded to the nearest $0.01 per $1 bet. Only the amount returned by the Remote Game Server is credited.`,
-    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected qualifying symbols count; smaller groups award nothing. Symbol cards show amounts at cascade step ×1; multiply by the cascade ladder below for later wins in the same round. Clusters of 13+ continue to increase (+×4 size multiplier per extra symbol — shown on each card). Example: ${SYMBOLS.CR.label} full-board cluster (${maxClusterSize} symbols) at step ×1 = ${fullBoardExample} on a 1× round. Each step and the round total are rounded to the nearest 0.01×. Only the amount returned by the Remote Game Server applies.`,
+    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected qualifying symbols count; smaller groups award nothing. Symbol cards show amounts at cascade step ×1; multiply by the cascade ladder below for later earns in the same round. Clusters of 13+ continue to increase (+×4 size multiplier per extra symbol — shown on each card). Example: ${SYMBOLS.CR.label} full-board cluster (${maxClusterSize} symbols) at step ×1 = ${fullBoardExample} on a 1× round. Each step and the round total are rounded to the nearest 0.01×. Only the amount returned by the Remote Game Server applies.`,
   );
   rules.appendChild(largeClusterNote);
 
@@ -622,7 +650,7 @@ function renderPaytableContent(target, { t, game }) {
   cascadeNote.textContent = pickSocialCopy(
     game,
     `Each time winning symbols are removed and new ones tumble in counts as the next cascade step — the first win in a spin uses ×1, the second ×2, and so on up to ×${MAX_CASCADE_LADDER} (further cascades stay at ×${MAX_CASCADE_LADDER}). If several clusters win on the same step, they all use that step’s multiplier together. Step payout = base multiplier × cluster size multiplier × cascade multiplier (e.g. ${SYMBOLS.CH.label} from ${lowPayExample}, ${SYMBOLS.CR.label} from ${highPayExample} at minimum cluster size on a $1 bet).`,
-    `Each time matched symbols are removed and new ones tumble in counts as the next cascade step — the first qualifying cluster in a round uses ×1, the second ×2, and so on up to ×${MAX_CASCADE_LADDER} (further cascades stay at ×${MAX_CASCADE_LADDER}). If several clusters qualify on the same step, they all use that step’s multiplier together. Step amount = base multiplier × cluster size multiplier × cascade multiplier (e.g. ${SYMBOLS.CH.label} from ${lowPayExample}, ${SYMBOLS.CR.label} from ${highPayExample} at minimum cluster size on a $1 round).`,
+    `Each time matched symbols are removed and new ones tumble in counts as the next cascade step — the first qualifying cluster in a round uses ×1, the second ×2, and so on up to ×${MAX_CASCADE_LADDER} (further cascades stay at ×${MAX_CASCADE_LADDER}). If several clusters qualify on the same step, they all use that step’s multiplier together. Step amount = base multiplier × cluster size multiplier × cascade multiplier (e.g. ${SYMBOLS.CH.label} from ${lowPayExample}, ${SYMBOLS.CR.label} from ${highPayExample} at minimum cluster size on a 1× round).`,
   );
   rules.appendChild(cascadeNote);
 
@@ -638,10 +666,10 @@ function renderPaytableContent(target, { t, game }) {
   clusterRounding.textContent = pickSocialCopy(
     game,
     'Per-cluster amounts on board pop-ups and the desktop win ledger during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
-    'Per-cluster amounts on board pop-ups and the desktop win ledger during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount credited by the Remote Game Server applies.',
+    'Per-cluster amounts on board pop-ups and the desktop earn ledger during cascades are illustrative splits of each step and may differ slightly from the step or round total due to rounding. Only the final amount returned by the Remote Game Server applies.',
   );
   info.appendChild(clusterRounding);
-  appendGeneralDisclaimer(info, t);
+  appendGameDisclaimer(info, { t, game });
   rules.appendChild(info);
   root.appendChild(rules);
   target.appendChild(root);

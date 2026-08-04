@@ -707,10 +707,10 @@ function copyTerm(key, vars) {
     if (key === 'buyConfirmTitle') return 'Get Bonus';
     if (key === 'buyPlayButton') return 'GET';
     if (key === 'buyConfirmFeatureDetail') {
-      return `${FREE_SPINS_AWARDED} free spins are awarded. Earnings during the feature are awarded to your balance when the round ends.`;
+      return `${FREE_SPINS_AWARDED} free spins are awarded. Earnings during the feature appear in your balance when the round ends.`;
     }
     if (key === 'buyConfirmFootnote') {
-      return 'Earnings during the feature are awarded to your balance when the round ends';
+      return 'Earnings during the feature appear in your balance when the round ends';
     }
   }
   if (key === 'buyPlayButton') return 'BUY';
@@ -852,6 +852,11 @@ function syncBetStepperState({ downButton, upButton }) {
 
   downButton.disabled = busy || idx <= 0;
   upButton.disabled = busy || idx >= levels.length - 1;
+
+  const stepDownLabel = usesSocialCopy() ? 'Decrease play amount' : 'Decrease bet';
+  const stepUpLabel = usesSocialCopy() ? 'Increase play amount' : 'Increase bet';
+  downButton.setAttribute('aria-label', stepDownLabel);
+  upButton.setAttribute('aria-label', stepUpLabel);
 }
 
 function mountHudDevControls() {
@@ -1828,6 +1833,8 @@ const betChromeHandlers = {
   onBuy: () => onBuyBonus(),
   getBuyEnabled: () => canBuyBonus() && !buyBonusDialogActive,
   getBuyLabel: () => buyButtonLabel(),
+  getBetStepUpLabel: () => (usesSocialCopy() ? 'Increase play amount' : 'Increase bet'),
+  getBetStepDownLabel: () => (usesSocialCopy() ? 'Decrease play amount' : 'Decrease bet'),
   getSocialCasino: () => game.copy.socialCasino,
   syncStepper: syncBetStepperState,
 };

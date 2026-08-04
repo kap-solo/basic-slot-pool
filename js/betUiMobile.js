@@ -237,6 +237,8 @@ export function mountMobileBetUi({
     betUpBtn.disabled = busy;
     betDownBtn.disabled = busy;
     betPickBtn.button.disabled = !canPickBet;
+    betUpBtn.setAttribute('aria-label', handlers.getBetStepUpLabel?.() ?? 'Increase bet');
+    betDownBtn.setAttribute('aria-label', handlers.getBetStepDownLabel?.() ?? 'Decrease bet');
 
     const autoplayActive = handlers.getAutoplayActive?.() ?? false;
     const stopPending = autoplayActive && (handlers.getAutoplayStopPending?.() ?? false);
