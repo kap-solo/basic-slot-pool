@@ -180,10 +180,10 @@ export function registerBuyBonusConfirm(modalHost, options) {
 
   function costLabelText() {
     const mult = getCostMultiplier();
-    const amountTerm = getSocialCasino()
-      ? t('betAmount').toLowerCase()
-      : t('bet');
-    return `Cost: ${mult}x ${amountTerm}`;
+    if (getSocialCasino()) {
+      return `${mult}× ${t('betAmount').toLowerCase()}`;
+    }
+    return `Cost: ${mult}x ${t('bet')}`;
   }
 
   function footnoteText() {

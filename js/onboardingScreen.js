@@ -7,6 +7,7 @@ import { mountOnboardingSpine } from './pixi/onboardingSpine.js';
 
 const ONBOARDING_PREV_CHEVRON_SRC = 'assets/ui/previous_chevron.svg';
 const ONBOARDING_NEXT_CHEVRON_SRC = 'assets/ui/next_chevron.svg';
+const ONBOARDING_GAME_LOGO_SRC = 'assets/ui/game_logo.webp';
 
 /**
  * @param {string} className
@@ -89,6 +90,61 @@ export const ONBOARDING_PRELOAD_IMAGE_ASSETS = [
   'assets/mobile_bg_LRG_onboarding.jpg',
   'assets/mobile_bg_REG_onboarding.jpg',
 ];
+
+/**
+ * Onboarding background JPG for the current shell — mirrors `css/onboarding.css` selectors.
+ *
+ * @param {HTMLElement | null | undefined} shell
+ */
+export function resolveOnboardingBgSrc(shell) {
+  if (!shell) return 'assets/desktop_bg_onboarding.jpg';
+
+  const screen = shell.dataset.sukiScreen || '';
+  if (screen === 'popout-s' || shell.classList.contains('suki-viewport-popout-s')) {
+    return 'assets/desktop_bg_onboarding.jpg';
+  }
+
+  if (resolveBetUiVariant(shell) !== BET_UI_VARIANT.MOBILE) {
+    return 'assets/desktop_bg_onboarding.jpg';
+  }
+
+  const portraitFamily = shell.dataset.sukiPortraitFamily || '';
+  if (screen === 'mobile-l' || portraitFamily === 'mobile-l') {
+    return 'assets/mobile_bg_LRG_onboarding.jpg';
+  }
+  if (screen === 'mobile-m' || screen === 'mobile-s' || portraitFamily === 'mobile-ms') {
+    return 'assets/mobile_bg_REG_onboarding.jpg';
+  }
+
+  const orientation = shell.dataset.sukiOrientation || '';
+  if (
+    orientation === 'portrait' &&
+    !portraitFamily &&
+    screen !== 'mobile-m' &&
+    screen !== 'mobile-s'
+  ) {
+    return 'assets/mobile_bg_LRG_onboarding.jpg';
+  }
+
+  return 'assets/mobile_bg_REG_onboarding.jpg';
+}
+
+/**
+ * @param {string} src
+ * @returns {Promise<void>}
+ */
+function ensureOnboardingBgDecoded(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const finish = () => {
+      void img.decode?.().then(resolve, resolve);
+    };
+    img.addEventListener('load', finish, { once: true });
+    img.addEventListener('error', finish, { once: true });
+    img.src = src;
+    if (img.complete) finish();
+  });
+}
 
 /**
  * @param {HTMLElement | null | undefined} shell
@@ -203,6 +259,17 @@ export function createOnboardingScreen(options) {
   carousel.className = 'suki-game-onboarding-carousel';
   carousel.hidden = true;
 
+  const carouselLogo = document.createElement('div');
+  carouselLogo.className = 'suki-game-onboarding-logo';
+
+  const carouselLogoImg = document.createElement('img');
+  carouselLogoImg.className = 'suki-game-onboarding-logo__img';
+  carouselLogoImg.src = ONBOARDING_GAME_LOGO_SRC;
+  carouselLogoImg.alt = '';
+  carouselLogoImg.decoding = 'async';
+  carouselLogoImg.draggable = false;
+  carouselLogo.append(carouselLogoImg);
+
   const carouselStage = document.createElement('div');
   carouselStage.className = 'suki-game-onboarding-carousel-stage';
 
@@ -271,10 +338,15 @@ export function createOnboardingScreen(options) {
 
   syncContinueHint();
 
-  content.append(grid, carousel);
+  content.append(grid, carouselLogo, carousel);
   overlay.append(bg, continueBtn, content, hint);
   shell.appendChild(overlay);
   shell.classList.add('suki-onboarding-active');
+  overlay.classList.add('suki-game-onboarding--pending-bg');
+  const bgReady = ensureOnboardingBgDecoded(resolveOnboardingBgSrc(shell)).then(() => {
+    overlay.classList.remove('suki-game-onboarding--pending-bg');
+    overlay.classList.add('suki-game-onboarding--bg-ready');
+  });
 
   function isCarousel() {
     return isOnboardingCarouselLayout(shell);
@@ -509,6 +581,7 @@ export function createOnboardingScreen(options) {
   void applyLayout();
 
   return {
+    ready: bgReady,
     destroy() {
       if (dismissed) return;
       dismissed = true;

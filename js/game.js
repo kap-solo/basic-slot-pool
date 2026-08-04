@@ -2191,13 +2191,14 @@ function handleAuthRoundOutcome(authOutcome) {
   }
 }
 
-function onPreloaderComplete() {
-  createOnboardingScreen({
+async function onPreloaderComplete() {
+  const onboarding = createOnboardingScreen({
     shell: shellEl,
     socialCasino: usesSocialCopy(),
     onGestureUnlock: unlockGameAudioFromGesture,
     onContinue: onOnboardingContinue,
   });
+  await onboarding.ready;
 }
 
 function onOnboardingContinue() {
