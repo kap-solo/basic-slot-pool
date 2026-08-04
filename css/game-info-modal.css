@@ -114,7 +114,7 @@
 
 .suki-game-info-paytable-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.55rem;
 }
 
@@ -132,6 +132,13 @@
   background: linear-gradient(180deg, #171c26 0%, #12161e 100%);
 }
 
+.suki-game-info-paytable-card--symbol {
+  flex-direction: column;
+  align-items: center;
+  padding: 0.8rem 0.75rem 0.75rem;
+  text-align: center;
+}
+
 .suki-game-info-paytable-card__icon {
   flex: 0 0 3rem;
   display: flex;
@@ -139,6 +146,12 @@
   justify-content: center;
   width: 3rem;
   height: 3rem;
+}
+
+.suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__icon {
+  flex: 0 0 auto;
+  width: 4.25rem;
+  height: 4.25rem;
 }
 
 .suki-game-info-paytable-card__icon .ledger-symbol-spine,
@@ -149,9 +162,21 @@
   max-height: 3rem !important;
 }
 
+.suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__icon .ledger-symbol-spine,
+.suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__icon .ledger-symbol-icon {
+  width: 4.25rem !important;
+  height: 4.25rem !important;
+  min-width: 4.25rem !important;
+  max-height: 4.25rem !important;
+}
+
 .suki-game-info-paytable-card__icon .ledger-symbol-glyph {
   font-size: 1.85rem;
   line-height: 1;
+}
+
+.suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__icon .ledger-symbol-glyph {
+  font-size: 2.35rem;
 }
 
 .suki-game-info-paytable-card__content {
@@ -163,10 +188,49 @@
 }
 
 .suki-game-info-paytable-card__name {
+  margin: 0;
   font-size: 0.86rem;
   font-weight: 600;
   color: #e8edf4;
   line-height: 1.25;
+}
+
+.suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__name {
+  width: 100%;
+  margin-top: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #c5d0de;
+}
+
+.suki-game-info-paytable-card__tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  width: 100%;
+  margin-top: 0.45rem;
+}
+
+.suki-game-info-paytable-card__tier {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e8edf4;
+  line-height: 1.35;
+}
+
+.suki-game-info-paytable-card__tier--large {
+  margin-top: 0.1rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid #243041;
+}
+
+.suki-game-info-paytable-card__tier--extra {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #8b97a8;
+  line-height: 1.35;
 }
 
 .suki-game-info-paytable-card__cluster {
@@ -268,10 +332,4 @@
 
 .suki-game-info-paytable-rules__footnotes {
   margin-top: 0.85rem;
-}
-
-@media (max-width: 420px) {
-  .suki-game-info-paytable-grid {
-    grid-template-columns: 1fr;
-  }
 }

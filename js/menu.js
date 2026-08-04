@@ -23,6 +23,22 @@ export const GAME_INFO_MODAL_ID = 'game-info';
 /** @type {'how-to-play' | 'paytable'} */
 let activeGameInfoTab = 'how-to-play';
 
+/** Every cluster size with a defined size multiplier (5–12), cascade step ×1. */
+const PAYTABLE_CLUSTER_TIER_SIZES = Object.keys(CLUSTER_SIZE_MULTIPLIERS)
+  .map(Number)
+  .sort((a, b) => a - b);
+
+/** @param {string} symbolId @param {number} size */
+function clusterStepMultiplier(symbolId, size) {
+  return basePayForSymbol(symbolId) * clusterSizeMultiplier(size);
+}
+
+/** @param {number} mult */
+function formatPaytableStepMult(mult) {
+  if (!Number.isFinite(mult) || mult <= 0) return '—';
+  return formatMult(mult);
+}
+
 /**
  * @param {ReturnType<import('@kap-solo/suki-engine/client/suki/modalHost.js').createModalHost>} modalHost
  * @param {'how-to-play' | 'paytable'} tab
@@ -214,29 +230,41 @@ function renderHowToPlayContent(target, { t, game }) {
  */
 function appendPaytableCard(grid, pay) {
   const card = document.createElement('article');
-  card.className = 'suki-game-info-paytable-card';
+  card.className = 'suki-game-info-paytable-card suki-game-info-paytable-card--symbol';
 
   const iconWrap = document.createElement('div');
   iconWrap.className = 'suki-game-info-paytable-card__icon';
   appendSymbolIcon(iconWrap, pay.symbolId);
 
-  const content = document.createElement('div');
-  content.className = 'suki-game-info-paytable-card__content';
-
-  const nameEl = document.createElement('span');
+  const nameEl = document.createElement('p');
   nameEl.className = 'suki-game-info-paytable-card__name';
   nameEl.textContent = pay.label;
 
-  const clusterEl = document.createElement('span');
-  clusterEl.className = 'suki-game-info-paytable-card__cluster';
-  clusterEl.textContent = `${pay.minSize}+ connected`;
+  const tiersEl = document.createElement('div');
+  tiersEl.className = 'suki-game-info-paytable-card__tiers';
 
-  const multEl = document.createElement('span');
-  multEl.className = 'suki-game-info-paytable-card__mult';
-  multEl.textContent = formatBasePayMult(pay.multiplier);
+  for (const size of PAYTABLE_CLUSTER_TIER_SIZES) {
+    const row = document.createElement('p');
+    row.className = 'suki-game-info-paytable-card__tier';
+    row.textContent =
+      `${size} = ${formatPaytableStepMult(clusterStepMultiplier(pay.symbolId, size))}`;
+    tiersEl.appendChild(row);
+  }
 
-  content.append(nameEl, clusterEl, multEl);
-  card.append(iconWrap, content);
+  const perExtraMult = basePayForSymbol(pay.symbolId) * 4;
+
+  const size13Row = document.createElement('p');
+  size13Row.className = 'suki-game-info-paytable-card__tier suki-game-info-paytable-card__tier--large';
+  size13Row.textContent =
+    `13 = ${formatPaytableStepMult(clusterStepMultiplier(pay.symbolId, 13))}`;
+
+  const extraRow = document.createElement('p');
+  extraRow.className = 'suki-game-info-paytable-card__tier suki-game-info-paytable-card__tier--extra';
+  extraRow.textContent =
+    `+${formatPaytableStepMult(perExtraMult)} for each symbol above 12`;
+
+  tiersEl.append(size13Row, extraRow);
+  card.append(iconWrap, nameEl, tiersEl);
   grid.appendChild(card);
 }
 
@@ -517,8 +545,8 @@ function renderPaytableContent(target, { t, game }) {
   intro.className = 'suki-game-info-paytable-intro';
   intro.textContent = pickSocialCopy(
     game,
-    `Base multiplier at minimum cluster size (${MIN_CLUSTER_SIZE}+ connected symbols).`,
-    `Base multiplier at minimum cluster size (${MIN_CLUSTER_SIZE}+ connected symbols).`,
+    `Payout multipliers per cluster size at cascade step ×1 (first win in a spin). Values are per $1 bet before the cascade ladder.`,
+    `Payout multipliers per cluster size at cascade step ×1 (first qualifying cluster in a round). Values are on a 1× round before the cascade ladder.`,
   );
   root.appendChild(intro);
 
@@ -543,8 +571,8 @@ function renderPaytableContent(target, { t, game }) {
   sizeTitle.className = 'suki-game-info-paytable-rules__title';
   sizeTitle.textContent = pickSocialCopy(
     game,
-    'Cluster size multiplier (applied to base pay)',
-    'Cluster size multiplier (applied to the base value above)',
+    'Cluster size multiplier (reference)',
+    'Cluster size multiplier (reference)',
   );
   rules.appendChild(sizeTitle);
 
@@ -559,16 +587,14 @@ function renderPaytableContent(target, { t, game }) {
   rules.appendChild(chipRow);
 
   const maxClusterSize = GAME.reels * GAME.rows;
-  const size12Mult = CLUSTER_SIZE_MULTIPLIERS[12];
-  const size13Mult = clusterSizeMultiplier(13);
-  const maxClusterMult = clusterSizeMultiplier(maxClusterSize);
+  const fullBoardExample = formatPaytableStepMult(clusterStepMultiplier('CR', maxClusterSize));
 
   const largeClusterNote = document.createElement('p');
   largeClusterNote.className = 'suki-game-info-paytable-rules__note';
   largeClusterNote.textContent = pickSocialCopy(
     game,
-    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected paying symbols qualify; smaller groups pay nothing. The list above covers sizes ${MIN_CLUSTER_SIZE}–12. Clusters of 13–${maxClusterSize} symbols use a size multiplier of ×${size12Mult} at 12 symbols, then +×4 for each additional symbol (e.g. 13 symbols = ×${size13Mult}; a full-board cluster of ${maxClusterSize} = ×${maxClusterMult}). Step payout = base multiplier × cluster size multiplier × cascade ladder multiplier; each step and the round total are rounded to the nearest $0.01 per $1 bet. Only the amount returned by the Remote Game Server is credited.`,
-    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected qualifying symbols count; smaller groups award nothing. The list above covers sizes ${MIN_CLUSTER_SIZE}–12. Clusters of 13–${maxClusterSize} symbols use a size multiplier of ×${size12Mult} at 12 symbols, then +×4 for each additional symbol (e.g. 13 symbols = ×${size13Mult}; a full-board cluster of ${maxClusterSize} = ×${maxClusterMult}). Step amount = base multiplier × cluster size multiplier × cascade ladder multiplier; each step and the round total are rounded to the nearest 0.01× on a 1× round. Only the amount returned by the Remote Game Server applies.`,
+    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected paying symbols qualify; smaller groups pay nothing. Symbol cards show payout at cascade step ×1; multiply by the cascade ladder below for later wins in the same spin. Clusters of 13+ continue to increase (+×4 size multiplier per extra symbol — shown on each card). Example: ${SYMBOLS.CR.label} full-board cluster (${maxClusterSize} symbols) at step ×1 = ${fullBoardExample} per $1 bet. Each step and the round total are rounded to the nearest $0.01 per $1 bet. Only the amount returned by the Remote Game Server is credited.`,
+    `Only clusters of ${MIN_CLUSTER_SIZE} or more connected qualifying symbols count; smaller groups award nothing. Symbol cards show amounts at cascade step ×1; multiply by the cascade ladder below for later wins in the same round. Clusters of 13+ continue to increase (+×4 size multiplier per extra symbol — shown on each card). Example: ${SYMBOLS.CR.label} full-board cluster (${maxClusterSize} symbols) at step ×1 = ${fullBoardExample} on a 1× round. Each step and the round total are rounded to the nearest 0.01×. Only the amount returned by the Remote Game Server applies.`,
   );
   rules.appendChild(largeClusterNote);
 
