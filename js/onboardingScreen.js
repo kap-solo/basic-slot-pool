@@ -2,7 +2,9 @@
  * On-boarding screen — desktop triptych or mobile single-frame with side navigation.
  */
 
-import { BET_UI_VARIANT, resolveBetUiVariant } from './betUiVariant.js';
+import { MAX_CASCADE_LADDER } from './cluster.js';
+import { FREE_SPINS_AWARDED, SCATTER_TRIGGER_COUNT } from './config.js';
+import { BET_UI_VARIANT, MOBILE_SCREEN_IDS, resolveBetUiVariant } from './betUiVariant.js';
 import { mountOnboardingSpine } from './pixi/onboardingSpine.js';
 
 const ONBOARDING_PREV_CHEVRON_SRC = 'assets/ui/previous_chevron.svg';
@@ -33,21 +35,44 @@ function createOnboardingChevronButton(className, ariaLabel, src) {
 
 /** @typedef {{ header: string, body: string, spine?: import('./pixi/onboardingSpine.js').OnboardingSpineId }} OnboardingFrame */
 
+/**
+ * @param {HTMLElement} el
+ * @param {string} header
+ */
+function setOnboardingHeader(el, header) {
+  el.replaceChildren();
+  const space = header.indexOf(' ');
+  const line1 = space === -1 ? header : header.slice(0, space);
+  const line2 = space === -1 ? '' : header.slice(space + 1);
+
+  const first = document.createElement('span');
+  first.className = 'suki-game-onboarding-header__line';
+  first.textContent = line1;
+  el.appendChild(first);
+
+  if (line2) {
+    const second = document.createElement('span');
+    second.className = 'suki-game-onboarding-header__line';
+    second.textContent = line2;
+    el.appendChild(second);
+  }
+}
+
 /** Placeholder copy — real-money / Stake. */
 export const ONBOARDING_FRAMES = [
   {
     header: 'CLUSTER CASCADES',
-    body: 'Match five or more symbols. Winners cascade away for consecutive wins.',
+    body: 'Connect 5 or more matching symbols. Winning symbols disappear and new symbols drop in — wins can chain in a single spin.',
     spine: 'fr1',
   },
   {
     header: 'MULTIPLIER LADDER',
-    body: 'Each cascade climbs the multiplier ladder and boosts your payout.',
+    body: `Each cascade climbs the multiplier ladder up to ×${MAX_CASCADE_LADDER}, boosting your payout.`,
     spine: 'fr2',
   },
   {
     header: 'FREE SPINS',
-    body: 'Land 3 scatters to trigger 8 Free Spins.',
+    body: `Land ${SCATTER_TRIGGER_COUNT} or more Scatter symbols to trigger ${FREE_SPINS_AWARDED} Free Spins. Every spin brings fresh cluster cascades and multipliers up to ×${MAX_CASCADE_LADDER}.`,
     spine: 'fr3',
   },
 ];
@@ -56,17 +81,17 @@ export const ONBOARDING_FRAMES = [
 export const ONBOARDING_FRAMES_SOCIAL = [
   {
     header: 'CLUSTER CASCADES',
-    body: 'Match five or more symbols. Winners cascade for consecutive earns.',
+    body: 'Connect 5 or more matching symbols. Matched symbols disappear and new symbols drop in — earns can chain in a single spin.',
     spine: 'fr1',
   },
   {
     header: 'MULTIPLIER LADDER',
-    body: 'Each cascade climbs the multiplier ladder and boosts your earn.',
+    body: `Each cascade climbs the multiplier ladder up to ×${MAX_CASCADE_LADDER}, boosting your earn.`,
     spine: 'fr2',
   },
   {
     header: 'FREE SPINS',
-    body: 'Land 3 scatters to trigger 8 Free Spins.',
+    body: `Land ${SCATTER_TRIGGER_COUNT} or more Scatter symbols to award ${FREE_SPINS_AWARDED} Free Spins. Every spin brings fresh cluster cascades and multipliers up to ×${MAX_CASCADE_LADDER}.`,
     spine: 'fr3',
   },
 ];
@@ -158,10 +183,8 @@ export function resolveOnboardingContinueHint(shell, override) {
 }
 
 /**
- * Carousel for phones, popout-s, and any Stake mobile shell — grid only on desktop/laptop/popout-l.
- *
- * Production Stake often omits `data-suki-screen` and uses `data-suki-portrait-family` instead,
- * so dev `?screen=mobile-s` is not representative unless both attribute sets are aligned.
+ * Carousel for phones, popout-s, and mobile bet UI — grid on desktop/laptop/popout-l
+ * and any large landscape shell using desktop bet chrome (including dev window resize).
  *
  * @param {HTMLElement | null | undefined} shell
  */
@@ -169,11 +192,20 @@ export function isOnboardingCarouselLayout(shell) {
   if (!shell) return true;
 
   const screen = shell.dataset.sukiScreen || '';
+
   if (screen === 'desktop' || screen === 'laptop' || screen === 'popout-l') {
     return false;
   }
 
-  return true;
+  if (screen === 'popout-s' || shell.classList.contains('suki-viewport-popout-s')) {
+    return true;
+  }
+
+  if (MOBILE_SCREEN_IDS.has(screen)) {
+    return true;
+  }
+
+  return resolveBetUiVariant(shell) === BET_UI_VARIANT.MOBILE;
 }
 
 /**
@@ -318,7 +350,7 @@ export function createOnboardingScreen(options) {
 
     const header = document.createElement('h2');
     header.className = 'suki-game-onboarding-header';
-    header.textContent = frame.header;
+    setOnboardingHeader(header, frame.header);
 
     const text = document.createElement('p');
     text.className = 'suki-game-onboarding-text';
@@ -354,7 +386,7 @@ export function createOnboardingScreen(options) {
 
   function syncCarouselUi() {
     const frame = frames[carouselIndex];
-    carouselHeader.textContent = frame?.header ?? '';
+    setOnboardingHeader(carouselHeader, frame?.header ?? '');
     carouselText.textContent = frame?.body ?? '';
     prevBtn.disabled = carouselIndex <= 0;
     nextBtn.disabled = carouselIndex >= frames.length - 1;

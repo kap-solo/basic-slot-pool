@@ -45,7 +45,12 @@ const BOOT_ERROR_SCRIPT = `<script>
     }
     box.textContent = String(text);
   }
+  function isIgnorableBootError(message) {
+    var text = String(message || '');
+    return text.indexOf('ResizeObserver loop') !== -1;
+  }
   window.addEventListener('error', function (e) {
+    if (isIgnorableBootError(e.message)) return;
     showBootError('Load error\\n' + (e.filename || '') + '\\n' + (e.message || String(e.error || e)));
   });
   window.addEventListener('unhandledrejection', function (e) {

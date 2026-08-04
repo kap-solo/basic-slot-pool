@@ -1,0 +1,52 @@
+Reflecting Pool — How to Play
+(social casino copy; Stake.US-style terminology)
+
+Source: js/menu.js → renderHowToPlayContent (social branch)
+Excludes: Win table, General Disclaimer, RTP
+Real-money variant: ./how-to-play.txt
+
+================================================================================
+
+INTRO
+
+A 5×5 cluster cascade game — connect 5 or more matching symbols to earn. Matched symbols are removed; new symbols tumble in and cascades repeat until no new clusters earn. Choose your play amount and press Spin.
+
+CLUSTER & CASCADE RULES
+
+• Qualifying clusters are formed by connected matching symbols (not lines).
+• Clusters must be at least 5 symbols touching up, down, left, or right.
+• Wild substitutes for qualifying symbols when forming clusters. Wild cannot form a cluster on its own.
+• Matched symbols are removed; new symbols tumble in — cascades repeat until no new clusters earn.
+• Each cascade step uses an increasing multiplier (×1 … ×8).
+• If several clusters qualify on the same cascade step, they all use that step’s multiplier at once — the ladder does not advance separately for each cluster.
+• Premium symbols award higher multipliers than ordinary symbols. Larger clusters apply a higher multiplier.
+
+GREEN ALGAE SQUARES
+
+Sometimes a green algae square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green algae squares are not symbols and have no value. This is a visual effect only.
+
+• The green algae square holds briefly, then pops. The reel then shows the symbols that apply for that spin.
+• Clusters are evaluated only after the green algae square disappears — not while it is on screen.
+• A green algae square does not change your round result. It can briefly hide matched symbols, so a successful spin may look like a miss until the cascade finishes.
+
+DISPLAY NOTE
+
+When several clusters qualify on the same cascade step, the amount shown on each board pop-up and on the desktop win ledger is split for display only. Those amounts may differ slightly from one another or from the step total due to rounding (even by a fraction of a cent). Your balance is always updated with the exact amount returned by the Remote Game Server when the round settles.
+
+FREE SPINS
+
+• 3 or more Scatter symbols anywhere on the board at the end of the base-game cascade award 8 free spins.
+• Additional scatters do not award extra spins. Free spins cannot be re-triggered.
+• Each free spin uses the same cluster and cascade rules as the base game. The total feature earn is the sum of all amounts across the 8 spins.
+• Scatter symbols do not form clusters on their own — they only trigger the feature.
+
+CONTROLS
+
+• Use + / − or tap the play amount to change your amount before spinning.
+• Press Spin to play one round at your selected amount for the active game mode (see Win table → Game modes).
+• Get Bonus opens a confirmation at 20× your selected amount. Review the amount, then tap GET to start free spins (see Win table). Tap × or outside the dialog to cancel.
+• Open the menu (☰) for How to Play, Win table, and Music / Sound effects volume.
+• Spacebar triggers Spin when keyboard play is enabled for your region.
+• Autoplay (Auto): where available, tap Auto, choose a number of rounds, then START AUTOPLAY. Each round uses your current play amount for the active game mode.
+• To stop autoplay, tap Auto again. The session finishes the current spin and any cascades on that spin before stopping. Autoplay also ends when all chosen rounds complete or your balance is too low for the next round. Play amount, mode, and manual spin are disabled while autoplay is running.
+• When free spins start or finish, a full-screen summary may appear — tap anywhere on the screen to continue.

@@ -106,28 +106,39 @@
   opacity: 0.35;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-popup {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-popup {
   padding: 0.55rem 0.5rem 0.62rem;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-list::after {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: row;
+  column-gap: 0.45rem;
+  row-gap: 0.35rem;
+  align-items: start;
+  position: relative;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-list::after {
   background: rgba(200, 240, 74, 0.22);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-link {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-link {
   font-size: 0.68rem;
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-toggle,
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-volume {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-toggle,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-volume {
   background: rgba(55, 72, 59, 0.92);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-item--setting .suki-game-menu-label,
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open .suki-game-menu-item--setting .suki-game-menu-label,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open
   .suki-game-menu-item.suki-game-menu-toggle
   .suki-game-menu-label,
-.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s).suki-game-menu-open
   .suki-game-menu-item.suki-game-menu-volume
   .suki-game-menu-label {
   color: #c8f04a;

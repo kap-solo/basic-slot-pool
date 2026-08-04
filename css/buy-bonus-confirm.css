@@ -99,28 +99,53 @@
   background: transparent;
 }
 
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-overlay {
+  z-index: 9300;
+}
+
 .suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-stage {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 0.35rem 0.75rem calc(var(--bet-ui-mobile-chrome-height, 5.5rem) + 0.65rem);
+}
+
+.suki-stake-shell[data-bet-ui-variant='desktop'].suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-stage {
+  padding-bottom: calc(var(--bet-ui-desktop-chrome-height, 6rem) + 0.65rem);
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-dialog {
   width: min(100%, 14.25rem);
   max-width: min(100%, 14.25rem);
-  height: auto;
-  max-height: min(85%, 32rem);
+  max-height: 100%;
   margin: 0 auto;
   border: none;
   border-radius: 0;
   box-shadow: none;
-  transform: scale(0.75);
-  transform-origin: center center;
+  transform: none;
+  overflow: visible;
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-body {
   flex: 0 1 auto;
   min-height: 0;
+  max-height: 100%;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-desktop-chrome,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-mobile-chrome {
+  z-index: 30;
+}
+
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-desktop__group--menu-stats,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-desktop__group--bet,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-mobile__actions,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-mobile__info,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-mobile__info-bar,
+.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .bet-ui-mobile__action-step {
+  z-index: auto;
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open .bet-ui-desktop-chrome,
@@ -295,11 +320,14 @@
 }
 
 .suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-card {
-  padding-top: 1rem;
+  padding: 1rem 0.85rem 0.85rem;
 }
 
 .suki-stake-shell[data-suki-screen='popout-s'].suki-buy-bonus-modal-open .suki-buy-bonus-footnote {
-  font-size: 0.56rem;
+  max-width: none;
+  margin-top: 0.65rem;
+  font-size: 0.54rem;
+  line-height: 1.3;
 }
 
 /* Final purchase confirm — plain overlay on top of buy bonus dialog */

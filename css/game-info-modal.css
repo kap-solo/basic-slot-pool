@@ -1,49 +1,244 @@
 /**
- * How to Play / Paytable — tabbed game info modal.
+ * How to Play / Paytable — tabbed game info modal (autoplay green-card style).
  */
 
-.suki-modal-dialog:has(.suki-game-info-body) .suki-modal-header {
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-dialog,
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-dialog * {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-overlay {
+  pointer-events: auto;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-scrim {
+  pointer-events: auto;
+  background: rgba(4, 6, 10, 0.84);
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.25rem 1rem 4.5rem;
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 22rem);
+  max-width: min(100%, 22rem);
+  max-height: min(calc(100% - 5.5rem), calc(100dvh - 7rem), 26rem);
+  margin-inline: auto;
+  overflow: hidden;
+  pointer-events: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-0.35rem);
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-header {
   display: none;
 }
 
-.suki-modal-body.suki-game-info-body {
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-title {
+  display: none;
+}
+
+.suki-stake-shell.suki-game-info-modal-open .suki-modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-modal-stage {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-modal-dialog {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  transform: none;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-modal-header {
+  display: none;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-game-info-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  padding: 0.65rem 0.55rem 0.7rem;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-game-info-tabs {
+  padding: 0.4rem;
+}
+
+.suki-stake-shell.suki-game-info-modal-open[data-suki-screen='popout-s'] .suki-game-info-panel {
+  margin-top: 0.5rem;
+  padding: 0.1rem 0.25rem 0 0;
+}
+
+.suki-game-info-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  color: #f0f8e8;
+}
+
+.suki-game-info-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-height: min(calc(100dvh - 7rem), 26rem);
+  padding: 0.85rem 0.8rem 0.95rem;
+  border: 2px solid #c8f04a;
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 52, 24, 0.92) 0%,
+      rgba(10, 34, 16, 0.94) 48%,
+      rgba(8, 28, 13, 0.96) 100%
+    );
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+}
+
+.suki-game-info-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  flex: 0 0 auto;
 }
 
 .suki-game-info-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
-  border-bottom: 1px solid #1f2733;
-  background: #12161e;
+  gap: 0.3rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.45rem;
+  border-radius: 0.55rem;
+  background: #37483b;
+  border: 1px solid rgba(200, 240, 74, 0.22);
+}
+
+.suki-game-info-close-slot {
+  flex: 0 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suki-game-info-close-slot .suki-game-info-close,
+.suki-game-info-close-slot .suki-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid rgba(200, 240, 74, 0.45);
+  border-radius: 50%;
+  background: rgba(18, 34, 22, 0.96);
+  color: #f4ffd4;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.suki-game-info-close-slot .suki-game-info-close:hover,
+.suki-game-info-close-slot .suki-modal-close:hover {
+  border-color: #c8fc7e;
+  background: rgba(30, 52, 34, 0.96);
+  color: #ffffff;
 }
 
 .suki-game-info-tab {
   margin: 0;
-  padding: 0.72rem 0.55rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: #8b97a8;
-  font-size: 0.72rem;
+  padding: 0.5rem 0.35rem;
+  border: 1px solid rgba(200, 240, 74, 0.35);
+  border-radius: 0.42rem;
+  background: rgba(18, 34, 22, 0.88);
+  color: rgba(232, 248, 212, 0.92);
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.2;
   text-transform: uppercase;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.suki-game-info-tab:hover {
+  border-color: rgba(200, 240, 74, 0.55);
+  background: rgba(24, 44, 28, 0.92);
 }
 
 .suki-game-info-tab.active {
-  border-bottom-color: #4a9eff;
-  color: #e8edf4;
+  border-color: #c8fc7e;
+  background: rgba(200, 240, 74, 0.22);
+  color: #f4ffd4;
 }
 
 .suki-game-info-panel {
-  padding: 0.85rem 1rem 1rem;
-  overflow: auto;
-  color: #c5d0de;
-  font-size: 0.88rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0.65rem;
+  padding: 0.15rem 0.35rem 0 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 240, 74, 0.55) rgba(18, 34, 22, 0.55);
+  color: rgba(232, 248, 212, 0.92);
+  font-size: 0.84rem;
   line-height: 1.45;
+}
+
+.suki-game-info-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.suki-game-info-panel::-webkit-scrollbar-track {
+  border-radius: 3px;
+  background: rgba(18, 34, 22, 0.55);
+}
+
+.suki-game-info-panel::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(200, 240, 74, 0.55);
 }
 
 .suki-game-info-list {
@@ -53,36 +248,39 @@
 
 .suki-game-info-list--compact {
   margin-top: 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .suki-game-info-subtitle {
   margin: 0.85rem 0 0;
-  font-weight: 600;
-  color: #c5d0de;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #c8f04a;
 }
 
 .suki-game-info-note {
   margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .suki-game-info-note--emphasis {
   margin-top: 0.65rem;
-  font-size: 0.82rem;
-  color: #c5d0de;
+  font-size: 0.8rem;
+  color: rgba(244, 255, 212, 0.95);
 }
 
 .suki-game-info-footnote {
   margin: 0.85rem 0 0;
-  font-size: 0.82rem;
-  color: #8b97a8;
+  font-size: 0.78rem;
+  color: rgba(200, 240, 74, 0.72);
 }
 
 .suki-game-info-footnote-block {
   margin-top: 0.75rem;
-  font-size: 0.8rem;
-  color: #8b97a8;
+  font-size: 0.76rem;
+  color: rgba(200, 240, 74, 0.68);
 }
 
 .suki-game-info-footnote-block p {
@@ -90,13 +288,13 @@
 }
 
 .suki-game-info-panel--paytable {
-  padding-top: 0.65rem;
+  padding-top: 0.15rem;
 }
 
 .suki-game-info-paytable-intro {
   margin: 0 0 0.85rem;
-  font-size: 0.82rem;
-  color: #8b97a8;
+  font-size: 0.78rem;
+  color: rgba(200, 240, 74, 0.78);
 }
 
 .suki-game-info-paytable-section + .suki-game-info-paytable-section {
@@ -105,11 +303,11 @@
 
 .suki-game-info-paytable-section__title {
   margin: 0 0 0.55rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #8b97a8;
+  color: #c8f04a;
 }
 
 .suki-game-info-paytable-grid {
@@ -127,9 +325,9 @@
   align-items: flex-start;
   gap: 0.4rem;
   padding: 0.55rem 0.5rem;
-  border: 1px solid #243041;
+  border: 1px solid rgba(200, 240, 74, 0.28);
   border-radius: 0.55rem;
-  background: linear-gradient(180deg, #171c26 0%, #12161e 100%);
+  background: rgba(18, 34, 22, 0.88);
 }
 
 .suki-game-info-paytable-card--symbol {
@@ -189,18 +387,18 @@
 
 .suki-game-info-paytable-card__name {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  color: #e8edf4;
+  color: #f4ffd4;
   line-height: 1.25;
 }
 
 .suki-game-info-paytable-card--symbol .suki-game-info-paytable-card__name {
   width: 100%;
   margin-top: 0.4rem;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: #c5d0de;
+  color: rgba(232, 248, 212, 0.95);
 }
 
 .suki-game-info-paytable-card__tiers {
@@ -213,44 +411,44 @@
 
 .suki-game-info-paytable-card__tier {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #e8edf4;
+  color: #f4ffd4;
   line-height: 1.35;
 }
 
 .suki-game-info-paytable-card__tier--large {
   margin-top: 0.1rem;
   padding-top: 0.2rem;
-  border-top: 1px solid #243041;
+  border-top: 1px solid rgba(200, 240, 74, 0.22);
 }
 
 .suki-game-info-paytable-card__tier--extra {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #8b97a8;
+  color: rgba(200, 240, 74, 0.78);
   line-height: 1.35;
 }
 
 .suki-game-info-paytable-card__cluster {
   font-size: 0.72rem;
-  color: #8b97a8;
+  color: rgba(200, 240, 74, 0.72);
   white-space: nowrap;
 }
 
 .suki-game-info-paytable-card__mult {
   margin-top: 0.15rem;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #7ec4ff;
+  color: #c8fc7e;
   line-height: 1.2;
 }
 
 .suki-game-info-paytable-card__desc {
-  font-size: 0.74rem;
-  color: #8b97a8;
+  font-size: 0.72rem;
+  color: rgba(200, 240, 74, 0.72);
   line-height: 1.35;
 }
 
@@ -278,23 +476,23 @@
 }
 
 .suki-game-info-paytable-card__value {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  color: #6ecf8a;
+  color: #c8fc7e;
   line-height: 1.2;
 }
 
 .suki-game-info-paytable-rules {
   margin-top: 1.1rem;
   padding-top: 0.95rem;
-  border-top: 1px solid #1f2733;
+  border-top: 1px solid rgba(200, 240, 74, 0.22);
 }
 
 .suki-game-info-paytable-rules__title {
   margin: 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #c5d0de;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(244, 255, 212, 0.95);
 }
 
 .suki-game-info-paytable-rules__title--spaced {
@@ -310,26 +508,31 @@
 
 .suki-game-info-paytable-chip {
   padding: 0.22rem 0.45rem;
-  border: 1px solid #243041;
+  border: 1px solid rgba(200, 240, 74, 0.35);
   border-radius: 999px;
-  background: #12161e;
-  color: #c5d0de;
-  font-size: 0.72rem;
+  background: rgba(18, 34, 22, 0.88);
+  color: rgba(232, 248, 212, 0.92);
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .suki-game-info-paytable-rules__note {
   margin: 0.75rem 0 0;
-  font-size: 0.8rem;
-  color: #8b97a8;
+  font-size: 0.76rem;
+  color: rgba(200, 240, 74, 0.72);
   line-height: 1.45;
 }
 
 .suki-game-info-paytable-rules__note--emphasis {
-  color: #c5d0de;
+  color: rgba(244, 255, 212, 0.95);
 }
 
 .suki-game-info-paytable-rules__footnotes {
   margin-top: 0.85rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-info-modal-open .suki-game-info-tab {
+  font-size: 0.68rem;
+  padding: 0.48rem 0.3rem;
 }

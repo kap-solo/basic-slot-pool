@@ -56,13 +56,11 @@ export function openGameInfoModal(modalHost, tab = 'how-to-play') {
  */
 function renderHowToPlayContent(target, { t, game }) {
   const wildLabel = SYMBOLS[WILD_SYMBOL].label;
-  const boardNote =
-    `The ${GAME.reels}×${GAME.rows} board outcome is decided by the RGS before the reels stop — animation is presentation only.`;
 
   const intro = pickSocialCopy(
     game,
-    `Choose a ${t('bet').toLowerCase()} and press Spin. ${boardNote}`,
-    `Choose your ${t('betAmount').toLowerCase()} and press Spin. ${boardNote}`,
+    'A 5×5 cluster cascade game — connect 5 or more matching symbols to win. Winning symbols are removed; new symbols tumble in and cascades repeat until no cluster pays. Choose a bet and press Spin.',
+    'A 5×5 cluster cascade game — connect 5 or more matching symbols to earn. Matched symbols are removed; new symbols tumble in and cascades repeat until no new clusters earn. Choose your play amount and press Spin.',
   );
 
   const bullets = pickSocialCopy(
@@ -80,7 +78,7 @@ function renderHowToPlayContent(target, { t, game }) {
       'Qualifying clusters are formed by connected matching symbols (not lines).',
       `Clusters must be at least ${MIN_CLUSTER_SIZE} symbols touching up, down, left, or right.`,
       `${wildLabel} substitutes for qualifying symbols when forming clusters. Wild cannot form a cluster on its own.`,
-      'Matched symbols are removed; new symbols tumble in — cascades repeat until no further clusters qualify.',
+      'Matched symbols are removed; new symbols tumble in — cascades repeat until no new clusters earn.',
       `Each cascade step uses an increasing multiplier (×1 … ×${MAX_CASCADE_LADDER}).`,
       'If several clusters qualify on the same cascade step, they all use that step’s multiplier at once — the ladder does not advance separately for each cluster.',
       'Premium symbols award higher multipliers than ordinary symbols. Larger clusters apply a higher multiplier.',
@@ -88,7 +86,7 @@ function renderHowToPlayContent(target, { t, game }) {
   );
 
   const blobIntro =
-    'Sometimes a green algae square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green algae squares are not symbols and have no value. This is a visual effect only; your spin result is already decided before the reels stop.';
+    'Sometimes a green algae square lands on the bottom row of a reel — occasionally two on the bottom rows of the same column. Green algae squares are not symbols and have no value. This is a visual effect only.';
 
   const blobBullets = pickSocialCopy(
     game,
@@ -655,13 +653,22 @@ function renderPaytableContent(target, { t, game }) {
  * @param {'how-to-play' | 'paytable'} initialTab
  */
 function renderGameInfoModal(body, ctx, initialTab) {
-  const { t } = ctx;
+  const { t, shell } = ctx;
+
+  shell?.classList.add('suki-game-info-modal-open');
+
+  const dialog = body.closest('.suki-modal-dialog');
+  const header = dialog?.querySelector('.suki-modal-header');
+  const existingClose = dialog?.querySelector('.suki-modal-close');
+  if (existingClose && header && existingClose.parentElement !== header) {
+    header.appendChild(existingClose);
+  }
 
   body.innerHTML = '';
   body.classList.add('suki-game-info-body');
 
-  const root = document.createElement('div');
-  root.className = 'suki-game-info';
+  const card = document.createElement('div');
+  card.className = 'suki-game-info-card';
 
   const tabs = document.createElement('div');
   tabs.className = 'suki-game-info-tabs';
@@ -705,8 +712,24 @@ function renderGameInfoModal(body, ctx, initialTab) {
   payTab.addEventListener('click', () => setTab('paytable'));
 
   tabs.append(howTab, payTab);
-  root.append(tabs, panel);
-  body.appendChild(root);
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'suki-game-info-toolbar';
+
+  const closeSlot = document.createElement('div');
+  closeSlot.className = 'suki-game-info-close-slot';
+  closeSlot.setAttribute('aria-hidden', 'true');
+
+  toolbar.append(tabs, closeSlot);
+  card.append(toolbar, panel);
+  body.appendChild(card);
+
+  const closeBtn = dialog?.querySelector('.suki-modal-close');
+  if (closeBtn) {
+    closeBtn.classList.add('suki-game-info-close');
+    closeSlot.appendChild(closeBtn);
+    closeSlot.removeAttribute('aria-hidden');
+  }
 
   setTab(initialTab);
 }
@@ -719,6 +742,7 @@ export function registerGameModals(ctx) {
     modalHost,
     recentResults,
     game,
+    shell = null,
     formatCurrency = (n) => String(n),
     formatWin = formatCurrency,
   } = ctx;
@@ -727,7 +751,7 @@ export function registerGameModals(ctx) {
     return game?.t?.(key, vars) ?? game?.copy?.term?.(key) ?? key;
   }
 
-  const renderCtx = { t, game, formatCurrency, formatWin };
+  const renderCtx = { t, game, shell, formatCurrency, formatWin };
 
   modalHost.register(GAME_INFO_MODAL_ID, {
     title: '',

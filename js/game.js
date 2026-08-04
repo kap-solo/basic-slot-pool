@@ -1576,6 +1576,7 @@ registerGameModals({
   modalHost,
   recentResults,
   game,
+  shell: shellEl,
   formatCurrency: (amount) => game.formatCurrency(amount),
   formatWin: (amount) => game.formatWin(amount),
 });
@@ -1689,24 +1690,28 @@ function positionGameMenuForChrome() {
     : 8;
   const chromeHeight = parseFloat(getComputedStyle(shellEl).getPropertyValue(cssVar)) || 0;
   const isPopoutS = shellEl?.dataset.sukiScreen === 'popout-s';
-  const widthCap = isPopoutS ? 360 : 264;
-  const minWidth = isPopoutS ? 180 : 120;
-  const maxWidth = Math.min(widthCap, Math.max(minWidth, shellRect.width - leftPad - rightPad));
-  const maxHeight = Math.floor(
-    Math.max(isPopoutS ? 96 : 120, shellRect.height - chromeHeight - gap - (isPopoutS ? gap : leftPad)),
-  );
+  const widthCap = isPopoutS ? 280 : 264;
+  const minWidth = isPopoutS ? 200 : 120;
+  const menuWidth = Math.min(widthCap, Math.max(minWidth, shellRect.width - leftPad - rightPad));
+  const maxHeight = isPopoutS
+    ? Math.min(240, Math.floor(shellRect.height - chromeHeight - gap * 2))
+    : Math.floor(
+      Math.max(120, shellRect.height - chromeHeight - gap - leftPad),
+    );
 
   if (popup.parentNode !== shellEl) {
     shellEl.appendChild(popup);
   }
 
   popup.style.position = 'absolute';
-  popup.style.left = `${leftPad}px`;
+  popup.style.left = isPopoutS
+    ? `${Math.round((shellRect.width - menuWidth) / 2)}px`
+    : `${leftPad}px`;
   popup.style.right = 'auto';
   popup.style.top = 'auto';
   popup.style.bottom = `${chromeHeight + gap}px`;
-  popup.style.width = `${Math.round(maxWidth)}px`;
-  popup.style.maxWidth = `${Math.round(maxWidth)}px`;
+  popup.style.width = `${Math.round(menuWidth)}px`;
+  popup.style.maxWidth = `${Math.round(menuWidth)}px`;
   popup.style.maxHeight = `${maxHeight}px`;
   popup.style.zIndex = '9055';
 }

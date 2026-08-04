@@ -37,7 +37,12 @@
       }
     </script>
     <script>
+      function isIgnorableBootError(message) {
+        var text = String(message || '');
+        return text.indexOf('ResizeObserver loop') !== -1;
+      }
       window.addEventListener('error', function (e) {
+        if (isIgnorableBootError(e.message)) return;
         var box = document.getElementById('boot-error');
         if (!box) {
           box = document.createElement('pre');
