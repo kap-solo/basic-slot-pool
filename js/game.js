@@ -43,6 +43,7 @@ import {
   createReelSpinAudio,
   createSpinClickAudio,
   resumeGameSfxContext,
+  warmGameAudioForFirstGesture,
   wireTemplateAudio,
 } from './audio.js';
 import { initCharacter } from './character.js';
@@ -141,12 +142,18 @@ let gameSfxPrimed = false;
 
 function unlockGameAudio() {
   gameAudio.unlock();
-  void backgroundMusic.unlock();
+  backgroundMusic.unlockSync();
+  void backgroundMusic.sync();
   resumeGameSfxContext(audioPrefs);
   if (!gameSfxPrimed) {
     gameSfxPrimed = true;
     primeGameSfx();
   }
+}
+
+/** iOS / Stake iframe — identical to spin unlock, inaudible pulse. */
+function unlockGameAudioFromGesture() {
+  spinClickAudio.playSilentUnlock(unlockGameAudio);
 }
 
 /** Blob / cluster SFX fire outside the spin gesture — always pass unlock. */
@@ -2188,6 +2195,7 @@ function onPreloaderComplete() {
   createOnboardingScreen({
     shell: shellEl,
     socialCasino: usesSocialCopy(),
+    onGestureUnlock: unlockGameAudioFromGesture,
     onContinue: onOnboardingContinue,
   });
 }
@@ -2356,6 +2364,7 @@ if (replayMode) {
       onProgress: setProgress,
       warmRuntime: () => warmGameRuntime(initSlotStage),
       connect: connectGameSession,
+      warmAudio: () => warmGameAudioForFirstGesture(audioPrefs, backgroundMusic),
     }),
     onContinue: onPreloaderComplete,
   });

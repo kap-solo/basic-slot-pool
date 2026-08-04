@@ -1,5 +1,5 @@
 /**
- * On-boarding Spine placeholder — fr1_anim skeleton on loop.
+ * On-boarding Spine — fr1/fr2_anim (intro → loop), fr3_anim (stable segment loop).
  */
 
 import './bootstrap.js';
@@ -12,34 +12,99 @@ export const ONBOARDING_SPINE_FR1 = {
   atlas: 'assets/spine/fr1_anim.atlas',
 };
 
+export const ONBOARDING_SPINE_FR2 = {
+  skeleton: 'assets/spine/fr2_anim.json',
+  atlas: 'assets/spine/fr2_anim.atlas',
+};
+
 export const ONBOARDING_SPINE_FR3 = {
   skeleton: 'assets/spine/fr3_anim.json',
   atlas: 'assets/spine/fr3_anim.atlas',
 };
 
-/** @typedef {'fr1' | 'fr3'} OnboardingSpineId */
+/** @typedef {'fr1' | 'fr2' | 'fr3'} OnboardingSpineId */
 
 /** @type {Record<OnboardingSpineId, { skeleton: string, atlas: string }>} */
 export const ONBOARDING_SPINE_BY_ID = {
   fr1: ONBOARDING_SPINE_FR1,
+  fr2: ONBOARDING_SPINE_FR2,
   fr3: ONBOARDING_SPINE_FR3,
 };
+
+/** Atlas page paths — Image preload during session preloader (before Spine decode). */
+export const ONBOARDING_SPINE_TEXTURE_ASSETS = Object.keys(ONBOARDING_SPINE_BY_ID).map(
+  (id) => `assets/spine/${id}_anim.webp`,
+);
 
 /** @deprecated Use ONBOARDING_SPINE_FR1 */
 export const ONBOARDING_SPINE = ONBOARDING_SPINE_FR1;
 
-const LOOP_ANIM = 'animation';
+const INTRO_ANIM = 'intro';
+const LOOP_ANIM = 'loop';
+const LEGACY_LOOP_ANIM = 'animation';
 const SPINE_FIT = 0.88;
 const MAX_SPINE_TICK_SEC = 1 / 30;
-/**
- * fr1_anim is a one-shot feature reveal (~3.4s): looping the full clip flashes white,
- * and loop=true with animationStart/end freezes on the first frame in spine-pixi-v8.
- * Replay a stable mid segment (loop=false) and restart on complete instead.
- */
-const FR1_LOOP_START_SEC = 0.35;
-const FR1_LOOP_END_SEC = 1.85;
 /** fr3_anim holds on the last frame until ~4.33s — trim the loop to the active motion. */
 const FR3_LOOP_END_SEC = 3.7;
+
+/** Shared onboarding art cell — fence attachment size in every onboarding Spine export. */
+const ONBOARDING_FENCE_SIZE = { width: 1000, height: 1100 };
+const ONBOARDING_FENCE_SLOT = 'fence';
+
+/**
+ * Per-spine visual tuning (1 = neutral). Fence size is shared; use this only for
+ * minor art padding differences between assets.
+ * @type {Partial<Record<OnboardingSpineId, number>>}
+ */
+const ONBOARDING_SPINE_VISUAL_FIT = {
+  fr1: 1,
+  fr2: 1,
+  fr3: 1,
+};
+
+/**
+ * Layout metrics from the shared fence cell — both fr1 and fr3 ship a 1000×1100 fence
+ * attachment, so scale and center stay matched regardless of skeleton export bounds.
+ *
+ * @param {Spine} spine
+ * @param {OnboardingSpineId} spineId
+ */
+function captureOnboardingFenceMetrics(spine, spineId) {
+  const { width: fenceW, height: fenceH } = ONBOARDING_FENCE_SIZE;
+  const slot = spine.skeleton.findSlot(ONBOARDING_FENCE_SLOT);
+  let centerX = 0;
+  let centerY = 0;
+
+  if (slot?.bone) {
+    const bone = slot.bone;
+    const att = slot.attachment;
+    const offsetX = att && typeof att.x === 'number' ? att.x : 0;
+    const offsetY = att && typeof att.y === 'number' ? att.y : 0;
+    centerX = bone.worldX + offsetX * bone.a + offsetY * bone.b;
+    centerY = bone.worldY + offsetX * bone.c + offsetY * bone.d;
+  }
+
+  return {
+    x: centerX - fenceW / 2,
+    y: centerY - fenceH / 2,
+    width: fenceW,
+    height: fenceH,
+    visualFit: ONBOARDING_SPINE_VISUAL_FIT[spineId] ?? 1,
+  };
+}
+
+/**
+ * @param {Spine} spine
+ * @param {import('@esotericsoftware/spine-pixi-v8').SkeletonData} data
+ */
+function playIntroThenLoop(spine, data) {
+  if (!hasAnim(data, INTRO_ANIM) || !hasAnim(data, LOOP_ANIM)) return false;
+  const intro = spine.state.setAnimation(0, INTRO_ANIM, false);
+  intro.mixDuration = 0;
+  const loop = spine.state.addAnimation(0, LOOP_ANIM, true, 0);
+  loop.mixDuration = 0;
+  return true;
+}
 
 /**
  * @param {Spine} spine
@@ -72,22 +137,52 @@ function playStableSegmentLoop(spine, anim, startSec, endSec) {
  * @param {Spine} spine
  * @param {string} anim
  */
-function playFr1StableLoop(spine, anim) {
-  return playStableSegmentLoop(spine, anim, FR1_LOOP_START_SEC, FR1_LOOP_END_SEC);
+function playFr3StableLoop(spine, anim) {
+  return playStableSegmentLoop(spine, anim, 0, FR3_LOOP_END_SEC);
 }
 
 /**
  * @param {Spine} spine
- * @param {string} anim
+ * @param {import('@esotericsoftware/spine-pixi-v8').SkeletonData} data
+ * @param {OnboardingSpineId} spineId
+ * @returns {import('@esotericsoftware/spine-core').AnimationStateListener | null}
  */
-function playFr3StableLoop(spine, anim) {
-  return playStableSegmentLoop(spine, anim, 0, FR3_LOOP_END_SEC);
+function startOnboardingSpineMotion(spine, data, spineId) {
+  if (spineId === 'fr1' || spineId === 'fr2') {
+    if (playIntroThenLoop(spine, data)) return null;
+    const fallback = hasAnim(data, LEGACY_LOOP_ANIM)
+      ? LEGACY_LOOP_ANIM
+      : data.animations[0]?.name;
+    if (!fallback) return null;
+    const entry = spine.state.setAnimation(0, fallback, true);
+    entry.mixDuration = 0;
+    return null;
+  }
+
+  if (spineId === 'fr3') {
+    const anim = hasAnim(data, LEGACY_LOOP_ANIM)
+      ? LEGACY_LOOP_ANIM
+      : data.animations[0]?.name;
+    if (!anim) return null;
+    return playFr3StableLoop(spine, anim);
+  }
+
+  const anim = hasAnim(data, LOOP_ANIM)
+    ? LOOP_ANIM
+    : data.animations[0]?.name;
+  if (!anim) return null;
+  const entry = spine.state.setAnimation(0, anim, true);
+  entry.mixDuration = 0;
+  return null;
 }
 
 /** Decode onboarding Spine assets during session preloader. */
 export function warmOnboardingSpine() {
   return Promise.all(
-    Object.values(ONBOARDING_SPINE_BY_ID).map((paths) => loadSpineAsset(paths)),
+    Object.entries(ONBOARDING_SPINE_BY_ID).map(async ([spineId, paths]) => {
+      await loadSpineAsset(paths);
+      console.info(`[Basic Slot] Onboarding Spine "${spineId}" warmed.`);
+    }),
   );
 }
 
@@ -125,9 +220,9 @@ async function measureHost(hostEl, attempts = 6) {
  * @param {Spine} spine
  * @param {Application} app
  * @param {HTMLElement} hostEl
- * @param {{ x: number, y: number, width: number, height: number }} bounds
+ * @param {ReturnType<typeof captureOnboardingFenceMetrics>} metrics
  */
-function layoutSpineInHost(spine, app, hostEl, bounds) {
+function layoutSpineInHost(spine, app, hostEl, metrics) {
   const rect = hostEl.getBoundingClientRect();
   const width = Math.max(48, Math.round(rect.width) || 48);
   const height = Math.max(48, Math.round(rect.height) || 48);
@@ -135,19 +230,20 @@ function layoutSpineInHost(spine, app, hostEl, bounds) {
     app.renderer.resize(width, height);
   }
 
-  const skeletonW = bounds.width || 1000;
-  const skeletonH = bounds.height || 1100;
-  const scale = Math.min(width / skeletonW, height / skeletonH) * SPINE_FIT;
+  const scale =
+    Math.min(width / metrics.width, height / metrics.height)
+    * SPINE_FIT
+    * metrics.visualFit;
   spine.scale.set(scale);
-  spine.x = width / 2 - (bounds.x + bounds.width / 2) * scale;
-  spine.y = height / 2 - (bounds.y + bounds.height / 2) * scale;
+  spine.x = width / 2 - (metrics.x + metrics.width / 2) * scale;
+  spine.y = height / 2 - (metrics.y + metrics.height / 2) * scale;
 }
 
 /**
  * @param {HTMLElement} hostEl
- * @param {{ spine?: OnboardingSpineId }} [opts]
+ * @param {{ spine?: OnboardingSpineId, autoplay?: boolean }} [opts]
  */
-export async function mountOnboardingSpine(hostEl, { spine: spineId = 'fr1' } = {}) {
+export async function mountOnboardingSpine(hostEl, { spine: spineId = 'fr1', autoplay = true } = {}) {
   const paths = ONBOARDING_SPINE_BY_ID[spineId] ?? ONBOARDING_SPINE_FR1;
   const data = await loadSpineAsset(paths);
   const { width, height } = await measureHost(hostEl);
@@ -171,31 +267,33 @@ export async function mountOnboardingSpine(hostEl, { spine: spineId = 'fr1' } = 
   spine.eventMode = 'none';
   spine.skeleton.setToSetupPose();
   spine.update(0);
-  const layoutBounds = spine.getLocalBounds();
 
-  const anim = hasAnim(data, LOOP_ANIM)
-    ? LOOP_ANIM
-    : data.animations[0]?.name;
+  const layoutMetrics = captureOnboardingFenceMetrics(spine, spineId);
   /** @type {import('@esotericsoftware/spine-core').AnimationStateListener | null} */
   let loopListener = null;
-  if (anim) {
-    if (spineId === 'fr1') {
-      loopListener = playFr1StableLoop(spine, anim);
-    } else if (spineId === 'fr3') {
-      loopListener = playFr3StableLoop(spine, anim);
-    } else {
-      const entry = spine.state.setAnimation(0, anim, true);
-      entry.mixDuration = 0;
-      entry.timeScale = 1;
-    }
+  let motionStarted = false;
+  let ticking = false;
+
+  function startMotion() {
+    if (motionStarted) return;
+    motionStarted = true;
+    spine.skeleton.setToSetupPose();
+    spine.update(0);
+    loopListener = startOnboardingSpineMotion(spine, data, spineId);
   }
 
-  layoutSpineInHost(spine, app, hostEl, layoutBounds);
+  if (autoplay) {
+    startMotion();
+    ticking = true;
+  }
+
+  layoutSpineInHost(spine, app, hostEl, layoutMetrics);
   app.stage.addChild(spine);
   hostEl.replaceChildren(app.canvas);
 
   /** @param {import('pixi.js').Ticker} ticker */
   const onTick = (ticker) => {
+    if (!ticking) return;
     const delta = Math.min(ticker.deltaMS / 1000, MAX_SPINE_TICK_SEC);
     spine.update(delta);
   };
@@ -203,10 +301,14 @@ export async function mountOnboardingSpine(hostEl, { spine: spineId = 'fr1' } = 
 
   return {
     host: hostEl,
-    relayout: () => layoutSpineInHost(spine, app, hostEl, layoutBounds),
+    relayout: () => layoutSpineInHost(spine, app, hostEl, layoutMetrics),
     settleLayout: async () => {
       await measureHost(hostEl, 4);
-      layoutSpineInHost(spine, app, hostEl, layoutBounds);
+      layoutSpineInHost(spine, app, hostEl, layoutMetrics);
+    },
+    play() {
+      if (!motionStarted) startMotion();
+      ticking = true;
     },
     destroy() {
       if (loopListener) {

@@ -1,0 +1,36 @@
+fr2_anim.webp
+size:1896,1887
+filter:Linear,Linear
+TOTAL BLANK
+bounds:0,472,472,476
+offsets:266,334,1000,1100
+rotate:90
+fence
+bounds:0,944,950,943
+offsets:27,101,1000,1100
+x1 blank
+bounds:476,468,472,476
+offsets:266,334,1000,1100
+x1 blue
+bounds:0,0,472,476
+offsets:266,334,1000,1100
+rotate:90
+x2 blank
+bounds:948,461,472,476
+offsets:266,334,1000,1100
+rotate:90
+x2 blue
+bounds:950,1410,472,477
+offsets:266,334,1000,1100
+x3 blank
+bounds:1422,1411,472,476
+offsets:266,334,1000,1100
+x3 blue
+bounds:1422,935,472,476
+offsets:266,334,1000,1100
+x4 blank
+bounds:1424,459,472,476
+offsets:266,334,1000,1100
+x4 blue
+bounds:950,933,472,477
+offsets:266,334,1000,1100

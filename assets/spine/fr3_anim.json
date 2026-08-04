@@ -1,5 +1,5 @@
 {
-"skeleton": { "hash": "xSMJHmWO4lA", "spine": "4.3.23", "x": -545.0428, "y": -550, "width": 1100, "height": 1100 },
+"skeleton": { "hash": "fe+98sN8DtA", "spine": "4.3.23", "x": -545.0428, "y": -550, "width": 1100, "height": 1100 },
 "bones": [
 	{ "name": "root" },
 	{ "name": "text", "parent": "root", "rotation": 78.68978 },
@@ -43,6 +43,13 @@
 ],
 "animations": {
 	"animation": {
+		"slots": {
+			"fence": {
+				"attachment": [
+					{}
+				]
+			}
+		},
 		"bones": {
 			"badge": {
 				"rotate": [
@@ -64,7 +71,7 @@
 				],
 				"scale": [
 					{},
-					{ "time": 1.6, "x": 1.05, "y": 1.05 },
+					{ "time": 1.6, "x": 1.2, "y": 1.2 },
 					{ "time": 3.7 }
 				]
 			},
@@ -88,7 +95,7 @@
 				],
 				"scale": [
 					{ "x": 0.86, "y": 0.86 },
-					{ "time": 1.6, "x": 1.05, "y": 1.05 },
+					{ "time": 1.6, "x": 1.25, "y": 1.25 },
 					{ "time": 3.7, "x": 0.86, "y": 0.86, "curve": "stepped" },
 					{ "time": 4.333333, "x": 0.86, "y": 0.86 }
 				]

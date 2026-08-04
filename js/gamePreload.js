@@ -8,7 +8,8 @@ import { primeAutoButtonGraphic } from './autoButtonGraphic.js';
 import { primeBuyButtonGraphics } from './buyButtonGraphic.js';
 import { ensureCharacterSpineReady } from './character.js';
 import { warmFeatureIntroSpine } from './pixi/featureIntroSpine.js';
-import { warmOnboardingSpine } from './pixi/onboardingSpine.js';
+import { warmOnboardingSpine, ONBOARDING_SPINE_TEXTURE_ASSETS } from './pixi/onboardingSpine.js';
+import { ONBOARDING_PRELOAD_IMAGE_ASSETS } from './onboardingScreen.js';
 import { ensureBlobPopSpriteFrames } from './pixi/blobSpriteOverlay.js';
 import { primeSpinButtonGraphic } from './spinButtonGraphic.js';
 
@@ -20,21 +21,18 @@ export const PRELOAD_IMAGE_ASSETS = [
   'assets/ui/auto_button.svg',
   'assets/ui/bonus.svg',
   'assets/ui/bonus_social.svg',
-  'assets/ui/previous_chevron.svg',
-  'assets/ui/next_chevron.svg',
   'assets/ui/warning-tape.png',
   'assets/ui/b_bonus_badge.png',
   'assets/ui/g_bonus_badge.png',
   'assets/ui/game_logo.webp',
   'assets/desktop_bg.jpg',
   'assets/desktop_bg_bonus.jpg',
-  'assets/desktop_bg_onboarding.jpg',
   'assets/mobile_bg_LRG.jpg',
   'assets/mobile_bg_LRG_bonus.jpg',
-  'assets/mobile_bg_LRG_onboarding.jpg',
   'assets/mobile_bg_REG.jpg',
   'assets/mobile_bg_REG_bonus.jpg',
-  'assets/mobile_bg_REG_onboarding.jpg',
+  ...ONBOARDING_PRELOAD_IMAGE_ASSETS,
+  ...ONBOARDING_SPINE_TEXTURE_ASSETS,
   'assets/character.png',
   'assets/blobsprite.png',
   'assets/spine/symbols_spinr-flat.webp',
@@ -42,8 +40,6 @@ export const PRELOAD_IMAGE_ASSETS = [
   'assets/spine/blob/blob.png',
   'assets/spine/character/character.webp',
   'assets/spine/free_spins.webp',
-  'assets/spine/fr1_anim.webp',
-  'assets/spine/fr3_anim.webp',
 ];
 
 /** @returns {import('@kap-solo/suki-engine/client/suki/assetLoader.js').PreloadAsset[]} */
@@ -65,8 +61,9 @@ function primeBetChromeGraphics() {
  * @param {(percent: number) => void} [options.onProgress]
  * @param {() => void | Promise<void>} options.warmRuntime — Pixi board, Spine registry, blob sheet
  * @param {() => void | Promise<void>} options.connect — RGS auth / session resume
+ * @param {() => void | Promise<void>} [options.warmAudio] — decode music/SFX buffers before first gesture
  */
-export async function runSessionPreload({ onProgress, warmRuntime, connect }) {
+export async function runSessionPreload({ onProgress, warmRuntime, connect, warmAudio }) {
   let staticProgress = 0;
   let runtimeProgress = 0;
 
@@ -81,6 +78,7 @@ export async function runSessionPreload({ onProgress, warmRuntime, connect }) {
       staticProgress = percent / 100;
       report();
     }),
+    warmAudio?.() ?? Promise.resolve(),
     (async () => {
       await warmRuntime();
       runtimeProgress = 0.82;

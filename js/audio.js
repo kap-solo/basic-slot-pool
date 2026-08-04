@@ -111,10 +111,51 @@ function createSharedSfxBus(audioPrefs) {
     }
   }
 
-  /** @param {string} url @param {() => void} [unlock] */
-  function playOneShot(url, unlock) {
+  /**
+   * iOS / Stake iframe unlock — same path as spin's playOneShot, but inaudible when silent.
+   * Uses a pre-decoded real buffer (not a 1-sample blip) so the context actually starts.
+   * @param {string} url
+   * @param {() => void} [unlock]
+   * @param {{ silent?: boolean }} [opts]
+   */
+  function playOneShot(url, unlock, { silent = false } = {}) {
     unlock?.();
     resumeContextSync();
+
+    if (silent && url) {
+      ensureContext();
+      const cached = bufferCache.get(url);
+      if (cached && ctx) {
+        const source = ctx.createBufferSource();
+        source.buffer = cached;
+        const silentGain = ctx.createGain();
+        silentGain.gain.value = 0;
+        source.connect(silentGain);
+        silentGain.connect(ctx.destination);
+        try {
+          source.start(0);
+        } catch {
+          /* already started or context unavailable */
+        }
+        return;
+      }
+      void loadBuffer(url).then((buffer) => {
+        if (!buffer || !ctx) return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const silentGain = ctx.createGain();
+        silentGain.gain.value = 0;
+        source.connect(silentGain);
+        silentGain.connect(ctx.destination);
+        try {
+          source.start(0);
+        } catch {
+          /* ignore */
+        }
+      });
+      return;
+    }
+
     applyMasterVolume();
     if (sfxLevel() <= 0 || !url) return;
 
@@ -207,6 +248,7 @@ function createSharedSfxBus(audioPrefs) {
   }
 
   return {
+    ensureContext,
     resumeContextSync,
     primeUrls,
     playOneShot,
@@ -233,6 +275,23 @@ function getSharedSfxBus(audioPrefs) {
 /** Resume the SFX AudioContext during a user gesture (iOS). */
 export function resumeGameSfxContext(audioPrefs) {
   getSharedSfxBus(audioPrefs).resumeContextSync();
+}
+
+/** Unlock game audio inside a user gesture — silent pulse, same path as spin. */
+export function gestureUnlockGameAudio(audioPrefs, unlock) {
+  const pulse = GAME_AUDIO_ASSETS.sfx?.pulse;
+  getSharedSfxBus(audioPrefs).playOneShot(pulse, unlock, { silent: true });
+}
+
+/** Decode music + pulse buffer before the first user gesture. */
+export async function warmGameAudioForFirstGesture(audioPrefs, backgroundMusic) {
+  const bus = getSharedSfxBus(audioPrefs);
+  const pulse = GAME_AUDIO_ASSETS.sfx?.pulse;
+  if (pulse) bus.primeUrls([pulse]);
+  await Promise.all([
+    backgroundMusic.whenReady(),
+    pulse ? bus.loadBuffer(pulse) : Promise.resolve(null),
+  ]);
 }
 
 /** Paths to front-load during the Suki preloader. */
@@ -279,6 +338,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
   const baseUrl = options.baseUrl ?? BACKGROUND_MUSIC_URL;
   const bonusUrl = options.bonusUrl ?? BACKGROUND_MUSIC_BONUS_URL;
   const crossfadeMs = options.crossfadeMs ?? BACKGROUND_MUSIC_CROSSFADE_MS;
+  const bus = getSharedSfxBus(audioPrefs);
 
   /** @typedef {'base' | 'bonus'} MusicTrackKey */
   /** @typedef {{
@@ -289,8 +349,6 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
    *   loadPromise: Promise<AudioBuffer | null> | null,
    * }} MusicTrackState */
 
-  /** @type {AudioContext | null} */
-  let ctx = null;
   /** @type {GainNode | null} */
   let masterGain = null;
   /** @type {Record<MusicTrackKey, MusicTrackState>} */
@@ -304,24 +362,30 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
   /** @type {Promise<void>} */
   let modeTransition = Promise.resolve();
 
-  function effectiveVolume() {
-    return unlocked ? audioPrefs.musicVolume.value : 0;
+  function musicLevel() {
+    const vol = audioPrefs.musicVolume?.value;
+    if (typeof vol === 'number') return vol;
+    return audioPrefs.music?.enabled === false ? 0 : 1;
   }
 
-  function ensureContext() {
-    if (ctx) return ctx;
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    ctx = new AudioCtx();
-    masterGain = ctx.createGain();
-    masterGain.gain.value = 0;
-    masterGain.connect(ctx.destination);
+  function effectiveVolume() {
+    return unlocked ? musicLevel() : 0;
+  }
 
-    for (const key of /** @type {MusicTrackKey[]} */ (['base', 'bonus'])) {
-      const gain = ctx.createGain();
-      gain.gain.value = key === 'base' ? 1 : 0;
-      gain.connect(masterGain);
-      tracks[key].gain = gain;
+  function ensureMusicGraph() {
+    const ctx = bus.ensureContext();
+    if (!ctx) return null;
+    if (!masterGain) {
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 0;
+      masterGain.connect(ctx.destination);
+
+      for (const key of /** @type {MusicTrackKey[]} */ (['base', 'bonus'])) {
+        const gain = ctx.createGain();
+        gain.gain.value = key === 'base' ? 1 : 0;
+        gain.connect(masterGain);
+        tracks[key].gain = gain;
+      }
     }
     return ctx;
   }
@@ -331,16 +395,10 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
     const track = tracks[key];
     if (track.buffer) return Promise.resolve(track.buffer);
     if (track.loadPromise) return track.loadPromise;
-    track.loadPromise = (async () => {
-      if (!track.url) return null;
-      ensureContext();
-      if (!ctx) return null;
-      const response = await fetch(track.url);
-      if (!response.ok) return null;
-      const data = await response.arrayBuffer();
-      track.buffer = await ctx.decodeAudioData(data);
-      return track.buffer;
-    })().catch(() => {
+    track.loadPromise = bus.loadBuffer(track.url).then((buffer) => {
+      track.buffer = buffer;
+      return buffer;
+    }).catch(() => {
       track.loadPromise = null;
       return null;
     });
@@ -362,6 +420,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
 
   /** @param {MusicTrackKey} key */
   function startSource(key) {
+    const ctx = ensureMusicGraph();
     const track = tracks[key];
     if (!ctx || !track.gain || !track.buffer || track.source) return;
     track.source = ctx.createBufferSource();
@@ -381,14 +440,12 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
 
   /** Must run synchronously inside a user-gesture handler (iOS Web Audio policy). */
   function resumeContextSync() {
-    ensureContext();
-    if (ctx?.state === 'suspended') {
-      void ctx.resume().catch(() => {});
-    }
+    bus.resumeContextSync();
   }
 
   /** @param {{ animate?: boolean }} [opts] */
   async function applyModeGains({ animate = true } = {}) {
+    const ctx = ensureMusicGraph();
     if (!ctx || !tracks.base.gain || !tracks.bonus.gain) return;
 
     await Promise.all([loadTrack('base'), loadTrack('bonus')]);
@@ -459,7 +516,7 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
   /** Fade base bed out before bonus music — e.g. free-spins intro overlay. */
   async function fadeBaseOut({ fadeMs = crossfadeMs } = {}) {
     if (inBonusMode) return;
-    ensureContext();
+    const ctx = ensureMusicGraph();
     if (!ctx || !tracks.base.gain) return;
     await loadTrack('base');
     if (ctx.state === 'suspended') {
@@ -480,18 +537,35 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
     }, fadeMs + 50);
   }
 
+  /** Start bed immediately when buffers are already decoded — must run inside user gesture on iOS. */
+  function startUnlockedSourcesSync() {
+    if (!unlocked || effectiveVolume() <= 0) return;
+    applyMasterVolume();
+    const baseTarget = inBonusMode ? 0 : 1;
+    const bonusTarget = inBonusMode ? 1 : 0;
+    if (baseTarget > 0 && tracks.base.buffer) startSource('base');
+    if (bonusTarget > 0 && tracks.bonus.buffer) startSource('bonus');
+    if (tracks.base.gain) tracks.base.gain.gain.value = baseTarget;
+    if (tracks.bonus.gain) tracks.bonus.gain.gain.value = bonusTarget;
+  }
+
+  function unlockSync() {
+    resumeContextSync();
+    if (!unlocked) unlocked = true;
+    startUnlockedSourcesSync();
+  }
+
   return {
     prime() {
       void loadTrack('base');
       void loadTrack('bonus');
     },
+    whenReady() {
+      return Promise.all([loadTrack('base'), loadTrack('bonus')]);
+    },
+    unlockSync,
     async unlock() {
-      resumeContextSync();
-      if (unlocked) {
-        await sync();
-        return;
-      }
-      unlocked = true;
+      unlockSync();
       await sync();
     },
     setBonusMode,
@@ -509,10 +583,6 @@ export function createBackgroundMusicLoop(audioPrefs, options = {}) {
       }
       masterGain?.disconnect();
       masterGain = null;
-      if (ctx) {
-        void ctx.close();
-        ctx = null;
-      }
     },
   };
 }
@@ -532,6 +602,9 @@ export function createSpinClickAudio(audioPrefs) {
     },
     play(unlock) {
       bus.playOneShot(url, unlock);
+    },
+    playSilentUnlock(unlock) {
+      bus.playOneShot(url, unlock, { silent: true });
     },
   };
 }

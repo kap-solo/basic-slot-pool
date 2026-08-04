@@ -1,0 +1,247 @@
+{
+"skeleton": { "hash": "CRvmno07Zys", "spine": "4.3.23", "x": -739.0556, "y": -806.5, "width": 1470.6855, "height": 1569 },
+"bones": [
+	{ "name": "root" },
+	{ "name": "STONE", "parent": "root", "x": -237, "y": 235 },
+	{ "name": "fence", "parent": "root" },
+	{ "name": "STONE2", "parent": "root", "x": 233.6298, "y": 235 },
+	{ "name": "STONE3", "parent": "root", "x": -237, "y": -234 },
+	{ "name": "STONE4", "parent": "root", "x": 233.6298, "y": -234 }
+],
+"slots": [
+	{ "name": "fence", "bone": "fence", "attachment": "fence" },
+	{ "name": "stone-standard", "bone": "STONE", "attachment": "x1 blank" },
+	{ "name": "stone-blue1", "bone": "STONE", "attachment": "x1 blue" },
+	{ "name": "stone-standard2", "bone": "STONE2", "attachment": "x1 blank" },
+	{ "name": "stone-blue-2", "bone": "STONE2" },
+	{ "name": "stone-standard3", "bone": "STONE3", "attachment": "x1 blank" },
+	{ "name": "stone-blue-3", "bone": "STONE3" },
+	{ "name": "stone-standard4", "bone": "STONE4", "attachment": "x1 blank" },
+	{ "name": "stone-blue-4", "bone": "STONE4" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"fence": {
+				"fence": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-blue-2": {
+				"x2 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-blue-3": {
+				"x3 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-blue-4": {
+				"x4 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-blue1": {
+				"x1 blue": { "x": -2.0556335, "y": -23.542816, "width": 1000, "height": 1100 }
+			},
+			"stone-standard": {
+				"TOTAL BLANK": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x1 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-standard2": {
+				"TOTAL BLANK": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x1 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-standard3": {
+				"TOTAL BLANK": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x1 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			},
+			"stone-standard4": {
+				"TOTAL BLANK": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x1 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x2 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x3 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blank": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 },
+				"x4 blue": { "x": -2, "y": -22.5, "width": 1000, "height": 1100 }
+			}
+		}
+	}
+],
+"animations": {
+	"intro": {
+		"slots": {
+			"fence": {
+				"attachment": [
+					{}
+				]
+			},
+			"stone-blue-2": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.9666666, "color": "ffffff00" },
+					{ "time": 1.5666667, "color": "ffffffff" }
+				],
+				"attachment": [
+					{ "name": "x2 blue" }
+				]
+			},
+			"stone-blue-3": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 1.5333333, "color": "ffffff00" },
+					{ "time": 1.8666667, "color": "ffffffff" }
+				],
+				"attachment": [
+					{ "name": "x3 blue" }
+				]
+			},
+			"stone-blue-4": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 1.8333334, "color": "ffffff00" },
+					{ "time": 2.166667, "color": "ffffffff" }
+				],
+				"attachment": [
+					{ "name": "x4 blue" }
+				]
+			},
+			"stone-blue1": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.9333333, "color": "ffffff00" },
+					{ "time": 1.2666667, "color": "ffffffff" }
+				]
+			},
+			"stone-standard2": {
+				"attachment": [
+					{ "name": "x2 blank" }
+				]
+			},
+			"stone-standard3": {
+				"attachment": [
+					{ "name": "x3 blank" }
+				]
+			},
+			"stone-standard4": {
+				"attachment": [
+					{ "name": "x4 blank" }
+				]
+			}
+		},
+		"bones": {
+			"STONE": {
+				"scale": [
+					{ "x": 0.8, "y": 0.8, "curve": "stepped" },
+					{ "time": 0.7, "x": 0.8, "y": 0.8 },
+					{ "time": 1.2666667, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE2": {
+				"scale": [
+					{ "x": 0.8, "y": 0.8, "curve": "stepped" },
+					{ "time": 0.9666666, "x": 0.8, "y": 0.8 },
+					{ "time": 1.5666667, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE3": {
+				"scale": [
+					{ "x": 0.8, "y": 0.8, "curve": "stepped" },
+					{ "time": 1.2666667, "x": 0.8, "y": 0.8 },
+					{ "time": 1.8666667, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE4": {
+				"scale": [
+					{ "x": 0.8, "y": 0.8, "curve": "stepped" },
+					{ "time": 1.5666667, "x": 0.8, "y": 0.8 },
+					{ "time": 2.166667, "x": 0.95, "y": 0.95, "curve": "stepped" },
+					{ "time": 2.8666666, "x": 0.95, "y": 0.95 }
+				]
+			}
+		}
+	},
+	"loop": {
+		"slots": {
+			"fence": {
+				"attachment": [
+					{}
+				]
+			},
+			"stone-blue-2": {
+				"attachment": [
+					{ "name": "x2 blue" }
+				]
+			},
+			"stone-blue-3": {
+				"attachment": [
+					{ "name": "x3 blue" }
+				]
+			},
+			"stone-blue-4": {
+				"attachment": [
+					{ "name": "x4 blue" }
+				]
+			},
+			"stone-standard2": {
+				"attachment": [
+					{ "name": "x2 blank" }
+				]
+			},
+			"stone-standard3": {
+				"attachment": [
+					{ "name": "x3 blank" }
+				]
+			},
+			"stone-standard4": {
+				"attachment": [
+					{}
+				]
+			}
+		},
+		"bones": {
+			"STONE": {
+				"scale": [
+					{ "x": 0.95, "y": 0.95 },
+					{ "time": 1 },
+					{ "time": 2, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE2": {
+				"scale": [
+					{ "x": 0.95, "y": 0.95 },
+					{ "time": 1 },
+					{ "time": 2, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE3": {
+				"scale": [
+					{ "x": 0.95, "y": 0.95 },
+					{ "time": 1 },
+					{ "time": 2, "x": 0.95, "y": 0.95 }
+				]
+			},
+			"STONE4": {
+				"scale": [
+					{ "x": 0.95, "y": 0.95 },
+					{ "time": 1 },
+					{ "time": 2, "x": 0.95, "y": 0.95 }
+				]
+			}
+		}
+	}
+}
+}

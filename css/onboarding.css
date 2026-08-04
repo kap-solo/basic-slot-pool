@@ -48,7 +48,23 @@
   justify-content: stretch;
   overflow: hidden;
   touch-action: manipulation;
+}
+
+.suki-game-onboarding-continue {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .suki-game-onboarding[hidden] {
@@ -102,6 +118,7 @@
   min-height: 0;
   padding: clamp(0.75rem, 2.5vw, 1.75rem) clamp(0.75rem, 3vw, 2rem)
     calc(clamp(2.75rem, 8vw, 4rem) + 2.5rem);
+  pointer-events: none;
 }
 
 .suki-game-onboarding-grid {
@@ -173,11 +190,25 @@
 }
 
 .suki-game-onboarding-carousel .suki-game-onboarding-spine-host {
+  position: relative;
   width: min(100%, calc(20rem * 1.35));
   min-width: 0;
   min-height: min(calc(38vh * 1.35), calc(18rem * 1.35));
   max-height: min(calc(38vh * 1.35), calc(18rem * 1.35));
   flex: none;
+}
+
+.suki-game-onboarding-spine-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.suki-game-onboarding-spine-layer.is-active {
+  visibility: visible;
 }
 
 .suki-game-onboarding-carousel-copy {
@@ -211,6 +242,7 @@
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
   transform: translateY(-50%);
   transition: opacity 0.15s ease;
 }
@@ -295,14 +327,31 @@
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-content {
-  justify-content: flex-start;
-  padding: 0.25rem 0.45rem 2.55rem;
+  justify-content: center;
+  padding:
+    calc(0.35rem + env(safe-area-inset-top, 0px))
+    0.45rem
+    calc(1.65rem + env(safe-area-inset-bottom, 0px));
   overflow: hidden;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel {
   width: min(100%, calc(15rem * 1.35));
   flex: 0 1 auto;
+  min-height: 0;
+  justify-content: center;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel-stage {
+  margin-top: 0;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel-copy {
+  margin: 0.35rem 0 0;
+  transform: none;
+  flex-shrink: 0;
 }
 
 .suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .suki-game-onboarding-carousel
@@ -334,4 +383,331 @@
   font-size: 0.56rem;
   letter-spacing: 3px;
   max-width: calc(100% - 1rem);
+}
+
+/*
+ * Production mobile — keyed on bet-ui variant + portrait-family (Stake production),
+ * not only dev `data-suki-screen` preview ids.
+ */
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding {
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-content {
+  justify-content: center;
+  padding:
+    calc(clamp(0.75rem, 3dvh, 1.25rem) + env(safe-area-inset-top, 0px))
+    clamp(0.65rem, 3vw, 1rem)
+    calc(clamp(3rem, 11dvh, 4.25rem) + env(safe-area-inset-bottom, 0px));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-carousel {
+  width: min(100%, 22rem);
+  flex: 0 1 auto;
+  min-height: 0;
+  justify-content: center;
+  transform: translateY(clamp(0.75rem, 5dvh, 2.75rem));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-carousel-stage {
+  margin-top: 0;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: min(48dvh, 17.5rem);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  width: min(70vw, 15.5rem);
+  height: auto;
+  min-height: 0;
+  max-height: min(40dvh, 15.5rem);
+  aspect-ratio: 1 / 1.05;
+  flex: none;
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-carousel-copy {
+  margin: clamp(0.35rem, 1.5dvh, 0.65rem) 0 0;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-header {
+  margin-top: 0.35rem;
+  font-size: clamp(1.01rem, 5.04vw, 1.29rem);
+  letter-spacing: 0.07em;
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-text,
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-carousel-text {
+  margin-top: 0.3rem;
+  font-size: clamp(0.85rem, 3.88vw, 1rem);
+  line-height: 1.35;
+  max-width: min(18rem, 90vw);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-side-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-side-btn--prev {
+  left: max(0.1rem, env(safe-area-inset-left, 0px));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-side-btn--next {
+  right: max(0.1rem, env(safe-area-inset-right, 0px));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )
+  .suki-game-onboarding-hint {
+  bottom: calc(clamp(0.55rem, 2dvh, 0.85rem) + env(safe-area-inset-bottom, 0px));
+  font-size: clamp(0.56rem, 2.65vw, 0.68rem);
+  letter-spacing: 0.12em;
+  max-width: calc(100% - 1.5rem);
+}
+
+/* Mobile S — +10% animation scale */
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-s']
+  .suki-game-onboarding-carousel-stage {
+  margin-top: 0;
+  max-height: min(48.4dvh, 15.4rem);
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-s']
+  .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  width: min(72.6vw, 14.85rem);
+  max-height: min(39.6dvh, 14.85rem);
+}
+
+/* Mobile M — +20% animation scale */
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-m']
+  .suki-game-onboarding-carousel-stage {
+  margin-top: 0;
+  max-height: min(52.8dvh, 16.8rem);
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile'][data-suki-screen='mobile-m']
+  .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  width: min(79.2vw, 16.2rem);
+  max-height: min(43.2dvh, 16.2rem);
+}
+
+/* Production mobile-ms without dev screen id — S/M by viewport width */
+@media (max-width: 390px) {
+  .suki-stake-shell:is([data-bet-ui-variant='mobile'], [data-suki-portrait-family='mobile-ms'])[data-suki-orientation='portrait']:not([data-suki-screen='mobile-m']):not([data-suki-screen='mobile-l'])
+    .suki-game-onboarding-carousel-stage {
+    max-height: min(48.4dvh, 15.4rem);
+  }
+
+  .suki-stake-shell:is([data-bet-ui-variant='mobile'], [data-suki-portrait-family='mobile-ms'])[data-suki-orientation='portrait']:not([data-suki-screen='mobile-m']):not([data-suki-screen='mobile-l'])
+    .suki-game-onboarding-carousel
+    .suki-game-onboarding-spine-host {
+    width: min(72.6vw, 14.85rem);
+    max-height: min(39.6dvh, 14.85rem);
+  }
+}
+
+@media (min-width: 391px) {
+  .suki-stake-shell:is([data-bet-ui-variant='mobile'], [data-suki-portrait-family='mobile-ms'])[data-suki-orientation='portrait']:not([data-suki-screen='mobile-s']):not([data-suki-screen='mobile-l'])
+    .suki-game-onboarding-carousel-stage {
+    max-height: min(52.8dvh, 16.8rem);
+  }
+
+  .suki-stake-shell:is([data-bet-ui-variant='mobile'], [data-suki-portrait-family='mobile-ms'])[data-suki-orientation='portrait']:not([data-suki-screen='mobile-s']):not([data-suki-screen='mobile-l'])
+    .suki-game-onboarding-carousel
+    .suki-game-onboarding-spine-host {
+    width: min(79.2vw, 16.2rem);
+    max-height: min(43.2dvh, 16.2rem);
+  }
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-ms']
+  ):is(
+    [data-suki-screen='mobile-m'],
+    [data-suki-screen='mobile-s'],
+    [data-suki-orientation='portrait']
+  )
+  .suki-game-onboarding-header {
+  font-size: clamp(0.92rem, 4.76vw, 1.15rem);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-ms']
+  ):is(
+    [data-suki-screen='mobile-m'],
+    [data-suki-screen='mobile-s'],
+    [data-suki-orientation='portrait']
+  )
+  .suki-game-onboarding-text,
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-ms']
+  ):is(
+    [data-suki-screen='mobile-m'],
+    [data-suki-screen='mobile-s'],
+    [data-suki-orientation='portrait']
+  )
+  .suki-game-onboarding-carousel-text {
+  font-size: clamp(0.78rem, 3.69vw, 0.93rem);
+}
+
+/* Mobile L — +20% animation scale */
+.suki-stake-shell[data-bet-ui-variant='mobile']:is(
+    [data-suki-screen='mobile-l'],
+    [data-suki-portrait-family='mobile-l']
+  )
+  .suki-game-onboarding-carousel-stage {
+  max-height: min(57.6dvh, 21rem);
+}
+
+.suki-stake-shell[data-bet-ui-variant='mobile']:is(
+    [data-suki-screen='mobile-l'],
+    [data-suki-portrait-family='mobile-l']
+  )
+  .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  width: min(88.8vw, 19.8rem);
+  max-height: min(50.4dvh, 19.8rem);
+}
+
+/* Mobile landscape — compact vertical stack */
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-content {
+  justify-content: center;
+  padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-carousel {
+  transform: translateY(clamp(0.25rem, 3dvh, 1.25rem));
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-carousel-stage {
+  margin-top: 0;
+  max-height: min(56dvh, 11rem);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-carousel
+  .suki-game-onboarding-spine-host {
+  width: min(28dvh, 11rem);
+  max-height: min(50dvh, 11rem);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-header {
+  font-size: clamp(0.87rem, 3.64vw, 1.09rem);
+}
+
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-text,
+.suki-stake-shell:is(
+    [data-bet-ui-variant='mobile'],
+    [data-suki-portrait-family='mobile-l'],
+    [data-suki-portrait-family='mobile-ms']
+  )[data-suki-orientation='landscape']
+  .suki-game-onboarding-carousel-text {
+  font-size: clamp(0.73rem, 3vw, 0.88rem);
+  line-height: 1.28;
 }

@@ -2,7 +2,7 @@
  * On-boarding screen — desktop triptych or mobile single-frame with side navigation.
  */
 
-import { BET_UI_VARIANT, MOBILE_SCREEN_IDS, resolveBetUiVariant } from './betUiVariant.js';
+import { BET_UI_VARIANT, resolveBetUiVariant } from './betUiVariant.js';
 import { mountOnboardingSpine } from './pixi/onboardingSpine.js';
 
 const ONBOARDING_PREV_CHEVRON_SRC = 'assets/ui/previous_chevron.svg';
@@ -42,11 +42,11 @@ export const ONBOARDING_FRAMES = [
   {
     header: 'MULTIPLIER LADDER',
     body: 'Each cascade climbs the multiplier ladder and boosts your payout.',
-    spine: 'fr1',
+    spine: 'fr2',
   },
   {
     header: 'FREE SPINS',
-    body: 'Land scatters for free spins with enhanced multipliers. Set your bet and spin.',
+    body: 'Land 3 scatters to trigger 8 Free Spins.',
     spine: 'fr3',
   },
 ];
@@ -61,11 +61,11 @@ export const ONBOARDING_FRAMES_SOCIAL = [
   {
     header: 'MULTIPLIER LADDER',
     body: 'Each cascade climbs the multiplier ladder and boosts your earn.',
-    spine: 'fr1',
+    spine: 'fr2',
   },
   {
     header: 'FREE SPINS',
-    body: 'Land scatters for free spins with enhanced multipliers. Set your play amount and spin.',
+    body: 'Land 3 scatters to trigger 8 Free Spins.',
     spine: 'fr3',
   },
 ];
@@ -81,6 +81,15 @@ export function resolveOnboardingFrames(socialCasino = false) {
 export const ONBOARDING_HINT_MOBILE = 'TAP ANYWHERE TO PLAY';
 export const ONBOARDING_HINT_DESKTOP = 'CLICK ANYWHERE TO PLAY';
 
+/** Raster paths for onboarding UI — warmed during session preloader. */
+export const ONBOARDING_PRELOAD_IMAGE_ASSETS = [
+  ONBOARDING_PREV_CHEVRON_SRC,
+  ONBOARDING_NEXT_CHEVRON_SRC,
+  'assets/desktop_bg_onboarding.jpg',
+  'assets/mobile_bg_LRG_onboarding.jpg',
+  'assets/mobile_bg_REG_onboarding.jpg',
+];
+
 /**
  * @param {HTMLElement | null | undefined} shell
  * @param {string | undefined} [override]
@@ -93,14 +102,22 @@ export function resolveOnboardingContinueHint(shell, override) {
 }
 
 /**
+ * Carousel for phones, popout-s, and any Stake mobile shell — grid only on desktop/laptop/popout-l.
+ *
+ * Production Stake often omits `data-suki-screen` and uses `data-suki-portrait-family` instead,
+ * so dev `?screen=mobile-s` is not representative unless both attribute sets are aligned.
+ *
  * @param {HTMLElement | null | undefined} shell
  */
 export function isOnboardingCarouselLayout(shell) {
   if (!shell) return true;
+
   const screen = shell.dataset.sukiScreen || '';
-  if (screen === 'popout-s') return true;
-  if (MOBILE_SCREEN_IDS.has(screen)) return true;
-  return shell.dataset.betUiVariant === 'mobile';
+  if (screen === 'desktop' || screen === 'laptop' || screen === 'popout-l') {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -135,6 +152,10 @@ export function createOnboardingScreen(options) {
   let carouselIndex = 0;
   /** @type {Array<{ host: HTMLElement, relayout?: () => void, settleLayout?: () => Promise<void>, destroy: () => void }>} */
   const spineMounts = [];
+  /** @type {Map<import('./pixi/onboardingSpine.js').OnboardingSpineId, { layer: HTMLElement, mount: (typeof spineMounts)[number] }>} */
+  const carouselSpineLayers = new Map();
+  /** @type {Set<import('./pixi/onboardingSpine.js').OnboardingSpineId>} */
+  const carouselSpinesStarted = new Set();
   /** @type {'carousel' | 'grid' | null} */
   let mountedLayoutMode = null;
   let layoutGeneration = 0;
@@ -147,6 +168,9 @@ export function createOnboardingScreen(options) {
       mount.destroy();
     }
     spineMounts.length = 0;
+    carouselSpineLayers.clear();
+    carouselSpinesStarted.clear();
+    carouselSpineHost.replaceChildren();
   }
 
   async function settleSpineMounts() {
@@ -162,6 +186,11 @@ export function createOnboardingScreen(options) {
   const bg = document.createElement('div');
   bg.className = 'suki-game-onboarding-bg';
   bg.setAttribute('aria-hidden', 'true');
+
+  const continueBtn = document.createElement('button');
+  continueBtn.type = 'button';
+  continueBtn.className = 'suki-game-onboarding-continue';
+  continueBtn.setAttribute('aria-label', 'Continue to game');
 
   const content = document.createElement('div');
   content.className = 'suki-game-onboarding-content';
@@ -243,7 +272,7 @@ export function createOnboardingScreen(options) {
   syncContinueHint();
 
   content.append(grid, carousel);
-  overlay.append(bg, content, hint);
+  overlay.append(bg, continueBtn, content, hint);
   shell.appendChild(overlay);
   shell.classList.add('suki-onboarding-active');
 
@@ -268,7 +297,8 @@ export function createOnboardingScreen(options) {
     carouselIndex = clamped;
     syncCarouselUi();
     if (isCarousel()) {
-      void queueLayoutWork(() => remountCarouselSpine());
+      syncCarouselSpineState();
+      void queueLayoutWork(() => settleSpineMounts());
     }
   }
 
@@ -276,9 +306,9 @@ export function createOnboardingScreen(options) {
     /** @type {typeof spineMounts} */
     const mounted = [];
     await Promise.all(
-      entries.map(async ({ host, spine = 'fr1' }) => {
+      entries.map(async ({ host, spine = 'fr1', autoplay = true }) => {
         try {
-          const mount = await mountOnboardingSpine(host, { spine });
+          const mount = await mountOnboardingSpine(host, { spine, autoplay });
           mounted.push(mount);
         } catch (err) {
           console.warn('[Basic Slot] Onboarding Spine unavailable.', err);
@@ -288,17 +318,48 @@ export function createOnboardingScreen(options) {
     return mounted;
   }
 
-  function destroySpineMountsForHost(host) {
-    const keep = [];
-    for (const mount of spineMounts) {
-      if (mount.host === host) {
-        mount.destroy();
-      } else {
-        keep.push(mount);
+  function syncCarouselSpineState() {
+    const activeSpine = frames[carouselIndex]?.spine ?? 'fr1';
+    for (const [spineId, { layer, mount }] of carouselSpineLayers) {
+      layer.classList.toggle('is-active', spineId === activeSpine);
+      if (spineId === activeSpine && !carouselSpinesStarted.has(spineId)) {
+        mount.play?.();
+        carouselSpinesStarted.add(spineId);
       }
     }
-    spineMounts.length = 0;
-    spineMounts.push(...keep);
+  }
+
+  async function ensureCarouselSpines() {
+    /** @type {import('./pixi/onboardingSpine.js').OnboardingSpineId[]} */
+    const spineIds = [...new Set(frames.map((frame) => frame.spine ?? 'fr1'))];
+    const activeSpine = frames[carouselIndex]?.spine ?? 'fr1';
+    /** @type {typeof spineMounts} */
+    const newMounts = [];
+    const pending = spineIds
+      .filter((spineId) => !carouselSpineLayers.has(spineId))
+      .map(async (spineId) => {
+        const layer = document.createElement('div');
+        layer.className = 'suki-game-onboarding-spine-layer';
+        carouselSpineHost.appendChild(layer);
+        const mounted = await mountSpineHosts([{
+          host: layer,
+          spine: spineId,
+          autoplay: spineId === activeSpine,
+        }]);
+        const mount = mounted[0];
+        if (!mount) {
+          layer.remove();
+          return;
+        }
+        carouselSpineLayers.set(spineId, { layer, mount });
+        if (spineId === activeSpine) {
+          carouselSpinesStarted.add(spineId);
+        }
+        newMounts.push(mount);
+      });
+    await Promise.all(pending);
+    syncCarouselSpineState();
+    return newMounts;
   }
 
   function queueLayoutWork(work) {
@@ -308,17 +369,6 @@ export function createOnboardingScreen(options) {
         console.warn('[Basic Slot] Onboarding layout failed.', err);
       });
     return layoutQueue;
-  }
-
-  async function remountCarouselSpine() {
-    destroySpineMountsForHost(carouselSpineHost);
-    const frame = frames[carouselIndex];
-    const mounted = await mountSpineHosts([{
-      host: carouselSpineHost,
-      spine: frame?.spine ?? 'fr1',
-    }]);
-    spineMounts.push(...mounted);
-    await settleSpineMounts();
   }
 
   async function applyLayoutBody() {
@@ -343,10 +393,7 @@ export function createOnboardingScreen(options) {
     let mounted = [];
     if (carouselMode) {
       syncCarouselUi();
-      mounted = await mountSpineHosts([{
-        host: carouselSpineHost,
-        spine: frames[carouselIndex]?.spine ?? 'fr1',
-      }]);
+      mounted = await ensureCarouselSpines();
     } else {
       mounted = await mountSpineHosts(
         gridSpineHosts.map((host, index) => ({
@@ -360,6 +407,9 @@ export function createOnboardingScreen(options) {
       for (const mount of mounted) {
         mount.destroy();
       }
+      carouselSpineLayers.clear();
+      carouselSpineHost.replaceChildren();
+      mountedLayoutMode = null;
       return;
     }
 
@@ -371,14 +421,21 @@ export function createOnboardingScreen(options) {
     return queueLayoutWork(() => applyLayoutBody());
   }
 
+  let gestureUnlocked = false;
+
+  function ensureGestureUnlock() {
+    if (gestureUnlocked) return;
+    gestureUnlocked = true;
+    onGestureUnlock?.();
+  }
+
   function teardown() {
     layoutGeneration += 1;
     window.clearTimeout(layoutDebounceId);
     layoutObserver.disconnect();
     window.removeEventListener('resize', onResize);
     viewport?.removeEventListener('resize', onResize);
-    overlay.removeEventListener('pointerdown', onOverlayPointerDown);
-    overlay.removeEventListener('keydown', onOverlayKeyDown);
+    continueBtn.removeEventListener('click', onContinueClick);
     prevBtn.removeEventListener('pointerdown', onSideNavPointerDown);
     nextBtn.removeEventListener('pointerdown', onSideNavPointerDown);
     prevBtn.removeEventListener('click', onPrevClick);
@@ -391,25 +448,20 @@ export function createOnboardingScreen(options) {
   function dismiss() {
     if (dismissed) return;
     dismissed = true;
-    onGestureUnlock?.();
+    ensureGestureUnlock();
     teardown();
     onContinue?.();
   }
 
-  function onOverlayPointerDown(event) {
+  function onContinueClick() {
+    if (dismissed) return;
+    ensureGestureUnlock();
     dismiss();
-    event.preventDefault();
-  }
-
-  function onOverlayKeyDown(event) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      dismiss();
-    }
   }
 
   function onSideNavPointerDown(event) {
     event.stopPropagation();
+    ensureGestureUnlock();
   }
 
   function onPrevClick(event) {
@@ -424,8 +476,7 @@ export function createOnboardingScreen(options) {
     setCarouselIndex(carouselIndex + 1);
   }
 
-  overlay.addEventListener('pointerdown', onOverlayPointerDown);
-  overlay.addEventListener('keydown', onOverlayKeyDown);
+  continueBtn.addEventListener('click', onContinueClick);
   prevBtn.addEventListener('pointerdown', onSideNavPointerDown);
   nextBtn.addEventListener('pointerdown', onSideNavPointerDown);
   prevBtn.addEventListener('click', onPrevClick);

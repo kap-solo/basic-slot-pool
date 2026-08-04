@@ -34,6 +34,7 @@ const CHARACTER_OFFSET_Y = 46;
 /** Popout S (400×225) — slightly smaller than desktop; avoid stacking multiple shrink passes. */
 const POPOUT_S_CHARACTER_DISPLAY_SCALE = 0.946;
 const POPOUT_S_CHARACTER_OFFSET_X = 18;
+const POPOUT_S_CHARACTER_OFFSET_Y = CHARACTER_OFFSET_Y - 40;
 const POPOUT_S_CHARACTER_HEIGHT_FIT = 0.96;
 
 /** Spine playback as a fraction of authored speed (1 = default, 0.6 = 60% of default). */
@@ -99,7 +100,7 @@ function resolveCharacterLayoutProfile(shell) {
     return {
       displayScale: POPOUT_S_CHARACTER_DISPLAY_SCALE,
       offsetX: POPOUT_S_CHARACTER_OFFSET_X,
-      offsetY: CHARACTER_OFFSET_Y,
+      offsetY: POPOUT_S_CHARACTER_OFFSET_Y,
       heightFit: POPOUT_S_CHARACTER_HEIGHT_FIT,
     };
   }
