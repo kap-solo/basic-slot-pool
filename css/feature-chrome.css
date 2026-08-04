@@ -232,17 +232,35 @@
   max-height: min(52vh, 25.5rem);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__counter-value {
-  font-size: 1.05rem;
+/* Popout S — tiny viewport; counter synced with --compact in JS. */
+.feature-chrome__counter--compact {
+  padding: 0.22rem 0.42rem;
+  border-radius: 0.38rem;
+  min-width: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__spine-host {
+.feature-chrome__counter--compact .feature-chrome__counter-value {
+  font-size: 0.68rem;
+  gap: 0.04rem;
+}
+
+.feature-chrome__counter--compact .feature-chrome__spin-label {
+  font-size: 0.46rem;
+  letter-spacing: 0.02em;
+}
+
+.feature-chrome__counter--compact .feature-chrome__spin-sep {
+  font-size: 0.82em;
+}
+
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .feature-chrome__spine-host {
   width: min(13rem, 68vw);
   height: min(13rem, 44vw);
 }
 
-.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__intro-stack,
-.suki-stake-shell[data-suki-screen='popout-s'] .feature-chrome__end-stack {
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .feature-chrome__intro-stack,
+.suki-stake-shell:is([data-suki-screen='popout-s'], .suki-viewport-popout-s) .feature-chrome__end-stack {
   width: min(22rem, 92%);
 }
 

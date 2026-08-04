@@ -1,9 +1,34 @@
 /**
- * Industry-standard on-boarding screen — feature carousel / triptych, then tap to play.
+ * On-boarding screen — desktop triptych or mobile single-frame with side navigation.
  */
 
-import { MOBILE_SCREEN_IDS } from './betUiVariant.js';
+import { BET_UI_VARIANT, MOBILE_SCREEN_IDS, resolveBetUiVariant } from './betUiVariant.js';
 import { mountOnboardingSpine } from './pixi/onboardingSpine.js';
+
+const ONBOARDING_PREV_CHEVRON_SRC = 'assets/ui/previous_chevron.svg';
+const ONBOARDING_NEXT_CHEVRON_SRC = 'assets/ui/next_chevron.svg';
+
+/**
+ * @param {string} className
+ * @param {string} ariaLabel
+ * @param {string} src
+ */
+function createOnboardingChevronButton(className, ariaLabel, src) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.setAttribute('aria-label', ariaLabel);
+
+  const icon = document.createElement('img');
+  icon.className = 'suki-game-onboarding-side-btn__icon';
+  icon.src = src;
+  icon.alt = '';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.draggable = false;
+
+  button.appendChild(icon);
+  return button;
+}
 
 /** @typedef {{ header: string, body: string, spine?: import('./pixi/onboardingSpine.js').OnboardingSpineId }} OnboardingFrame */
 
@@ -53,6 +78,20 @@ export function resolveOnboardingFrames(socialCasino = false) {
   return socialCasino ? ONBOARDING_FRAMES_SOCIAL : ONBOARDING_FRAMES;
 }
 
+export const ONBOARDING_HINT_MOBILE = 'TAP ANYWHERE TO PLAY';
+export const ONBOARDING_HINT_DESKTOP = 'CLICK ANYWHERE TO PLAY';
+
+/**
+ * @param {HTMLElement | null | undefined} shell
+ * @param {string | undefined} [override]
+ */
+export function resolveOnboardingContinueHint(shell, override) {
+  if (override) return override;
+  return resolveBetUiVariant(shell) === BET_UI_VARIANT.MOBILE
+    ? ONBOARDING_HINT_MOBILE
+    : ONBOARDING_HINT_DESKTOP;
+}
+
 /**
  * @param {HTMLElement | null | undefined} shell
  */
@@ -71,6 +110,7 @@ export function isOnboardingCarouselLayout(shell) {
  * @param {boolean} [options.socialCasino]
  * @param {string} [options.continueHint]
  * @param {() => void} [options.onContinue]
+ * @param {() => void} [options.onGestureUnlock] Synchronous user-gesture hook (e.g. iOS Web Audio unlock) — runs before teardown.
  * @param {boolean} [options.skip]
  */
 export function createOnboardingScreen(options) {
@@ -78,8 +118,9 @@ export function createOnboardingScreen(options) {
     shell,
     frames: framesOverride,
     socialCasino = false,
-    continueHint = 'Press anywhere to continue',
+    continueHint,
     onContinue,
+    onGestureUnlock,
     skip = false,
   } = options;
 
@@ -133,8 +174,25 @@ export function createOnboardingScreen(options) {
   carousel.className = 'suki-game-onboarding-carousel';
   carousel.hidden = true;
 
+  const carouselStage = document.createElement('div');
+  carouselStage.className = 'suki-game-onboarding-carousel-stage';
+
+  const prevBtn = createOnboardingChevronButton(
+    'suki-game-onboarding-side-btn suki-game-onboarding-side-btn--prev',
+    'Previous',
+    ONBOARDING_PREV_CHEVRON_SRC,
+  );
+
   const carouselSpineHost = document.createElement('div');
   carouselSpineHost.className = 'suki-game-onboarding-spine-host';
+
+  const nextBtn = createOnboardingChevronButton(
+    'suki-game-onboarding-side-btn suki-game-onboarding-side-btn--next',
+    'Next',
+    ONBOARDING_NEXT_CHEVRON_SRC,
+  );
+
+  carouselStage.append(prevBtn, carouselSpineHost, nextBtn);
 
   const carouselCopy = document.createElement('div');
   carouselCopy.className = 'suki-game-onboarding-copy suki-game-onboarding-carousel-copy';
@@ -146,28 +204,7 @@ export function createOnboardingScreen(options) {
   carouselText.className = 'suki-game-onboarding-text suki-game-onboarding-carousel-text';
 
   carouselCopy.append(carouselHeader, carouselText);
-
-  const nav = document.createElement('div');
-  nav.className = 'suki-game-onboarding-nav';
-
-  const prevBtn = document.createElement('button');
-  prevBtn.type = 'button';
-  prevBtn.className = 'suki-game-onboarding-nav-btn suki-game-onboarding-nav-btn--prev';
-  prevBtn.setAttribute('aria-label', 'Previous');
-  prevBtn.textContent = '‹';
-
-  const dotsEl = document.createElement('div');
-  dotsEl.className = 'suki-game-onboarding-dots';
-  dotsEl.setAttribute('role', 'tablist');
-
-  const nextBtn = document.createElement('button');
-  nextBtn.type = 'button';
-  nextBtn.className = 'suki-game-onboarding-nav-btn suki-game-onboarding-nav-btn--next';
-  nextBtn.setAttribute('aria-label', 'Next');
-  nextBtn.textContent = '›';
-
-  nav.append(prevBtn, dotsEl, nextBtn);
-  carousel.append(carouselSpineHost, carouselCopy, nav);
+  carousel.append(carouselStage, carouselCopy);
 
   /** @type {HTMLElement[]} */
   const gridSpineHosts = [];
@@ -196,17 +233,14 @@ export function createOnboardingScreen(options) {
     grid.appendChild(panel);
   }
 
-  for (let i = 0; i < frames.length; i += 1) {
-    const dot = document.createElement('span');
-    dot.className = 'suki-game-onboarding-dot';
-    dot.setAttribute('role', 'tab');
-    dot.setAttribute('aria-label', `Slide ${i + 1} of ${frames.length}`);
-    dotsEl.appendChild(dot);
-  }
-
   const hint = document.createElement('p');
   hint.className = 'suki-game-onboarding-hint';
-  hint.textContent = continueHint;
+
+  function syncContinueHint() {
+    hint.textContent = resolveOnboardingContinueHint(shell, continueHint);
+  }
+
+  syncContinueHint();
 
   content.append(grid, carousel);
   overlay.append(bg, content, hint);
@@ -223,11 +257,6 @@ export function createOnboardingScreen(options) {
     carouselText.textContent = frame?.body ?? '';
     prevBtn.disabled = carouselIndex <= 0;
     nextBtn.disabled = carouselIndex >= frames.length - 1;
-    const dots = dotsEl.querySelectorAll('.suki-game-onboarding-dot');
-    dots.forEach((dot, index) => {
-      dot.classList.toggle('is-active', index === carouselIndex);
-      dot.setAttribute('aria-selected', index === carouselIndex ? 'true' : 'false');
-    });
   }
 
   function setCarouselIndex(index) {
@@ -350,7 +379,8 @@ export function createOnboardingScreen(options) {
     viewport?.removeEventListener('resize', onResize);
     overlay.removeEventListener('pointerdown', onOverlayPointerDown);
     overlay.removeEventListener('keydown', onOverlayKeyDown);
-    nav.removeEventListener('pointerdown', onNavPointerDown);
+    prevBtn.removeEventListener('pointerdown', onSideNavPointerDown);
+    nextBtn.removeEventListener('pointerdown', onSideNavPointerDown);
     prevBtn.removeEventListener('click', onPrevClick);
     nextBtn.removeEventListener('click', onNextClick);
     clearSpineMounts();
@@ -361,6 +391,7 @@ export function createOnboardingScreen(options) {
   function dismiss() {
     if (dismissed) return;
     dismissed = true;
+    onGestureUnlock?.();
     teardown();
     onContinue?.();
   }
@@ -377,29 +408,33 @@ export function createOnboardingScreen(options) {
     }
   }
 
-  function onNavPointerDown(event) {
+  function onSideNavPointerDown(event) {
     event.stopPropagation();
   }
 
   function onPrevClick(event) {
     event.stopPropagation();
+    if (prevBtn.disabled) return;
     setCarouselIndex(carouselIndex - 1);
   }
 
   function onNextClick(event) {
     event.stopPropagation();
+    if (nextBtn.disabled) return;
     setCarouselIndex(carouselIndex + 1);
   }
 
   overlay.addEventListener('pointerdown', onOverlayPointerDown);
   overlay.addEventListener('keydown', onOverlayKeyDown);
-  nav.addEventListener('pointerdown', onNavPointerDown);
+  prevBtn.addEventListener('pointerdown', onSideNavPointerDown);
+  nextBtn.addEventListener('pointerdown', onSideNavPointerDown);
   prevBtn.addEventListener('click', onPrevClick);
   nextBtn.addEventListener('click', onNextClick);
 
   const layoutObserver = new MutationObserver(() => {
     window.clearTimeout(layoutDebounceId);
     layoutDebounceId = window.setTimeout(() => {
+      syncContinueHint();
       void applyLayout();
     }, 80);
   });

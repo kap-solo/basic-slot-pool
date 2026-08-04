@@ -4,7 +4,8 @@
 
 /**
  * @param {object} options
- * @param {ReturnType<import('@kap-solo/suki-engine/client/rgs.js').createModalHost>} options.modalHost
+ * @param {ReturnType<import('@kap-solo/suki-engine/client/suki/modalHost.js').createModalHost>} options.modalHost
+ * @param {HTMLElement | null} [options.shell]
  * @param {() => string} options.getTitle
  * @param {() => number[]} options.getLevels
  * @param {() => number} options.getCurrentBet
@@ -14,6 +15,7 @@
  */
 export function createBetPicker({
   modalHost,
+  shell = null,
   getTitle,
   getLevels,
   getCurrentBet,
@@ -24,6 +26,25 @@ export function createBetPicker({
   const PICKER_ID = 'bet-picker';
 
   function renderBody(body) {
+    shell?.classList.add('suki-bet-picker-modal-open');
+
+    body.innerHTML = '';
+    body.classList.add('suki-bet-picker-body');
+
+    const card = document.createElement('div');
+    card.className = 'suki-bet-picker-card';
+
+    const title = document.createElement('h2');
+    title.className = 'suki-bet-picker-title';
+    title.textContent = getTitle();
+
+    const levelsBlock = document.createElement('div');
+    levelsBlock.className = 'suki-bet-picker-levels';
+
+    const levelsLabel = document.createElement('span');
+    levelsLabel.className = 'suki-bet-picker-levels-label';
+    levelsLabel.textContent = 'SELECT AMOUNT';
+
     const grid = document.createElement('div');
     grid.className = 'bet-picker-grid';
     grid.setAttribute('role', 'listbox');
@@ -50,13 +71,15 @@ export function createBetPicker({
       grid.appendChild(option);
     }
 
-    body.appendChild(grid);
+    levelsBlock.append(levelsLabel, grid);
+    card.append(title, levelsBlock);
+    body.append(card);
   }
 
   function open() {
     if (!getCanOpen()) return false;
     modalHost.register(PICKER_ID, {
-      title: getTitle(),
+      title: '',
       render: renderBody,
     });
     modalHost.open(PICKER_ID);

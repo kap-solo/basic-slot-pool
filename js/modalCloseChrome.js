@@ -29,6 +29,7 @@ export function applyModalCloseChrome(modalHost, shell) {
 
   modalHost.close = () => {
     shell?.classList.remove('suki-autoplay-modal-open');
+    shell?.classList.remove('suki-bet-picker-modal-open');
     shell?.classList.remove('suki-buy-bonus-modal-open');
     shell?.classList.remove('suki-buy-bonus-final-confirm-open');
     shell?.querySelector('.suki-buy-bonus-backdrop')?.remove();

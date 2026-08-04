@@ -553,7 +553,7 @@ export function createReplayStartModal(shell) {
       badge.textContent = details.badgeLabel ?? 'Replay';
       modeLabel.textContent = details.rowLabels?.mode ?? 'Mode';
       modeValue.textContent = details.modeLabel ?? '—';
-      baseBetRow.labelEl.textContent = details.rowLabels?.baseBet ?? 'Base bet';
+      baseBetRow.labelEl.textContent = details.rowLabels?.baseBet ?? 'Base amount';
       costMultRow.labelEl.textContent = details.rowLabels?.costMultiplier ?? 'Cost multiplier';
       totalCostRow.labelEl.textContent = details.rowLabels?.totalPlayCost ?? 'Total cost';
       payoutMultRow.labelEl.textContent = details.rowLabels?.payoutMultiplier ?? 'Payout multiplier';

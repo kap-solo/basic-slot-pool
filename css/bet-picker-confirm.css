@@ -1,0 +1,181 @@
+/**
+ * Bet picker modal — Reflecting Pool overrides (autoplay green card style).
+ */
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-dialog,
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-dialog * {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-overlay {
+  pointer-events: auto;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-scrim {
+  pointer-events: auto;
+  background: rgba(4, 6, 10, 0.84);
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-stage {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-dialog {
+  position: relative;
+  width: min(100%, 20.5rem);
+  max-width: min(100%, 20.5rem);
+  overflow: visible;
+  pointer-events: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-header {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.55rem;
+  z-index: 4;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-title {
+  display: none;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open .suki-modal-body {
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.suki-stake-shell.suki-bet-picker-modal-open[data-suki-screen='popout-s'] .suki-modal-dialog {
+  width: min(100%, 18.5rem);
+  max-width: min(100%, 18.5rem);
+  transform: scale(0.82);
+  transform-origin: center center;
+}
+
+.suki-bet-picker-body {
+  color: #f5f7fa;
+}
+
+.suki-bet-picker-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 1.15rem 1rem 1rem;
+  border: 2px solid #c8f04a;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 52, 24, 0.92) 0%,
+      rgba(10, 34, 16, 0.94) 48%,
+      rgba(8, 28, 13, 0.96) 100%
+    );
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.suki-bet-picker-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.suki-bet-picker-levels {
+  width: 100%;
+}
+
+.suki-bet-picker-levels-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8f04a;
+}
+
+.bet-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  max-height: min(52vh, 20rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.55rem;
+  border-radius: 0.65rem;
+  background: #37483b;
+}
+
+.bet-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.55rem;
+  padding: 0.5rem 0.2rem;
+  border: 2px solid rgba(200, 240, 74, 0.22);
+  border-radius: 0.5rem;
+  background: rgba(18, 34, 22, 0.72);
+  color: #f5f7fa;
+  font-size: clamp(0.62rem, 2.6vw, 0.78rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-word;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.bet-picker-option:hover:not(:disabled) {
+  border-color: rgba(200, 240, 74, 0.45);
+  background: rgba(24, 44, 28, 0.88);
+}
+
+.bet-picker-option.is-active {
+  border-color: #c8fc7e;
+  background: rgba(30, 52, 34, 0.96);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.bet-picker-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-bet-picker-modal-open .suki-bet-picker-title {
+  font-size: 1.05rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-bet-picker-modal-open .suki-bet-picker-levels-label {
+  font-size: 0.72rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-bet-picker-modal-open .bet-picker-option {
+  font-size: 0.7rem;
+  min-height: 2.2rem;
+  padding: 0.42rem 0.15rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-bet-picker-modal-open .suki-modal-dialog:has(.bet-picker-grid) {
+  width: min(100%, 18.5rem);
+  max-width: min(100%, 18.5rem);
+  height: auto;
+  max-height: none;
+  border-radius: 0;
+}

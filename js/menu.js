@@ -179,20 +179,22 @@ function renderHowToPlayContent(target, { t, game }) {
     [
       `Use + / − or tap the ${t('bet').toLowerCase()} amount to change your ${t('bet').toLowerCase()} before spinning.`,
       `Press Spin to play one round at your selected ${t('bet').toLowerCase()} and active game mode cost (see ${paytableLabel} → Game modes).`,
-      `${buyControlLabel} starts the bonus feature immediately at ${BUY_MODE_COST}× your selected ${t('bet').toLowerCase()} (see ${paytableLabel}).`,
+      `${buyControlLabel} opens a confirmation at ${BUY_MODE_COST}× your selected ${t('bet').toLowerCase()}. Review the cost, then tap BUY to start the bonus feature (see ${paytableLabel}). Tap × or outside the dialog to cancel.`,
       `Open the menu (☰) for How to Play, ${paytableLabel}, and Music / Sound effects volume.`,
       'Spacebar triggers Spin when keyboard play is enabled for your region.',
       'Autoplay (Auto): where available, tap Auto, choose a number of rounds, then START AUTOPLAY. Each round uses your current bet and mode cost.',
       'To stop autoplay, tap Auto again. The session finishes the current spin and any cascades on that spin before stopping. Autoplay also ends when all chosen rounds complete or your balance is too low for the next round. Bet, mode, and manual spin are disabled while autoplay is running.',
+      'When free spins start or finish, a full-screen summary may appear — tap anywhere on the screen to continue.',
     ],
     [
       `Use + / − or tap the ${t('betAmount').toLowerCase()} to change your amount before spinning.`,
       `Press Spin to play one round at your selected amount and active game mode cost (see ${paytableLabel} → Game modes).`,
-      `${buyControlLabel} starts the free spins feature immediately at ${BUY_MODE_COST}× your selected amount (see ${paytableLabel}).`,
+      `${buyControlLabel} opens a confirmation at ${BUY_MODE_COST}× your selected amount. Review the cost, then tap GET to start free spins (see ${paytableLabel}). Tap × or outside the dialog to cancel.`,
       `Open the menu (☰) for How to Play, ${paytableLabel}, and Music / Sound effects volume.`,
       'Spacebar triggers Spin when keyboard play is enabled for your region.',
       'Autoplay (Auto): where available, tap Auto, choose a number of rounds, then START AUTOPLAY. Each round uses your current play amount and mode cost.',
       'To stop autoplay, tap Auto again. The session finishes the current spin and any cascades on that spin before stopping. Autoplay also ends when all chosen rounds complete or your balance is too low for the next round. Play amount, mode, and manual spin are disabled while autoplay is running.',
+      'When free spins start or finish, a full-screen summary may appear — tap anywhere on the screen to continue.',
     ],
   );
 
@@ -417,11 +419,11 @@ function appendGameModesSection(parent, game, { showRtp = false } = {}) {
   const lines = pickSocialCopy(
     game,
     [
-      `Base game — costs 1× your selected bet per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins (~1 in 200 base rounds). Maximum win ${baseMax} bet.`,
+      `Base game — costs 1× your selected bet per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins. Maximum win ${baseMax} bet.`,
       `${bonusModeLabel} — costs ${BUY_MODE_COST}× your selected bet and immediately awards ${FREE_SPINS_AWARDED} free spins (same feature as a natural scatter trigger). Maximum win ${buyMax} bet.`,
     ],
     [
-      `Base game — costs 1× your selected amount per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins (~1 in 200 base rounds). Maximum earn ${baseMax} on a 1× round.`,
+      `Base game — costs 1× your selected amount per round. A natural scatter trigger awards ${FREE_SPINS_AWARDED} free spins. Maximum earn ${baseMax} on a 1× round.`,
       `${bonusModeLabel} — costs ${BUY_MODE_COST}× your selected amount and immediately awards ${FREE_SPINS_AWARDED} free spins (same feature as a natural scatter trigger). Maximum earn ${buyMax} on a 1× round.`,
     ],
   );

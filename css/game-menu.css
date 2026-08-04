@@ -1,0 +1,134 @@
+/**
+ * Burger menu popup — Reflecting Pool experiment (autoplay / buy-bonus green card style).
+ */
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-popup,
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-popup * {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-popup {
+  padding: 0.85rem 0.75rem 0.9rem;
+  border: 2px solid #c8f04a;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 52, 24, 0.92) 0%,
+      rgba(10, 34, 16, 0.94) 48%,
+      rgba(8, 28, 13, 0.96) 100%
+    );
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-list {
+  gap: 0.35rem;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-link {
+  padding: 0.55rem 0.65rem;
+  border: 2px solid rgba(200, 240, 74, 0.18);
+  border-radius: 0.55rem;
+  background: rgba(18, 34, 22, 0.72);
+  color: #f5f7fa;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-link:hover {
+  border-color: rgba(200, 240, 74, 0.45);
+  background: rgba(24, 44, 28, 0.88);
+  color: #ffffff;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-sep {
+  height: 1px;
+  margin: 0.2rem 0.15rem;
+  background: rgba(200, 240, 74, 0.22);
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-toggle,
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-volume {
+  padding: 0.55rem 0.65rem;
+  border: 2px solid rgba(200, 240, 74, 0.18);
+  border-radius: 0.55rem;
+  background: #37483b;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8f04a;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-switch {
+  min-width: 2.75rem;
+  padding: 0.28rem 0.45rem;
+  border: 2px solid rgba(200, 240, 74, 0.22);
+  border-radius: 999px;
+  background: rgba(18, 34, 22, 0.72);
+  color: #d5e6c8;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-switch.on {
+  border-color: #c8fc7e;
+  background: rgba(30, 52, 34, 0.96);
+  color: #ffffff;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-mute {
+  border: 2px solid rgba(200, 240, 74, 0.22);
+  border-radius: 0.5rem;
+  background: rgba(18, 34, 22, 0.72);
+  color: #c8f04a;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-mute:hover {
+  border-color: rgba(200, 240, 74, 0.45);
+  color: #e8ff9a;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-mute.muted {
+  color: rgba(200, 240, 74, 0.45);
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-slider {
+  accent-color: #c8fc7e;
+}
+
+.suki-stake-shell.suki-game-menu-open .suki-game-menu-slider:disabled {
+  opacity: 0.35;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-popup {
+  padding: 0.55rem 0.5rem 0.62rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-list::after {
+  background: rgba(200, 240, 74, 0.22);
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-link {
+  font-size: 0.68rem;
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-toggle,
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-volume {
+  background: rgba(55, 72, 59, 0.92);
+}
+
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open .suki-game-menu-item--setting .suki-game-menu-label,
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open
+  .suki-game-menu-item.suki-game-menu-toggle
+  .suki-game-menu-label,
+.suki-stake-shell[data-suki-screen='popout-s'].suki-game-menu-open
+  .suki-game-menu-item.suki-game-menu-volume
+  .suki-game-menu-label {
+  color: #c8f04a;
+}

@@ -76,6 +76,7 @@ export function createFeatureChrome({ shellEl, stageEl, onIntroSpineStart, onBon
   const endAmountEl = endOverlay.querySelector('.feature-chrome__end-amount');
   const spinCurrentEl = counter.querySelector('.feature-chrome__spin-current');
   const spinTotalEl = counter.querySelector('.feature-chrome__spin-total');
+  const spinLabelEl = counter.querySelector('.feature-chrome__spin-label');
   const counterValueEl = counter.querySelector('.feature-chrome__counter-value');
 
   let counterTimer = null;
@@ -131,6 +132,12 @@ export function createFeatureChrome({ shellEl, stageEl, onIntroSpineStart, onBon
     const screen = shellEl.dataset.sukiScreen;
     const useLedgerColumn =
       variant === 'desktop' && orientation === 'landscape' && screen !== 'popout-s';
+    const isPopoutS = screen === 'popout-s';
+
+    counter.classList.toggle('feature-chrome__counter--compact', isPopoutS);
+    if (spinLabelEl) {
+      spinLabelEl.textContent = isPopoutS ? 'SPIN ' : 'FREE SPIN\u00a0\u00a0';
+    }
 
     if (useLedgerColumn && gameCore) {
       const coreRect = gameCore.getBoundingClientRect();
@@ -158,17 +165,17 @@ export function createFeatureChrome({ shellEl, stageEl, onIntroSpineStart, onBon
       counter.style.left = 'auto';
       counter.style.right = `${Math.max(0, shellRect.right - coreRect.right) + 1}px`;
       counter.style.width = 'auto';
-      counter.style.minWidth = '4.5rem';
+      counter.style.minWidth = '0';
       counter.style.transform = 'none';
       return;
     }
 
-    const insetTop = screen === 'popout-s' ? 6 : 10;
+    const insetTop = isPopoutS ? 6 : 10;
     counter.style.top = `${stageRect.top - shellRect.top + insetTop}px`;
     counter.style.left = `${stageRect.left - shellRect.left + stageRect.width / 2}px`;
     counter.style.right = 'auto';
     counter.style.width = 'auto';
-    counter.style.minWidth = '4.5rem';
+    counter.style.minWidth = isPopoutS ? '0' : '4.5rem';
     counter.style.transform = 'translateX(-50%)';
   }
 

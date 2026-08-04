@@ -1575,6 +1575,7 @@ registerGameModals({
 
 const betPicker = createBetPicker({
   modalHost,
+  shell: shellEl,
   getTitle: () => copyTerm('betAmount'),
   getLevels: () => betOptions,
   getCurrentBet: () => bet,
@@ -2193,7 +2194,6 @@ function onPreloaderComplete() {
 
 function onOnboardingContinue() {
   revealGameShell();
-  unlockGameAudio();
   if (!pendingAuthResume) return;
   const authOutcome = pendingAuthResume;
   pendingAuthResume = null;

@@ -1409,10 +1409,3 @@ body:has(.suki-stake-shell[data-bet-ui-variant='desktop']) {
   flex: 1 1 auto;
   min-height: 0;
 }
-
-.suki-stake-shell[data-suki-screen='popout-s'] .suki-modal-dialog:has(.bet-picker-grid) {
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-}

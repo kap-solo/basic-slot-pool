@@ -20,6 +20,8 @@ export const PRELOAD_IMAGE_ASSETS = [
   'assets/ui/auto_button.svg',
   'assets/ui/bonus.svg',
   'assets/ui/bonus_social.svg',
+  'assets/ui/previous_chevron.svg',
+  'assets/ui/next_chevron.svg',
   'assets/ui/warning-tape.png',
   'assets/ui/b_bonus_badge.png',
   'assets/ui/g_bonus_badge.png',
