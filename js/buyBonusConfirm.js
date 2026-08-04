@@ -204,6 +204,9 @@ export function registerBuyBonusConfirm(modalHost, options) {
     const card = document.createElement('div');
     card.className = 'suki-buy-bonus-card';
 
+    const closeSlot = document.createElement('div');
+    closeSlot.className = 'suki-buy-bonus-close-slot';
+
     const badge = document.createElement('img');
     badge.className = 'suki-buy-bonus-badge';
     badge.src = badgeSrc();
@@ -239,9 +242,15 @@ export function registerBuyBonusConfirm(modalHost, options) {
     footnote.textContent = footnoteText();
 
     purchase.append(price, confirmBtn);
-    card.append(headline, costLabel, purchase, footnote);
+    card.append(closeSlot, headline, costLabel, purchase, footnote);
     stack.append(badge, card);
     body.append(stack);
+
+    const dialog = body.closest('.suki-modal-dialog');
+    const closeBtn = dialog?.querySelector('.suki-modal-close');
+    if (closeBtn) {
+      closeSlot.appendChild(closeBtn);
+    }
 
     syncUi = () => {
       price.textContent = formatCurrency(getBuyCost());

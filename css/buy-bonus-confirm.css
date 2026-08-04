@@ -8,6 +8,7 @@
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-overlay {
+  z-index: 9300;
   pointer-events: auto;
 }
 
@@ -63,44 +64,47 @@
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-header {
-  position: absolute;
-  top: 0.35rem;
-  right: -0.15rem;
-  z-index: 4;
-  padding: 0;
-  border: none;
-  background: transparent;
+  display: none;
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-title {
   display: none;
 }
 
-.suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-close {
+.suki-buy-bonus-close-slot {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  z-index: 6;
+}
+
+.suki-buy-bonus-close-slot .suki-modal-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.1rem;
   height: 2.1rem;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  background: rgba(42, 42, 42, 0.92);
+  background: rgba(8, 18, 10, 0.92);
   color: #f5f5f5;
   font-size: 1.35rem;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.suki-buy-bonus-close-slot .suki-modal-close:hover {
+  background: rgba(18, 36, 22, 0.96);
+  filter: brightness(1.08);
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open .suki-modal-body {
   padding: 0;
   overflow: visible;
   background: transparent;
-}
-
-.suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-overlay {
-  z-index: 9300;
 }
 
 .suki-stake-shell.suki-buy-bonus-modal-open[data-suki-screen='popout-s'] .suki-modal-stage {
@@ -436,7 +440,7 @@
   filter: none;
 }
 
-.suki-stake-shell.suki-buy-bonus-final-confirm-open .suki-modal-close {
+.suki-stake-shell.suki-buy-bonus-final-confirm-open .suki-buy-bonus-close-slot .suki-modal-close {
   pointer-events: none;
   opacity: 0.35;
 }

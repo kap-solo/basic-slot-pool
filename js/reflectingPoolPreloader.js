@@ -4,7 +4,7 @@
 
 import { sleep } from '@kap-solo/suki-engine/client/suki/assetLoader.js';
 import { isFatalRgsError } from '@kap-solo/suki-engine/client/suki/rgsGate.js';
-import { mountPreloaderSpine } from './pixi/preloaderSpine.js';
+import { mountPreloaderSpine, PRELOADER_ANIM_DURATION_MS } from './pixi/preloaderSpine.js';
 
 const STYLE_ID = 'suki-game-preloader-styles';
 
@@ -102,7 +102,7 @@ export function createReflectingPoolPreloader(options) {
   const {
     shell,
     loadingHint = 'Loading…',
-    minDisplayMs = 400,
+    minDisplayMs = PRELOADER_ANIM_DURATION_MS,
     gate,
     sessionLoad,
     onContinue,
@@ -119,7 +119,7 @@ export function createReflectingPoolPreloader(options) {
   let dismissed = false;
   let loaded = false;
   let fatal = false;
-  /** @type {{ destroy?: () => void, relayout?: () => void } | null} */
+  /** @type {{ destroy?: () => void, relayout?: () => void, animationDone?: Promise<void> } | null} */
   let spineMount = null;
 
   const overlay = document.createElement('div');
@@ -132,6 +132,19 @@ export function createReflectingPoolPreloader(options) {
   const spineHost = document.createElement('div');
   spineHost.className = 'suki-game-preloader-spine';
   spineHost.setAttribute('aria-hidden', 'true');
+
+  const spineAnimationDone = mountPreloaderSpine(spineHost)
+    .then((mount) => {
+      if (dismissed) {
+        mount.destroy();
+        return;
+      }
+      spineMount = mount;
+      return mount.animationDone;
+    })
+    .catch((err) => {
+      console.warn('[Basic Slot] Preloader Spine unavailable.', err);
+    });
 
   const track = document.createElement('div');
   track.className = 'suki-game-preloader-track';
@@ -153,18 +166,6 @@ export function createReflectingPoolPreloader(options) {
   shell.appendChild(overlay);
   shell.classList.add('suki-preloader-active');
   overlay.setAttribute('aria-label', loadingHint);
-
-  mountPreloaderSpine(spineHost)
-    .then((mount) => {
-      if (dismissed) {
-        mount.destroy();
-        return;
-      }
-      spineMount = mount;
-    })
-    .catch((err) => {
-      console.warn('[Basic Slot] Preloader Spine unavailable.', err);
-    });
 
   function setProgress(percent) {
     const clamped = Math.max(0, Math.min(100, percent));
@@ -241,6 +242,7 @@ export function createReflectingPoolPreloader(options) {
       if (sessionLoad) {
         await sessionLoad(setProgress);
       }
+      await spineAnimationDone;
     } catch (err) {
       console.error('[Suki] preloader bootstrap failed', err);
       const message =

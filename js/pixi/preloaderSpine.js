@@ -16,6 +16,8 @@ export const PRELOADER_SPINE = {
 export const PRELOADER_SPINE_TEXTURE_ASSETS = ['assets/spine/bo_anim.webp'];
 
 const PRELOAD_ANIM = 'loader';
+/** loader anim end keyframe (~3.93s) — minimum hold if Spine mount fails. */
+export const PRELOADER_ANIM_DURATION_MS = 3940;
 const MAX_SPINE_TICK_SEC = 1 / 30;
 const SPINE_FIT = 0.92;
 
@@ -69,6 +71,23 @@ function layoutPreloaderSpineInHost(spine, app, hostEl) {
 }
 
 /**
+ * @param {Spine} spine
+ * @param {number} [trackIndex]
+ */
+function whenTrackCompletes(spine, trackIndex = 0) {
+  return new Promise((resolve) => {
+    const listener = {
+      complete(entry) {
+        if (entry.trackIndex !== trackIndex) return;
+        spine.state.removeListener(listener);
+        resolve();
+      },
+    };
+    spine.state.addListener(listener);
+  });
+}
+
+/**
  * @param {HTMLElement} hostEl
  */
 export async function mountPreloaderSpine(hostEl) {
@@ -96,6 +115,7 @@ export async function mountPreloaderSpine(hostEl) {
   const anim = hasAnim(data, PRELOAD_ANIM)
     ? PRELOAD_ANIM
     : data.animations[0]?.name;
+  const animationDone = anim ? whenTrackCompletes(spine) : Promise.resolve();
   if (anim) {
     spine.state.setAnimation(0, anim, false);
   }
@@ -111,6 +131,7 @@ export async function mountPreloaderSpine(hostEl) {
   app.ticker.add(onTick);
 
   return {
+    animationDone,
     relayout: () => layoutPreloaderSpineInHost(spine, app, hostEl),
     destroy() {
       app.ticker.remove(onTick);

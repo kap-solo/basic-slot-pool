@@ -1781,7 +1781,7 @@ betUi.bind({
   },
 });
 
-registerAutoplayConfirm(modalHost, {
+const autoplayConfirm = registerAutoplayConfirm(modalHost, {
   getPlayCost: playCostDisplay,
   getBalance: () => balance,
   onConfirm: runAutoplay,
@@ -1802,11 +1802,7 @@ const betChromeHandlers = {
       stopAutoplay();
       return;
     }
-    if (betUi.elements.autoplay) {
-      betUi.elements.autoplay.click();
-      return;
-    }
-    runAutoplay(100);
+    autoplayConfirm.open();
   },
   onStepUp: () => stepBet(1),
   onStepDown: () => stepBet(-1),

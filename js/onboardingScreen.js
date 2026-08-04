@@ -525,14 +525,6 @@ export function createOnboardingScreen(options) {
     return queueLayoutWork(() => applyLayoutBody());
   }
 
-  let gestureUnlocked = false;
-
-  function ensureGestureUnlock() {
-    if (gestureUnlocked) return;
-    gestureUnlocked = true;
-    onGestureUnlock?.();
-  }
-
   function teardown() {
     layoutGeneration += 1;
     window.clearTimeout(layoutDebounceId);
@@ -540,8 +532,6 @@ export function createOnboardingScreen(options) {
     window.removeEventListener('resize', onResize);
     viewport?.removeEventListener('resize', onResize);
     continueBtn.removeEventListener('click', onContinueClick);
-    prevBtn.removeEventListener('pointerdown', onSideNavPointerDown);
-    nextBtn.removeEventListener('pointerdown', onSideNavPointerDown);
     prevBtn.removeEventListener('click', onPrevClick);
     nextBtn.removeEventListener('click', onNextClick);
     clearSpineMounts();
@@ -552,37 +542,32 @@ export function createOnboardingScreen(options) {
   function dismiss() {
     if (dismissed) return;
     dismissed = true;
-    ensureGestureUnlock();
     teardown();
     onContinue?.();
   }
 
   function onContinueClick() {
     if (dismissed) return;
-    ensureGestureUnlock();
+    // Always unlock on continue — iOS rejects pointerdown; a prior side-nav pointerdown must not skip this.
+    onGestureUnlock?.();
     dismiss();
-  }
-
-  function onSideNavPointerDown(event) {
-    event.stopPropagation();
-    ensureGestureUnlock();
   }
 
   function onPrevClick(event) {
     event.stopPropagation();
     if (prevBtn.disabled) return;
+    onGestureUnlock?.();
     setCarouselIndex(carouselIndex - 1);
   }
 
   function onNextClick(event) {
     event.stopPropagation();
     if (nextBtn.disabled) return;
+    onGestureUnlock?.();
     setCarouselIndex(carouselIndex + 1);
   }
 
   continueBtn.addEventListener('click', onContinueClick);
-  prevBtn.addEventListener('pointerdown', onSideNavPointerDown);
-  nextBtn.addEventListener('pointerdown', onSideNavPointerDown);
   prevBtn.addEventListener('click', onPrevClick);
   nextBtn.addEventListener('click', onNextClick);
 

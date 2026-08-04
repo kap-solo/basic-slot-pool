@@ -17,8 +17,8 @@ body {
   font-family: var(--game-font-family);
 }
 
-/* Hide game chrome until preloader/onboarding mounts; overlays stay visible. */
-.suki-stake-shell.suki-shell-booting > :not(.suki-game-preloader):not(.suki-game-onboarding) {
+/* Hide game chrome until preloader/onboarding mounts; modal overlay stays visible. */
+.suki-stake-shell.suki-shell-booting > :not(.suki-game-preloader):not(.suki-game-onboarding):not(.suki-modal-overlay) {
   visibility: hidden;
 }
 

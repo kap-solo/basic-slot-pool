@@ -3,15 +3,38 @@
  */
 
 /**
+ * @param {HTMLElement | null | undefined} shell
+ */
+function ensureModalCloseButton(shell) {
+  const overlay = shell?.querySelector('.suki-modal-overlay');
+  const dialog = overlay?.querySelector('.suki-modal-dialog');
+  const header = dialog?.querySelector('.suki-modal-header');
+  if (!header) return;
+
+  let closeBtn = overlay?.querySelector('.suki-modal-close');
+  if (closeBtn) {
+    closeBtn.classList.remove('suki-game-info-close');
+    if (closeBtn.parentElement !== header) {
+      header.appendChild(closeBtn);
+    }
+  } else {
+    closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'suki-modal-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    header.appendChild(closeBtn);
+  }
+
+  closeBtn.textContent = '×';
+}
+
+/**
  * @param {ReturnType<import('@kap-solo/suki-engine/client/suki/modalHost.js').createModalHost>} modalHost
  * @param {HTMLElement | null | undefined} shell
  */
 export function applyModalCloseChrome(modalHost, shell) {
   function styleCloseButton() {
-    const closeBtn = shell?.querySelector('.suki-modal-close');
-    if (!closeBtn) return;
-    closeBtn.textContent = '×';
-    closeBtn.setAttribute('aria-label', 'Close');
+    ensureModalCloseButton(shell);
   }
 
   styleCloseButton();
@@ -23,11 +46,12 @@ export function applyModalCloseChrome(modalHost, shell) {
   const baseClose = modalHost.close.bind(modalHost);
 
   modalHost.open = (id) => {
-    styleCloseButton();
+    ensureModalCloseButton(shell);
     baseOpen(id);
   };
 
   modalHost.close = () => {
+    ensureModalCloseButton(shell);
     shell?.classList.remove('suki-autoplay-modal-open');
     shell?.classList.remove('suki-game-info-modal-open');
     shell?.classList.remove('suki-bet-picker-modal-open');
@@ -56,7 +80,6 @@ export function bindModalDismissToHost(modalHost, shell) {
 
   const scrim = overlay.querySelector('.suki-modal-scrim');
   const stage = overlay.querySelector('.suki-modal-stage');
-  const closeBtn = overlay.querySelector('.suki-modal-close');
 
   const dismiss = () => {
     if (shell?.classList.contains('suki-buy-bonus-final-confirm-open')) return;
@@ -69,7 +92,12 @@ export function bindModalDismissToHost(modalHost, shell) {
   };
 
   scrim?.addEventListener('click', intercept, true);
-  closeBtn?.addEventListener('click', intercept, true);
+  overlay.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (!target.closest('.suki-modal-close')) return;
+    intercept(event);
+  }, true);
   stage?.addEventListener('click', (event) => {
     if (event.target !== stage) return;
     intercept(event);
